@@ -37,7 +37,7 @@ public class Utils {
 	public Utils() {
 	}
 
-	public static void dataSetToTextFile(List<Tuple> dataSet, String filename) {
+	public void dataSetToTextFile(List<Tuple> dataSet, String filename) {
 
 		try {
 			File file = new File(filename);
@@ -55,7 +55,7 @@ public class Utils {
 		}
 	}
 
-	public static void dataSetToCSVFile(List<Tuple> ds, String filename) {
+	public void dataSetToCSVFile(List<Tuple> ds, String filename) {
 		//TODO::erase or modify this function
 		FileWriter fw = null;
 		CSVPrinter cp = null;
@@ -86,7 +86,7 @@ public class Utils {
 		}
 	}
 
-	public static void writeCSV(List<Tuple> ds, String filename) {
+	public void writeCSV(List<Tuple> ds, String filename) {
 		FileWriter fw = null;
 
 		try {

@@ -24,7 +24,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.FileMonitoringFunction;
+import org.apache.flink.streaming.api.function.source.FileMonitoringFunction;
 import org.apache.log4j.Logger;
 
 import java.util.concurrent.Executors;
@@ -36,7 +36,7 @@ public class LambdaPeriodicJoin {
 
 	private static final Logger log = Logger.getLogger(LambdaPeriodicJoin.class);
 
-	private static final String JARDependencies = "/Users/fobeligi/workspace/incubator-flink/flink-staging/" +
+	private static final String JARDependencies = "/home/fobeligi/workspace/incubator-flink/flink-staging/" +
 			"flink-streaming/flink-streaming-examples/target/flink-streaming-examples-0.9-SNAPSHOT-LambdaPeriodicJoin.jar";
 
 	// schedule batch job to run periodically and streamJob to run continuously
@@ -51,17 +51,17 @@ public class LambdaPeriodicJoin {
 		StreamExecutionEnvironment streamEnvironment = StreamExecutionEnvironment.createRemoteEnvironment("127.0.0.1",
 				6123, 1, JARDependencies);
 
-		CsvReader csvR = batchEnvironment.readCsvFile("/Users/fobeligi/Documents/dataSets/dataWithDrift/dataPoints.csv");
+		CsvReader csvR = batchEnvironment.readCsvFile("/home/fobeligi/dataSet-files/exampleCSV_1.csv");
 		csvR.lineDelimiter("\n");
 		DataSet<Tuple2<Double, Integer>> batchDataSet = csvR.types(Double.class, Integer.class);
 		
-		batchDataSet.write(new TypeSerializerOutputFormat<Tuple2<Double, Integer>>(), "/Users/fobeligi/Documents/dataSets/flinkTemp/temp",
+		batchDataSet.write(new TypeSerializerOutputFormat<Tuple2<Double, Integer>>(), "/home/fobeligi/FlinkTmp/temp",
 				FileSystem.WriteMode.OVERWRITE);
 
 		batchDataSet.print();
 
-		DataStream dataSetStream = streamEnvironment.readFileStream(
-				"file:///Users/fobeligi/Documents/dataSets/flinkTemp/temp", 1000,
+		DataStream<Tuple2<String, Tuple2<Double, Integer>>> dataSetStream = streamEnvironment.readFileStream(
+				"file:///home/fobeligi/FlinkTmp/temp", batchDataSet.getType(), 1000,
 				FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
 
 		dataSetStream.print();

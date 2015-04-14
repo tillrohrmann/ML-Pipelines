@@ -18,11 +18,11 @@ package org.apache.flink.streaming.examples.unifiedStreamBatch;
 
 import org.apache.flink.api.common.functions.Function;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.operators.StreamOperator;
+import org.apache.flink.streaming.api.invokable.StreamInvokable;
 
 import java.io.Serializable;
 
-public class DetectDrift extends StreamOperator<Tuple2<Double, Integer>,Tuple2<Double, Integer>> {
+public class DetectDrift extends StreamInvokable<Tuple2<Double, Integer>,Tuple2<Double, Integer>>{
 
 	private final TriggerBatchJobFunction userFun;
 
@@ -37,7 +37,7 @@ public class DetectDrift extends StreamOperator<Tuple2<Double, Integer>,Tuple2<D
 	}
 
 	@Override
-	public void run() throws Exception {
+	public void invoke() throws Exception {
 		while (readNext()!=null){
 			callUserFunctionAndLogException();
 		}

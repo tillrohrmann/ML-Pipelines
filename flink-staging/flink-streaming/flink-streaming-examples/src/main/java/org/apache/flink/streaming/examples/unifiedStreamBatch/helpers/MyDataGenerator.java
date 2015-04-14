@@ -18,7 +18,6 @@ package org.apache.flink.streaming.examples.unifiedStreamBatch.helpers;
 
 
 import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.flink.api.java.tuple.Tuple1;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,14 +25,14 @@ import java.util.List;
 
 public class MyDataGenerator implements IDataPatternFunction {
 
-	private static List<Double> x_dataPoints;
-	private static List<Double> data;
+	private static List<Double>  x_dataPoints;
+	private static List<Double>  data;
 	private double withError;
 	private NormalDistribution myErrorDistribution;
 
-	public MyDataGenerator(double error) {
+	public MyDataGenerator(double error){
 		this.withError = error;
-		if (withError != 0.0) {
+		if (withError!=0.0){
 			myErrorDistribution = new NormalDistribution(0.0, withError);
 		}
 	}
@@ -41,26 +40,25 @@ public class MyDataGenerator implements IDataPatternFunction {
 	@Override
 	public List patternFunction() {
 
-		List<Integer> y = new ArrayList<Integer>();
+		List<Integer>  y = new ArrayList<Integer>();
 
 		int w1 = 1;
 		int w2 = 2;
 		double point;
 
 		//pattern function: y = w1*sin(x) + w2*x + error
-		if (withError != 0.0) {
-			for (int i = 0; i < x_dataPoints.size(); i++) {
+		if (withError!=0.0){
+			for (int i=0;i<x_dataPoints.size();i++) {
 				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i) + myErrorDistribution.sample();
 				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point, x_dataPoints.get(i), w2));
+				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
 			}
-		} else {
-			for (int i = 0; i < x_dataPoints.size(); i++) {
+		}else
+			for (int i=0;i<x_dataPoints.size();i++) {
 				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i);
 				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point, x_dataPoints.get(i), w2));
+				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
 			}
-		}
 		return y;
 	}
 
@@ -72,7 +70,7 @@ public class MyDataGenerator implements IDataPatternFunction {
 		}
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args){
 
 		MyDataGenerator mdpg = new MyDataGenerator(0.1);
 		SyntheticDataGenerator sdg = new SyntheticDataGenerator(mdpg);
@@ -81,15 +79,6 @@ public class MyDataGenerator implements IDataPatternFunction {
 		System.out.println(x_dataPoints);
 		data = sdg.labelData();
 		System.out.println(data);
-		List ds = new ArrayList();
-		for (int i=0;i<x_dataPoints.size();i++){
-			ds.add(new Tuple1(x_dataPoints.get(i)));
-		}
-		Utils.writeCSV(ds, "/Users/fobeligi/Documents/dataSets/dataWithDrift/dataPoints.csv");
-//		for (int i = 0; i < data.size(); i++) {
-//			ds.add(new Tuple2(x_dataPoints.get(i), data.get(i)));
-//		}
-//		Utils.writeCSV(ds, "/Users/fobeligi/Documents/dataSets/dataWithDrift/labeledDataPoints.csv");
 	}
 
 }

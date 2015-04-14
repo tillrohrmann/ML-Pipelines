@@ -18,8 +18,11 @@ package org.apache.flink.streaming.examples.unifiedStreamBatch.helpers;
 
 import org.apache.commons.math3.distribution.EnumeratedIntegerDistribution;
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.util.Precision;
 import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +39,6 @@ public class SyntheticDataGenerator {
 	private boolean withNoise;
 	private double gaussianMean;
 	private double gaussianVariance;
-	private double driftStep;
 	private String filePath;
 	private Properties properties;
 	private IDataPatternFunction myPatternFunction;
@@ -85,22 +87,21 @@ public class SyntheticDataGenerator {
 //	}
 
 	private void loadProperties() {
-		properties = new Properties();
-		try {
+		properties= new Properties();
+		try{
 
 			InputStream propertiesFile = getClass().getClassLoader().getResourceAsStream("config.properties");
 			properties.load(propertiesFile);
-			withDrift = Boolean.parseBoolean(properties.getProperty("with.drift"));
-			if (withDrift) {
+			withDrift = Boolean.getBoolean(properties.getProperty("with.drift"));
+			if (withDrift){
 				intervals_Of_Drift = Integer.parseInt(properties.getProperty("drift.intervals"));
-				driftStep = Double.parseDouble(properties.getProperty("drift.step"));
 			}
 			numberOfDataPoints = Integer.parseInt(properties.getProperty("data.points"));
 			filePath = properties.getProperty("data.filePath") + properties.getProperty("data.fileName");
 
 			gaussianMean = Double.parseDouble(properties.getProperty("initial.mean"));
 			gaussianVariance = Double.parseDouble(properties.getProperty("initial.variance"));
-			if (gaussianVariance == 0.0) {
+			if (gaussianVariance==0.0){
 				gaussianVariance = 1.0;
 			}
 			withNoise = Boolean.getBoolean(properties.getProperty("with.noise"));
@@ -114,21 +115,26 @@ public class SyntheticDataGenerator {
 		}
 	}
 
-//	public void generateLabeledData(int dataPoints) {
-//		if (withDrift) {
-//			dataSet = generateLabeledDataWithDrift(dataPoints);
-//		} else {
-//			dataSet = generateLabeledDataWithoutDrift(dataPoints);
+	public void generateLabeledData(int dataPoints) {
+		if (withDrift) {
+			dataSet = generateLabeledDataWithDrift(dataPoints);
+		} else {
+			dataSet = generateLabeledDataWithoutDrift(dataPoints);
+		}
+
+//		for (int j=0;j<dataSet.size();j++){
+//			System.out.println(dataSet.get(j).toString());
 //		}
-//		dataSetToDataFile(dataSet);
-//	}
+		dataSetToDataFile(dataSet);
+	}
 
 	public List generateData() {
 		myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
 		if (withDrift) {
 			return generateDataWithDrift();
+		} else {
+			return generateDataWithoutDrift();
 		}
-		return generateDataWithoutDrift();
 	}
 
 	private List generateDataWithDrift() {
@@ -144,19 +150,18 @@ public class SyntheticDataGenerator {
 		1. p(x) evolves by varying it's distribution center "gaussianMean"
 		2. p(y/x) evolves, by changes w2 = w2 + 1 (with a probability)*/
 		for (int k = 0; k < intervals_Of_Drift; k++) {
-			for (int i = 0; i < numberOfDataPoints / intervals_Of_Drift; i++) {
+			for (int i = 0; i < numberOfDataPoints/intervals_Of_Drift; i++) {
 //				x_temp = Precision.round(myDataDistribution.sample(), 4);
 				data.add(myDataDistribution.sample());
+
+				// drift of data direction
+				double newMean = gaussianMean + (1 ^ driftDirection.sample()) * 0.1;
+				myDataDistribution = new NormalDistribution(newMean, gaussianVariance);
 			}
-			// drift of data direction
-			gaussianMean += driftStep;//(1 ^ driftDirection.sample()) * 0.1;
-			System.out.println("newMean: "+gaussianMean);
-			myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
 		}
 		return data;
 	}
-
-	private List generateDataWithoutDrift() {
+	private List generateDataWithoutDrift () {
 
 		EnumeratedIntegerDistribution noiseDistribution = null;
 		List data = new ArrayList();
@@ -170,104 +175,104 @@ public class SyntheticDataGenerator {
 	public List labelData() {
 
 		List<Integer> dataPoints = this.myPatternFunction.patternFunction();
-		if (!withNoise) {
+		if (!withNoise){
 			return dataPoints;
-		} else {
+		}else{
 			int[] numbers = {1, -1};
 			double[] probabilities = {0.8, 0.2};
 			//adding noise by allowing the class value to change or not with a given probability
 			EnumeratedIntegerDistribution noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
 			List data = new ArrayList();
-			for (int j = 0; j < dataPoints.size(); j++) {
-				data.add(dataPoints.get(j) * noiseDistribution.sample());
+			for(int j=0;j<dataPoints.size();j++){
+				data.add(dataPoints.get(j)* noiseDistribution.sample());
 			}
 			return data;
 		}
 	}
 
-//	private void dataSetToDataFile(List<Tuple> dataSet) {
-//		Utils fp = new Utils();
-//		fp.dataSetToTextFile(dataSet, filePath + "syntheticData1.txt");
-////		fp.dataSetToCSVFile(dataSet,"exampleCSV.csv");
-//		fp.writeCSV(dataSet, filePath + "exampleCSV_1.csv");
-//	}
+	private void dataSetToDataFile(List<Tuple> dataSet) {
+		Utils fp = new Utils();
+		fp.dataSetToTextFile(dataSet, filePath + "syntheticData1.txt");
+//		fp.dataSetToCSVFile(dataSet,"exampleCSV.csv");
+		fp.writeCSV(dataSet, filePath + "exampleCSV_1.csv");
+	}
 
-//	private List<Tuple> generateLabeledDataWithoutDrift(int dataPoints) {
-//		NormalDistribution myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
-//		EnumeratedIntegerDistribution noiseDistribution = null;
-//		List<Tuple> data = new ArrayList<Tuple>();
-//		Double x_temp;
-//		int y_temp;
-//
-//		if (withNoise) {
-//			int[] numbers = {1, -1};
-//			double[] probabilities = {0.8, 0.2};
-//			noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
-//		}
-//
-//		for (int i = 0; i < dataPoints; i++) {
-//			x_temp = myDataDistribution.sample();
-//			double point = Math.sin(x_temp) + 2 * x_temp + myErrorDistribution.sample();
-//			if (point >= 2 * x_temp) {
-//				y_temp = 1;
-//			} else {
-//				y_temp = -1;
-//			}
-//			if (withNoise) {
-//				data.add(new Tuple2(x_temp, y_temp * noiseDistribution.sample()));
-//			} else {
-//				data.add(new Tuple2(x_temp, y_temp));
-//			}
-//		}
-//		return data;
-//	}
+	private List<Tuple> generateLabeledDataWithoutDrift(int dataPoints) {
+		NormalDistribution myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
+		EnumeratedIntegerDistribution noiseDistribution = null;
+		List<Tuple> data = new ArrayList<Tuple>();
+		Double x_temp;
+		int y_temp;
 
-//	private List<Tuple> generateLabeledDataWithDrift(int dataPoints) {
-//		myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
-//		EnumeratedIntegerDistribution noiseDistribution = null;
-//
-//		int[] direction = {1, -1};
-//		double[] directionProbabilities = {0.9, 0.1};
-//		EnumeratedIntegerDistribution driftDirection = new EnumeratedIntegerDistribution(direction, directionProbabilities);
-//
-//		List<Tuple> data = new ArrayList<Tuple>();
-//		Double x_temp;
-//		int y_temp;
-//		int w1 = 1;
-//		int w2 = 2;
-//
-//		//adding noise by allowing the class value to change or not with a given probability
-//		if (withNoise) {
-//			int[] numbers = {1, -1};
-//			double[] probabilities = {0.8, 0.2};
-//			noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
-//		}
-///*		pattern function: y = w1*sin(x) + w2*x + error
-//		evolve distribution:
-//		1. p(x) evolves by varying it's distribution center "gaussianMean"
-//		2. p(y/x) evolves, by changes w2 = w2 + 1 (with a probability)*/
-//		int numberOfPoints = dataPoints / intervals_Of_Drift;
-//		for (int k = 0; k < intervals_Of_Drift; k++) {
-//			for (int i = 0; i < numberOfPoints; i++) {
-//				x_temp = Precision.round(myDataDistribution.sample(), 4);
-//				double point = w1 * Math.sin(x_temp) + w2 * x_temp + myErrorDistribution.sample();
-//				if (point >= w2 * x_temp) {
-//					y_temp = 1;
-//				} else {
-//					y_temp = -1;
-//				}
-//				if (withNoise) {
-//					data.add(new Tuple2(x_temp, y_temp * noiseDistribution.sample()));
-//				} else {
-//					data.add(new Tuple2(x_temp, y_temp));
-//				}
-//			}
-//			// drift of data direction
-//			double newMean = gaussianMean + (1 ^ driftDirection.sample()) * 0.1;
-//			myDataDistribution = new NormalDistribution(newMean, gaussianVariance);
-//		}
-//		return data;
-//	}
+		if (withNoise) {
+			int[] numbers = {1, -1};
+			double[] probabilities = {0.8, 0.2};
+			noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
+		}
+
+		for (int i = 0; i < dataPoints; i++) {
+			x_temp = myDataDistribution.sample();
+			double point = Math.sin(x_temp) + 2 * x_temp + myErrorDistribution.sample();
+			if (point >= 2 * x_temp) {
+				y_temp = 1;
+			} else {
+				y_temp = -1;
+			}
+			if (withNoise) {
+				data.add(new Tuple2(x_temp, y_temp * noiseDistribution.sample()));
+			} else {
+				data.add(new Tuple2(x_temp, y_temp));
+			}
+		}
+		return data;
+	}
+
+	private List<Tuple> generateLabeledDataWithDrift(int dataPoints) {
+		myDataDistribution = new NormalDistribution(gaussianMean, gaussianVariance);
+		EnumeratedIntegerDistribution noiseDistribution = null;
+
+		int[] direction = {1, -1};
+		double[] directionProbabilities = {0.9, 0.1};
+		EnumeratedIntegerDistribution driftDirection = new EnumeratedIntegerDistribution(direction, directionProbabilities);
+
+		List<Tuple> data = new ArrayList<Tuple>();
+		Double x_temp;
+		int y_temp;
+		int w1 = 1;
+		int w2 = 2;
+
+		//adding noise by allowing the class value to change or not with a given probability
+		if (withNoise) {
+			int[] numbers = {1, -1};
+			double[] probabilities = {0.8, 0.2};
+			noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
+		}
+/*		pattern function: y = w1*sin(x) + w2*x + error
+		evolve distribution:
+		1. p(x) evolves by varying it's distribution center "gaussianMean"
+		2. p(y/x) evolves, by changes w2 = w2 + 1 (with a probability)*/
+		int numberOfPoints = dataPoints / intervals_Of_Drift;
+		for (int k = 0; k < intervals_Of_Drift; k++) {
+			for (int i = 0; i < numberOfPoints; i++) {
+				x_temp = Precision.round(myDataDistribution.sample(), 4);
+				double point = w1 * Math.sin(x_temp) + w2 * x_temp + myErrorDistribution.sample();
+				if (point >= w2 * x_temp) {
+					y_temp = 1;
+				} else {
+					y_temp = -1;
+				}
+				if (withNoise) {
+					data.add(new Tuple2(x_temp, y_temp * noiseDistribution.sample()));
+				} else {
+					data.add(new Tuple2(x_temp, y_temp));
+				}
+			}
+			// drift of data direction
+			double newMean = gaussianMean + (1 ^ driftDirection.sample()) * 0.1;
+			myDataDistribution = new NormalDistribution(newMean, gaussianVariance);
+		}
+		return data;
+	}
 
 	public boolean isWithDrift() {
 		return withDrift;

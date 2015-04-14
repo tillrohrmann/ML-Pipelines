@@ -28,7 +28,7 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.FileMonitoringFunction;
+import org.apache.flink.streaming.api.function.source.FileMonitoringFunction;
 import org.apache.flink.util.Collector;
 
 import java.util.concurrent.Executors;
@@ -66,12 +66,12 @@ public class LambdaTriggeredJoin {
 
 		batchDataSet.print();
 
-		DataStream dataSetStream = streamEnvironment.readFileStream(
-				"file:///home/fobeligi/FlinkTmp/temp", 1000,
+		DataStream<Tuple2<String, Tuple2<Double, Integer>>> dataSetStream = streamEnvironment.readFileStream(
+				"file:///home/fobeligi/FlinkTmp/temp", batchDataSet.getType(), 1000,
 				FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
 
 		dataSetStream.print();
-		SingleOutputStreamOperator ds = dataSetStream.project(1).returns(Tuple2.class);
+		SingleOutputStreamOperator ds = dataSetStream.project(1).types(Tuple2.class);
 
 
 		periodicBatchJob = new BatchJob(batchEnvironment);
