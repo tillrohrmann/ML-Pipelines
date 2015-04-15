@@ -66,8 +66,8 @@ public class LambdaTriggeredJoin {
 
 		batchDataSet.print();
 
-		DataStream<Tuple2<String, Tuple2<Double, Integer>>> dataSetStream = streamEnvironment.readFileStream(
-				"file:///home/fobeligi/FlinkTmp/temp", batchDataSet.getType(), 1000,
+		DataStream dataSetStream = streamEnvironment.readFileStream(
+				"file:///home/fobeligi/FlinkTmp/temp", 1000,
 				FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
 
 		dataSetStream.print();
