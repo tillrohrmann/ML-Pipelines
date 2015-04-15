@@ -30,7 +30,7 @@ public class BatchJob implements Runnable, Serializable {
 
 	public BatchJob(ExecutionEnvironment execEnv) {
 		this.plan = execEnv.createProgramPlan();
-		this.executor = new LocalExecutor(false);
+		this.executor = new LocalExecutor();
 		executor.setTaskManagerNumSlots(4);
 		try {
 			executor.start();
