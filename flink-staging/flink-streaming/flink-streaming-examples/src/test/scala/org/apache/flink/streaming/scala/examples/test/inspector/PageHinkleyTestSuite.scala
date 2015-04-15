@@ -26,21 +26,25 @@ class PageHinkleyTestSuite
 
   behavior of "The Page Hinkley Test change detector implementation"
 
-  it should "detect drift on " in {
+  it should "detect drift on the input data stream" in {
 
     import PageHinkleyTestData._
 
     val pht = PageHinkleyTest(lambda,delta,minNumberOfInstances)
+    var changesDetected: Int = 0
 
     for (dataPoint <- data){
       val res = pht.input(dataPoint)
       if (res){
-        println(pht.toString)
+        println(pht.toString+"\n")
+        changesDetected += 1
         pht.reset()
       }
-      println("--!--: "+res)
     }
     println(pht.toString)
+    println (s"\nTotal number of detected changed in the input dataStream: $changesDetected")
+
+    changesDetected should be >= 3
 
   }
 }
