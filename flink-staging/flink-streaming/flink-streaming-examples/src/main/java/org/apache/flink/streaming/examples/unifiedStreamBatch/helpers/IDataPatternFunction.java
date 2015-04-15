@@ -20,6 +20,6 @@ import java.util.List;
 
 public interface IDataPatternFunction {
 
-	List patternFunction();
+    List patternFunction();
 
 }

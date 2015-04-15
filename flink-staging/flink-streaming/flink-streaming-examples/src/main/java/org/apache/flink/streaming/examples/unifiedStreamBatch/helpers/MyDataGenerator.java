@@ -25,60 +25,60 @@ import java.util.List;
 
 public class MyDataGenerator implements IDataPatternFunction {
 
-	private static List<Double>  x_dataPoints;
-	private static List<Double>  data;
-	private double withError;
-	private NormalDistribution myErrorDistribution;
+    private static List<Double> x_dataPoints;
+    private static List<Double> data;
+    private double withError;
+    private NormalDistribution myErrorDistribution;
 
-	public MyDataGenerator(double error){
-		this.withError = error;
-		if (withError!=0.0){
-			myErrorDistribution = new NormalDistribution(0.0, withError);
-		}
-	}
+    public MyDataGenerator(double error) {
+        this.withError = error;
+        if (withError != 0.0) {
+            myErrorDistribution = new NormalDistribution(0.0, withError);
+        }
+    }
 
-	@Override
-	public List patternFunction() {
+    @Override
+    public List patternFunction() {
 
-		List<Integer>  y = new ArrayList<Integer>();
+        List<Integer> y = new ArrayList<Integer>();
 
-		int w1 = 1;
-		int w2 = 2;
-		double point;
+        int w1 = 1;
+        int w2 = 2;
+        double point;
 
-		//pattern function: y = w1*sin(x) + w2*x + error
-		if (withError!=0.0){
-			for (int i=0;i<x_dataPoints.size();i++) {
-				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i) + myErrorDistribution.sample();
-				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
-			}
-		}else
-			for (int i=0;i<x_dataPoints.size();i++) {
-				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i);
-				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
-			}
-		return y;
-	}
+        //pattern function: y = w1*sin(x) + w2*x + error
+        if (withError != 0.0) {
+            for (int i = 0; i < x_dataPoints.size(); i++) {
+                point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i) + myErrorDistribution.sample();
+                //if no classification is needed just add the y value of the dataPoint in the list
+                y.add(classifyPoint(point, x_dataPoints.get(i), w2));
+            }
+        } else
+            for (int i = 0; i < x_dataPoints.size(); i++) {
+                point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i);
+                //if no classification is needed just add the y value of the dataPoint in the list
+                y.add(classifyPoint(point, x_dataPoints.get(i), w2));
+            }
+        return y;
+    }
 
-	private Integer classifyPoint(double point, Double x_temp, int w2) {
-		if (point >= w2 * x_temp) {
-			return 1;
-		} else {
-			return (-1);
-		}
-	}
+    private Integer classifyPoint(double point, Double x_temp, int w2) {
+        if (point >= w2 * x_temp) {
+            return 1;
+        } else {
+            return (-1);
+        }
+    }
 
-	public static void main(String[] args){
+    public static void main(String[] args) {
 
-		MyDataGenerator mdpg = new MyDataGenerator(0.1);
-		SyntheticDataGenerator sdg = new SyntheticDataGenerator(mdpg);
+        MyDataGenerator mdpg = new MyDataGenerator(0.1);
+        SyntheticDataGenerator sdg = new SyntheticDataGenerator(mdpg);
 
-		x_dataPoints = sdg.generateData();
-		System.out.println(x_dataPoints);
-		data = sdg.labelData();
-		System.out.println(data);
-	}
+        x_dataPoints = sdg.generateData();
+        System.out.println(x_dataPoints);
+        data = sdg.labelData();
+        System.out.println(data);
+    }
 
 }
