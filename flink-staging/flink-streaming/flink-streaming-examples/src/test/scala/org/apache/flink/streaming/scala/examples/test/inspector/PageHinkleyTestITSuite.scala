@@ -15,8 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.test
+package org.apache.flink.streaming.scala.examples.test.inspector
 
+import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -25,4 +26,9 @@ class PageHinkleyTestITSuite
   with Matchers
   with FlinkTestBase {
 
+  behavior of "The Page Hinkley Test change detector implementation"
+
+  it should "detect drift on " in {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+  }
 }
