@@ -17,20 +17,30 @@
  */
 package org.apache.flink.streaming.scala.examples.test.inspector
 
-import org.apache.flink.streaming.api.scala._
-import org.apache.flink.test.util.FlinkTestBase
+import org.apache.flink.streaming.scala.examples.inspector.PageHinkleyTest
 import org.scalatest.{FlatSpec, Matchers}
 
-class PageHinkleyTestITSuite
+class PageHinkleyTestSuite
   extends FlatSpec
-  with Matchers
-  with FlinkTestBase {
+  with Matchers {
 
   behavior of "The Page Hinkley Test change detector implementation"
 
   it should "detect drift on " in {
 
-    val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val ds = env.fromElements(data)
+    import PageHinkleyTestData._
+
+    val pht = PageHinkleyTest(lambda,delta,minNumberOfInstances)
+
+    for (dataPoint <- data){
+      val res = pht.input(dataPoint)
+      if (res){
+        println(pht.toString)
+        pht.reset()
+      }
+      println("--!--: "+res)
+    }
+    println(pht.toString)
+
   }
 }

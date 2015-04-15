@@ -19,7 +19,6 @@ package org.apache.flink.streaming.examples.unifiedStreamBatch.helpers;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.api.java.tuple.Tuple2;
-import scala.Tuple1;
 
 import java.util.ArrayList;
 import java.util.List;
