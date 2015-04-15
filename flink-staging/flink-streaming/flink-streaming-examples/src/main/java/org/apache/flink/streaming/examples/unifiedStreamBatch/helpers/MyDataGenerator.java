@@ -18,6 +18,7 @@ package org.apache.flink.streaming.examples.unifiedStreamBatch.helpers;
 
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 
 import java.util.ArrayList;
@@ -82,10 +83,14 @@ public class MyDataGenerator implements IDataPatternFunction {
 		data = sdg.labelData();
 		System.out.println(data);
 		List ds = new ArrayList();
-		for (int i = 0; i < data.size(); i++) {
-			ds.add(new Tuple2(x_dataPoints.get(i), data.get(i)));
+		for (int i=0;i<x_dataPoints.size();i++){
+			ds.add(new Tuple1(x_dataPoints.get(i)));
 		}
 		Utils.writeCSV(ds, "/Users/fobeligi/Documents/dataSets/dataWithDrift/dataPoints.csv");
+//		for (int i = 0; i < data.size(); i++) {
+//			ds.add(new Tuple2(x_dataPoints.get(i), data.get(i)));
+//		}
+//		Utils.writeCSV(ds, "/Users/fobeligi/Documents/dataSets/dataWithDrift/labeledDataPoints.csv");
 	}
 
 }
