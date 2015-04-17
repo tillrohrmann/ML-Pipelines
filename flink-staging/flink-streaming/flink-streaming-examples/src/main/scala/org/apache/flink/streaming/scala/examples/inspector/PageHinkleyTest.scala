@@ -50,16 +50,15 @@ class PageHinkleyTest(
     mean += (inputPoint - mean) / pointsSeen
     cumulativeSum += inputPoint - mean - delta
 
-    //start checking for change detection after a # of instances have been seen
-    if (pointsSeen > minInstances) {
+    //TODO::Possible refactoring -> start checking for change detection after a # of instances have been seen
+    //if (pointsSeen > minInstances)
       // update minValue if needed
-      if (cumulativeSum < minValue) {
-        minValue = cumulativeSum
-      }
-      if (cumulativeSum - minValue > lambda) {
-        isChangedDetected = true
-        return true
-      }
+    if (cumulativeSum < minValue) {
+      minValue = cumulativeSum
+    }
+    if (cumulativeSum - minValue > lambda) {
+      isChangedDetected = true
+      return true
     }
     false
   }
