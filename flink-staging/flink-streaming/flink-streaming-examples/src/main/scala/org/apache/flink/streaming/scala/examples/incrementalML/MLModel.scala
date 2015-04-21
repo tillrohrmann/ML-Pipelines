@@ -15,38 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.inspector
+package org.apache.flink.streaming.scala.examples.incrementalML
 
-/** Base trait for ChangeDetectors
-  *
+/** Base trait for any machine learning model.
+  * The model learned in any of the ML algorithms should extend this trait
   */
-trait ChangeDetector {
-
-  /** True in case there was a change detected
-    *
-    */
-  var isChangedDetected: Boolean = false
-
-  //TODO:: Decide whether this function should return a boolean value or Unit
-  /** Adding another observation to the change detector
-    *
-    * Change detector's output is updated with the new data point
-    *
-    * @param inputPoint the new input point to change detector
-    *
-    * @return True if a change was detected
-    */
-  def input(inputPoint: Double): Boolean
-
-  /** Resets the change detector.
-    *
-    */
-  def reset(): Unit
-
-  /** Copies the ChangeDetector instance
-    *
-    * @return Copy of the ChangeDetector instance
-    */
-  def copy(): ChangeDetector
+trait MLModel {
 
 }
