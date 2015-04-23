@@ -17,9 +17,19 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-import org.apache.flink.ml.math.Vector
+import org.apache.flink.ml.common.LabeledVector
 
-class DataPoints(vector: Vector)
-  extends Metrics{
 
+class DataPoints(vector: LabeledVector)
+  extends Metrics {
+
+  override def toString: String = {
+    vector.toString
+  }
+}
+
+object DataPoints {
+  def apply(vector: LabeledVector): DataPoints = {
+    new DataPoints(vector)
+  }
 }
