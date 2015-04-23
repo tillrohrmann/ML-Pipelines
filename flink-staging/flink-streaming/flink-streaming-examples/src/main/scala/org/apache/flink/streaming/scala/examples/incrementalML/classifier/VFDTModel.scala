@@ -17,10 +17,7 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-import org.apache.flink.ml.common.WithParameters
-
-class VeryFastDecisionTree
-  extends WithParameters{
-
+class VFDTModel
+  extends Metrics {
 
 }
