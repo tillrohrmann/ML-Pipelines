@@ -93,6 +93,13 @@ under the License.
 			<version>3.2</version>
 		</dependency>
 
+		<!-- Add on scope of incremental ML -->
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-ml</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

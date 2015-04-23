@@ -17,10 +17,9 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-import org.apache.flink.ml.common.WithParameters
+import org.apache.flink.ml.math.Vector
 
-class VeryFastDecisionTree
-  extends WithParameters{
-
+class DataPoints(vector: Vector)
+  extends Metrics{
 
 }
