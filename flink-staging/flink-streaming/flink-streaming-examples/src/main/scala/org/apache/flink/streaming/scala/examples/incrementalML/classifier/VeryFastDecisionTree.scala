@@ -22,18 +22,24 @@ import java.util
 
 import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
-import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.ml.common.{LabeledVector, Parameter, WithParameters}
+import org.apache.flink.ml.common.{ParameterMap, LabeledVector, Parameter}
 import org.apache.flink.ml.math.DenseVector
-import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
-class VeryFastDecisionTree(context: StreamExecutionEnvironment)
-  extends WithParameters
+/**
+ * O Job graph pou tha exei o algorithmos exei ulopoihthei (iterations and merged streams etc)
+ * Dummy times pernane stous operators
+ *
+ * @param context
+ */
+class VeryFastDecisionTree(
+  context: StreamExecutionEnvironment)
+  extends Learner[LabeledVector, Metrics]
   with Serializable {
 
+  //TODO:: Check what other parameters need to be set
   def setMinNumberOfInstances(minInstances: Int): VeryFastDecisionTree = {
     parameters.add(minNumberOfInstances, minInstances)
     this
@@ -44,14 +50,19 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
     this
   }
 
-  def learn(inputDs : DataStream[LabeledVector]): Unit = {
-    val dataPointsStream: DataStream[Metrics] = inputDs.map(dp => DataPoints(dp))
-    //iterationFunction(dataPointsStream)
-    val out = dataPointsStream.iterate[Metrics]()(dataPointsStream => iterationFunction(dataPointsStream))
-  }
-  def iterationFunction(dataPointsStream : DataStream[Metrics]): (DataStream[Metrics],DataStream[Metrics]) = {
+  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
+  DataStream[Metrics] = {
+    val resultingParameters = this.parameters ++ fitParameters
 
-    //TODO:: add iteration here
+    val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
+    val out = dataPointsStream.iterate[Metrics](dataPointsStream => iterationFunction
+      (dataPointsStream))
+    out
+  }
+
+  private def iterationFunction(dataPointsStream: DataStream[Metrics]): (DataStream[Metrics],
+    DataStream[Metrics]) = {
+
     val mSAds = dataPointsStream.setParallelism(1).flatMap(
       new FlatMapFunction[Metrics, (Long, Metrics)] {
 
@@ -59,8 +70,8 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
           var counter = 0
           //if a data point is received
           if (value.isInstanceOf[DataPoints]) {
-            //1. classify data point first
-            //2. number of instances seen till now
+            //TODO:: 1. classify data point first
+            //TODO:: 2. number of instances seen till now
             val tempVector = value.asInstanceOf[DataPoints].getVector
             for (i <- 0 until tempVector.size) {
               out.collect((i + 1, VFDTAttributes(i, tempVector(i), 1)))
@@ -71,21 +82,22 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
             }
           } //if a sub-model is received
           else if (value.isInstanceOf[VFDTModel]) {
+            //TODO:: Aggregate models and broadcast global model
             out.collect((-1, value))
           }
           else {
-            throw new RuntimeException("--------------------What the fuck is that, that you're " +
+            throw new RuntimeException("--------------------WTF is that, that you're " +
               "sending me ??? x-( :" + value.getClass.toString)
           }
         }
       })
-    mSAds.print()
-
+    //TODO:: Decide which values will declare if it is a Model or a Signal
     val attributes = mSAds.filter(new FilterFunction[(Long, Metrics)] {
       override def filter(value: (Long, Metrics)): Boolean = {
         return value._1 > 0
       }
     })
+
     val modelAndSignal = mSAds.filter(new FilterFunction[(Long, Metrics)] {
       override def filter(value: (Long, Metrics)): Boolean = {
         return (value._1 == -1 || value._1 == -2)
@@ -96,8 +108,8 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
         FlatMapFunction[(Long, Metrics), Metrics] {
 
       override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
-        //if attribute just do update the metrics
-        //if signal, calculate and feed the sub-model back to the iteration
+        //TODO:: if attribute just do update the metrics
+        //TODO:: if signal, calculate and feed the sub-model back to the iteration
         if (value._2.isInstanceOf[Signal]) {
           out.collect(VFDTModel(-100))
         }
@@ -118,9 +130,8 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
 
     val feedback: DataStream[Metrics] = splitDs.select("feedback")
     val output: DataStream[Metrics] = splitDs.select("output")
-    (feedback,output)
+    (feedback, output)
   }
-
 }
 
 object VeryFastDecisionTree {
@@ -151,7 +162,7 @@ object VeryFastDecisionTree {
   def main(args: Array[String]) {
     val con = StreamExecutionEnvironment.getExecutionEnvironment
     val vfdt = VeryFastDecisionTree(con)
-    vfdt.learn(con.fromCollection(data))
+    vfdt.fit(con.fromCollection(data))
     con.execute()
   }
 }
