@@ -26,11 +26,12 @@ class VFDTModel(
   }
 }
 
-object VFDTModel extends Serializable{
+object VFDTModel extends Serializable {
   def apply(): VFDTModel = {
     new VFDTModel(0)
   }
-  def apply(m : Int): VFDTModel = {
+
+  def apply(m: Int): VFDTModel = {
     new VFDTModel(m)
   }
 }

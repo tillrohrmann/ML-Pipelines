@@ -26,9 +26,9 @@ package org.apache.flink.streaming.scala.examples.incrementalML.inspector
  *                     change
  */
 class PageHinkleyTest(
-    val lambda: Double,
-    val delta: Double,
-    val minInstances: Int)
+  val lambda: Double,
+  val delta: Double,
+  val minInstances: Int)
   extends ChangeDetector
   with Serializable {
 
@@ -50,9 +50,10 @@ class PageHinkleyTest(
     mean += (inputPoint - mean) / pointsSeen
     cumulativeSum += inputPoint - mean - delta
 
-    //TODO::Possible refactoring -> start checking for change detection after a # of instances have been seen
+    //TODO::Possible refactoring -> start checking for change detection after a # of instances
+    // have been seen
     //if (pointsSeen > minInstances)
-      // update minValue if needed
+    // update minValue if needed
     if (cumulativeSum < minValue) {
       minValue = cumulativeSum
     }
