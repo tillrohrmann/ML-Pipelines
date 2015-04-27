@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.scala.examples.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.streaming.scala.examples.incrementalML.MLModel
+import org.apache.flink.streaming.scala.examples.incrementalML.classifier.VFDTModel
 
 
 /** Base trait for algorithm which evaluates the current model for the input data points
@@ -38,7 +38,7 @@ trait Evaluator[IN, OUT] {
     *
     * @return True if a change was detected
     */
-  def updateModel(inputModel: MLModel): Unit
+  def updateModel(inputModel: VFDTModel): Unit
 
   /** Evaluating model's accuracy with the input observations
     *

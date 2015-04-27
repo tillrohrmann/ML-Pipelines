@@ -17,20 +17,20 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-class VFDTModel(
-  model: Int)
-  extends Metrics {
+class Signal(
+  leaf: Int
+  )
+  extends Metrics
+  with Serializable{
 
   override def toString: String = {
-    s"Model: $model"
+    s"Signal in leaf: $leaf"
+  }
+
+}
+object Signal {
+  def apply(leaf: Int): Signal = {
+    new Signal(leaf)
   }
 }
 
-object VFDTModel extends Serializable{
-  def apply(): VFDTModel = {
-    new VFDTModel(0)
-  }
-  def apply(m : Int): VFDTModel = {
-    new VFDTModel(m)
-  }
-}
