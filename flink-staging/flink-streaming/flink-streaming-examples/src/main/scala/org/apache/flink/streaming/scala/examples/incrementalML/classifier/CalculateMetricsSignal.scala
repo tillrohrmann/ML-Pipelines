@@ -21,13 +21,14 @@ class Signal(
   leaf: Int
   )
   extends Metrics
-  with Serializable{
+  with Serializable {
 
   override def toString: String = {
     s"Signal in leaf: $leaf"
   }
 
 }
+
 object Signal {
   def apply(leaf: Int): Signal = {
     new Signal(leaf)

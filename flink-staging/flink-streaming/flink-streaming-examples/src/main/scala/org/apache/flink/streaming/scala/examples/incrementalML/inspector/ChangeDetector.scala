@@ -19,7 +19,8 @@ package org.apache.flink.streaming.scala.examples.incrementalML.inspector
 
 /** Base trait for an algorithm which detects concept drift on the input data.
   *
-  * A [[ChangeDetector]] is used to detect concept changes on the input data to some output data. Transformations might
+  * A [[ChangeDetector]] is used to detect concept changes on the input data to some output data.
+  * Transformations might
   * be feature extractors, feature mappings, whitening or centralization just to name a few.
   *
   */

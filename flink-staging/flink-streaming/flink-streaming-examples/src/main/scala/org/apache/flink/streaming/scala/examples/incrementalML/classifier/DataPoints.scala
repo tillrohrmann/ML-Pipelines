@@ -22,13 +22,13 @@ import org.apache.flink.ml.math.Vector
 
 class DataPoints(vector: LabeledVector)
   extends Metrics
-  with Serializable{
+  with Serializable {
 
-  def getVector : Vector = {
+  def getVector: Vector = {
     vector.vector
   }
 
-  def getLabel : Double = {
+  def getLabel: Double = {
     vector.label
   }
 
