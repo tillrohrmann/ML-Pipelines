@@ -17,21 +17,18 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-class VFDTAttributes(
-  id: Int,
-  value: Double,
-  leaf: Int)
-  extends Metrics
-  with Serializable {
+import org.apache.flink.ml.common.{ParameterMap, WithParameters}
+import org.apache.flink.streaming.api.scala.DataStream
 
-  override def toString: String = {
-    s"Attr. $id= $value, leaf: $leaf"
-  }
 
-}
-
-object VFDTAttributes {
-  def apply(id: Int, value: Double, leaf: Int): VFDTAttributes = {
-    new VFDTAttributes(id, value, leaf)
-  }
+/** Base trait for a streaming algorithm which trains a model based on some training data
+  *
+  * Every learner has to implement the `fit` method which takes the training data and learns
+  * a model from the data.
+  *
+  * @tparam IN Type of the training data
+  * @tparam OUT Type of the trained model
+  */
+trait Learner[IN, OUT] extends WithParameters {
+  def fit(input: DataStream[IN], fitParameters: ParameterMap = ParameterMap.Empty): DataStream[OUT]
 }
