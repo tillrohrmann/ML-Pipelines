@@ -15,11 +15,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML
+package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-/** Base trait for any machine learning model.
-  * The model learned in any of the ML algorithms should extend this trait
-  */
-trait MLModel {
+class VFDTAttributes(
+  id: Int,
+  value: Double,
+  leaf: Int)
+  extends Metrics
+  with Serializable{
 
+  override def toString: String = {
+    s"Attr. $id= $value, leaf: $leaf"
+  }
+
+}
+object VFDTAttributes {
+  def apply(id: Int, value: Double, leaf: Int): VFDTAttributes = {
+    new VFDTAttributes(id,value,leaf)
+  }
 }
