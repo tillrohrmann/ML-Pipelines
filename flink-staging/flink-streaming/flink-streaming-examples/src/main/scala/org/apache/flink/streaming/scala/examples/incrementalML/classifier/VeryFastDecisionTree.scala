@@ -21,11 +21,11 @@ import java.lang.Iterable
 import java.util
 
 import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
+import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
+import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.ml.common.{ParameterMap, LabeledVector, Parameter}
-import org.apache.flink.ml.math.DenseVector
-import VeryFastDecisionTree._
+import org.apache.flink.streaming.scala.examples.incrementalML.classifier.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
 /**
@@ -155,8 +155,8 @@ object VeryFastDecisionTree {
   }
 
   val data: Seq[LabeledVector] = List(LabeledVector(1.0, DenseVector(Array(2104.00, 3.00, -7, 0))),
-    LabeledVector(1.0, DenseVector(Array(1600.00, 4.00, -12, 0.7)))
-    //    LabeledVector(1.0, DenseVector(Array(2400.00, 3.00, -3, 0)))
+    LabeledVector(1.0, DenseVector(Array(1600.00, 4.00, -12, 0.7))),
+    LabeledVector(1.0, DenseVector(Array(2400.00, 3.00, -3, 0)))
   )
 
   def main(args: Array[String]) {
