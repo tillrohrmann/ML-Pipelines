@@ -17,9 +17,13 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-import org.apache.flink.api.common.functions.FlatMapFunction
-import org.apache.flink.api.scala.functions.FlatMapFunction
-import org.apache.flink.api.scala._
+import java.lang.Iterable
+import java.util
+
+import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
+import org.apache.flink.streaming.api.collector.selector.OutputSelector
+import org.apache.flink.streaming.api.scala.DataStream
+import org.apache.flink.streaming.api.scala._
 import org.apache.flink.ml.common.{LabeledVector, Parameter, WithParameters}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -27,8 +31,8 @@ import VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
 class VeryFastDecisionTree(context: StreamExecutionEnvironment)
-  extends Serializable
-  with WithParameters {
+  extends WithParameters
+  with Serializable {
 
   def setMinNumberOfInstances(minInstances: Int): VeryFastDecisionTree = {
     parameters.add(minNumberOfInstances, minInstances)
@@ -40,8 +44,83 @@ class VeryFastDecisionTree(context: StreamExecutionEnvironment)
     this
   }
 
-  val dataPointsStream = context.fromCollection(data).map(dp => DataPoints(dp))
-  dataPointsStream.
+  def learn(inputDs : DataStream[LabeledVector]): Unit = {
+    val dataPointsStream: DataStream[Metrics] = inputDs.map(dp => DataPoints(dp))
+    //iterationFunction(dataPointsStream)
+    val out = dataPointsStream.iterate[Metrics]()(dataPointsStream => iterationFunction(dataPointsStream))
+  }
+  def iterationFunction(dataPointsStream : DataStream[Metrics]): (DataStream[Metrics],DataStream[Metrics]) = {
+
+    //TODO:: add iteration here
+    val mSAds = dataPointsStream.setParallelism(1).flatMap(
+      new FlatMapFunction[Metrics, (Long, Metrics)] {
+
+        override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
+          var counter = 0
+          //if a data point is received
+          if (value.isInstanceOf[DataPoints]) {
+            //1. classify data point first
+            //2. number of instances seen till now
+            val tempVector = value.asInstanceOf[DataPoints].getVector
+            for (i <- 0 until tempVector.size) {
+              out.collect((i + 1, VFDTAttributes(i, tempVector(i), 1)))
+              if (i == 2) {
+                out.collect((-2, Signal(counter)))
+                counter += 1
+              }
+            }
+          } //if a sub-model is received
+          else if (value.isInstanceOf[VFDTModel]) {
+            out.collect((-1, value))
+          }
+          else {
+            throw new RuntimeException("--------------------What the fuck is that, that you're " +
+              "sending me ??? x-( :" + value.getClass.toString)
+          }
+        }
+      })
+    mSAds.print()
+
+    val attributes = mSAds.filter(new FilterFunction[(Long, Metrics)] {
+      override def filter(value: (Long, Metrics)): Boolean = {
+        return value._1 > 0
+      }
+    })
+    val modelAndSignal = mSAds.filter(new FilterFunction[(Long, Metrics)] {
+      override def filter(value: (Long, Metrics)): Boolean = {
+        return (value._1 == -1 || value._1 == -2)
+      }
+    })
+
+    val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast).flatMap(new
+        FlatMapFunction[(Long, Metrics), Metrics] {
+
+      override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
+        //if attribute just do update the metrics
+        //if signal, calculate and feed the sub-model back to the iteration
+        if (value._2.isInstanceOf[Signal]) {
+          out.collect(VFDTModel(-100))
+        }
+      }
+    }).split(new OutputSelector[Metrics] {
+      override def select(value: Metrics): Iterable[String] = {
+        val output = new util.ArrayList[String]()
+
+        if (value.isInstanceOf[VFDTModel]) {
+          output.add("feedback")
+        }
+        else {
+          output.add("output")
+        }
+        output
+      }
+    })
+
+    val feedback: DataStream[Metrics] = splitDs.select("feedback")
+    val output: DataStream[Metrics] = splitDs.select("output")
+    (feedback,output)
+  }
+
 }
 
 object VeryFastDecisionTree {
@@ -64,14 +143,15 @@ object VeryFastDecisionTree {
     new VeryFastDecisionTree(context)
   }
 
-  val data: Seq[LabeledVector] = List(LabeledVector(1.0, DenseVector(Array(2104.00, 3.00))),
-    LabeledVector(1.0, DenseVector(Array(1600.00, 3.00))),
-    LabeledVector(1.0, DenseVector(Array(2400.00, 3.00)))
+  val data: Seq[LabeledVector] = List(LabeledVector(1.0, DenseVector(Array(2104.00, 3.00, -7, 0))),
+    LabeledVector(1.0, DenseVector(Array(1600.00, 4.00, -12, 0.7)))
+    //    LabeledVector(1.0, DenseVector(Array(2400.00, 3.00, -3, 0)))
   )
 
   def main(args: Array[String]) {
     val con = StreamExecutionEnvironment.getExecutionEnvironment
-    VeryFastDecisionTree(con)
+    val vfdt = VeryFastDecisionTree(con)
+    vfdt.learn(con.fromCollection(data))
     con.execute()
   }
 }
