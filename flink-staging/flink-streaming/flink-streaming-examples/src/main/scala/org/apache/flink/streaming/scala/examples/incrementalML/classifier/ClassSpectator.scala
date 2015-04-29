@@ -17,21 +17,17 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-class VFDTModel(
-  model: Int)
-  extends Metrics {
+/** Base trait for a class that will incrementally update the metrics of a class
+  *
+  */
 
-  override def toString: String = {
-    s"Model: $model"
-  }
-}
+trait ClassSpectator {
 
-object VFDTModel extends Serializable {
-  def apply(): VFDTModel = {
-    new VFDTModel(0)
+  def calculateBestAttributeToSplit(): Unit ={
+
   }
 
-  def apply(m: Int): VFDTModel = {
-    new VFDTModel(m)
+  def updateWithAttribute(): Unit ={
+
   }
 }
