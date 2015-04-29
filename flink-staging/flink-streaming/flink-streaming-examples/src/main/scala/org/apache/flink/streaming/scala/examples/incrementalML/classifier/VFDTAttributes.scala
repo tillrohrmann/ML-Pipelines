@@ -29,15 +29,6 @@ class VFDTAttributes(
   extends Metrics
   with Serializable {
 
-
-  def getClazz : Double ={
-    clazz
-  }
-
-  def getValue : Double ={
-    value
-  }
-
   override def toString: String = {
     s"Attr. $id= $value, leaf: $leaf"
   }
