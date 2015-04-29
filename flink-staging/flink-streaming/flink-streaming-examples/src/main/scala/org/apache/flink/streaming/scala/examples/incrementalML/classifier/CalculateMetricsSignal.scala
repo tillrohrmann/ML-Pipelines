@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
 class CalculateMetricsSignal(
-  leaf: Int)
+  val leaf: Int)
   extends Metrics
   with Serializable {
 

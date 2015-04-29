@@ -15,19 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier
+package org.apache.flink.streaming.scala.examples.incrementalML.classifier.classSpectator
+
+import scala.collection.mutable
 
 /** Base trait for a class that will incrementally update the metrics of a class
   *
   */
 
-trait ClassSpectator {
+trait AttributeSpectator[IN] extends Serializable{
 
-  def calculateBestAttributeToSplit(): Unit ={
+  def calculateBestAttributesToSplit: Unit ={}
 
-  }
-
-  def updateWithAttribute(): Unit ={
-
-  }
+  def updateMetricsWithAttribute(attribute: IN): Unit ={}
 }
