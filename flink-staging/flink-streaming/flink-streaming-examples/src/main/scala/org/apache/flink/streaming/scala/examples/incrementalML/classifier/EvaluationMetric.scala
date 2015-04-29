@@ -17,20 +17,48 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
-class CalculateMetricsSignal(
-  leaf: Int)
+
+
+class EvaluationMetric(
+  val bestValue: (Int,Double),
+  val secondBestValue: (Int,Double))
   extends Metrics
   with Serializable {
 
   override def toString: String = {
-    s"Signal in leaf: $leaf"
-  }
-
-}
-
-object CalculateMetricsSignal {
-  def apply(leaf: Int): CalculateMetricsSignal = {
-    new CalculateMetricsSignal(leaf)
+    s"Best attribute to Split: $bestValue, second best attribute to split:$secondBestValue\n"
   }
 }
 
+object EvaluationMetric {
+
+  def apply(firstSplitAttr: (Int, Double), secondSplitAttr: (Int, Double)): EvaluationMetric = {
+    new EvaluationMetric(firstSplitAttr,secondSplitAttr)
+  }
+}
+
+class EvaluationMetricFunction(
+  evalMetric: EvaluationMetricFunction)
+  extends Serializable{
+
+//  import EvaluationMetricFunction._
+
+//  def calculateMetrics(): Double = evalMetric match {
+//    case InformationGain => calculateInformationGain
+//    case GiniImpurity => calculateGiniImpurity
+//  }
+
+  def calculateInformationGain: Double = {
+
+    0.0
+  }
+//  def calculateGiniImpurity: Double ={
+//
+//    0.0
+//  }
+}
+
+//object EvaluationMetricFunction extends Enumeration {
+//  type EvaluationMetricFunction = Value
+//  val GiniImpurity, InformationGain = Value
+//}

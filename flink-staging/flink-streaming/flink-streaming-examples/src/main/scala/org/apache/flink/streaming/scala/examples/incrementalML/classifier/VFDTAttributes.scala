@@ -17,21 +17,40 @@
  */
 package org.apache.flink.streaming.scala.examples.incrementalML.classifier
 
+import org.apache.flink.streaming.scala.examples.incrementalML.classifier.AttributeType
+.AttributeType
+
 class VFDTAttributes(
-  id: Int,
-  value: Double,
-  leaf: Int)
+  val id: Int,
+  val value: Double,
+  val clazz: Double,
+  val leaf: Int,
+  val attributeType: AttributeType)
   extends Metrics
   with Serializable {
+
+
+  def getClazz : Double ={
+    clazz
+  }
+
+  def getValue : Double ={
+    value
+  }
 
   override def toString: String = {
     s"Attr. $id= $value, leaf: $leaf"
   }
-
 }
 
 object VFDTAttributes {
-  def apply(id: Int, value: Double, leaf: Int): VFDTAttributes = {
-    new VFDTAttributes(id, value, leaf)
+  def apply(id: Int, value: Double, clazz: Double, leaf: Int, attrType: AttributeType): VFDTAttributes = {
+    new VFDTAttributes(id, value, clazz, leaf, attrType)
   }
+}
+
+
+object AttributeType extends Enumeration with Serializable {
+  type AttributeType = Value
+  val Nominal,Numerical = Value
 }
