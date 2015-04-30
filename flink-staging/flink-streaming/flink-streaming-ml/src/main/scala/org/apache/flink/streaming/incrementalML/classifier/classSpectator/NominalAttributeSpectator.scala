@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier.classSpectator
+package org.apache.flink.streaming.incrementalML.classifier.classSpectator
 
-import org.apache.flink.streaming.scala.examples.incrementalML.classifier.{Metrics, VFDTAttributes}
+import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
 import scala.collection.mutable
 
@@ -25,7 +25,7 @@ class NominalAttributeSpectator
   extends AttributeSpectator[Metrics]
   with Serializable {
 
-  val attributeValues = mutable.HashMap[String, (Double, Double)]()
+  val attributeValues = mutable.HashMap[String, Double]()
 
   /**
    *
@@ -43,14 +43,11 @@ class NominalAttributeSpectator
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
     if (attributeValues.contains(VFDTAttribute.value.toString)) {
       var temp = attributeValues.apply(VFDTAttribute.value.toString)
-      temp = if (VFDTAttribute.clazz == 0.0) (temp._1, temp._2 + 1.0)
-      else (temp._1 + 1.0, temp._2)
+      temp += 1.0
       attributeValues.put(VFDTAttribute.value.toString, temp)
     }
     else {
-      val t = if (VFDTAttribute.clazz == 0.0) (0.0, 1.0) else (1.0, 0.0)
-      attributeValues.put(VFDTAttribute.value.toString, t)
-
+      attributeValues.put(VFDTAttribute.value.toString, 1.0)
     }
   }
 

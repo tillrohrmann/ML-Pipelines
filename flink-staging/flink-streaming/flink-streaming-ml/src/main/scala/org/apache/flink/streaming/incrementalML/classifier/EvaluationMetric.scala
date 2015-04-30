@@ -15,9 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier
-
-
+package org.apache.flink.streaming.incrementalML.classifier
 
 class EvaluationMetric(
   val bestValue: (Int,Double),

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classifier
 
 import org.apache.flink.ml.common.{ParameterMap, WithParameters}
 import org.apache.flink.streaming.api.scala.DataStream

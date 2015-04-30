@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier.classSpectator
+package org.apache.flink.streaming.incrementalML.classifier.classSpectator
 
-import org.apache.flink.streaming.scala.examples.incrementalML.classifier.{Metrics, VFDTAttributes}
+import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
 class NumericalAttributeSpectator
   extends AttributeSpectator[Metrics]
@@ -25,7 +25,7 @@ class NumericalAttributeSpectator
 
   var attributeSum = 0.0
   var attributeSoS = 0.0
-  var attributeDistribution = (0.0, 0.0) //(#Yes,#No)
+  //  var attributeDistribution = (0.0, 0.0) //(#Yes,#No)
   var instancesSeen = 0
 
   var attrMean = 0.0
@@ -44,14 +44,13 @@ class NumericalAttributeSpectator
 
     attrMean = attributeSum / instancesSeen //update attribute mean
     attrStd = Math.sqrt(attributeSoS / instancesSeen) //update attribute std
-    attributeDistribution =
-      if (attribute.clazz == 0.0) (attributeDistribution._1, attributeDistribution._2 + 1.0)
-      else (attributeDistribution._1 + 1.0, attributeDistribution._2)
+    //    attributeDistribution =
+    //      if (attribute.clazz == 0.0) (attributeDistribution._1, attributeDistribution._2 + 1.0)
+    //      else (attributeDistribution._1 + 1.0, attributeDistribution._2)
   }
 
   override def toString: String = {
     s"AttributeMean:$attrMean, attributeStd:$attrStd, " +
-      s"attributeDistribution:$attributeDistribution, and all these just with $instancesSeen " +
-      s"instances"
+      s"and all these just with $instancesSeen instances"
   }
 }

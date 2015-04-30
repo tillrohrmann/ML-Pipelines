@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classifier
 
 import java.lang.Iterable
 import java.util
@@ -25,8 +25,8 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.scala.examples.incrementalML.classifier.VeryFastDecisionTree._
-import org.apache.flink.streaming.scala.examples.incrementalML.classifier.classSpectator._
+import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
+import org.apache.flink.streaming.incrementalML.classifier.classSpectator.{AttributeSpectator, NominalAttributeSpectator, NumericalAttributeSpectator}
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -81,7 +81,7 @@ class VeryFastDecisionTree(
                 out.collect((i, VFDTAttributes(i, tempVector(i), value.asInstanceOf[DataPoints]
                   .getLabel, 10, AttributeType.Numerical)))
               }
-              else{
+              else {
                 out.collect((i, VFDTAttributes(i, tempVector(i), value.asInstanceOf[DataPoints]
                   .getLabel, 10, AttributeType.Nominal)))
               }
@@ -114,77 +114,83 @@ class VeryFastDecisionTree(
       new FlatMapFunction[(Long, Metrics), Metrics] {
 
         //[LeafId,HashMap[AttributeId,AttributeSpectator]]
-        val leafsObserver = new mutable.HashMap[Int, mutable.HashMap[Long,
-          AttributeSpectator[Metrics]]]()
+        val leafsObserver = new mutable.HashMap[Int, mutable.HashMap[String, mutable.HashMap[Long,
+          AttributeSpectator[Metrics]]]]()
+
+        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
+          AttributeSpectator[Metrics]]] = null
+
+        var attributesSpectatorTemp: mutable.HashMap[Long, AttributeSpectator[Metrics]] = null
 
         override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
 
           //TODO:: if attribute just do update the metrics
           if (value._2.isInstanceOf[VFDTAttributes]) {
             val attribute = value._2.asInstanceOf[VFDTAttributes]
+
             //check if there is a spectator for this leaf
             if (leafsObserver.contains(attribute.leaf)) {
-              val attributesSpectatorTemp = leafsObserver.apply(attribute.leaf)
+              leafClassTemp = leafsObserver.apply(attribute.leaf) //take the leaf observer
+            }
+            else {
+              leafClassTemp = new mutable.HashMap[String, mutable.HashMap[Long,
+                AttributeSpectator[Metrics]]]
+            }
 
-              //check if there is an attributeSpectator for this attribute, update metrics
-              if (attributesSpectatorTemp.contains(value._1)) {
-                attributesSpectatorTemp.apply(value._1).updateMetricsWithAttribute(attribute)
-              }
-              else {
-                //if there is no attributeSpectator create one, nominal or numerical
-                val tempSpectator = if (attribute.attributeType == AttributeType.Nominal)
-                  new NominalAttributeSpectator
-                else new NumericalAttributeSpectator
-
-                tempSpectator.updateMetricsWithAttribute(attribute)
-
-                attributesSpectatorTemp.put(value._1,
-                  tempSpectator.asInstanceOf[AttributeSpectator[Metrics]])
-              }
+            if (leafClassTemp.contains(attribute.clazz.toString)) {
+              //take the class observer
+              attributesSpectatorTemp = leafClassTemp.apply(attribute.clazz.toString)
             }
             else {
               //if there is no spectator for that leaf
-              val attributeSpectator = new mutable.HashMap[Long, AttributeSpectator[Metrics]]()
-
-              // create an attributeSpectator, nominal or numerical
+              attributesSpectatorTemp = new mutable.HashMap[Long, AttributeSpectator[Metrics]]()
+            }
+            //check if there is an attributeSpectator for this attribute, update metrics
+            if (attributesSpectatorTemp.contains(value._1)) {
+              attributesSpectatorTemp.apply(value._1).updateMetricsWithAttribute(attribute)
+            }
+            else {
+              //if there is no attributeSpectator create one, nominal or numerical
               val tempSpectator = if (attribute.attributeType == AttributeType.Nominal)
                 new NominalAttributeSpectator
               else new NumericalAttributeSpectator
 
               tempSpectator.updateMetricsWithAttribute(attribute)
 
-              attributeSpectator.put(value._1,
+              attributesSpectatorTemp.put(value._1,
                 tempSpectator.asInstanceOf[AttributeSpectator[Metrics]])
-
-              leafsObserver.put(attribute.leaf, attributeSpectator)
             }
-            println("----------------" + leafsObserver + "----------------")
+            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
+            leafsObserver.put(attribute.leaf, leafClassTemp)
           }
-          //TODO:: if signal, calculate and feed the sub-model back to the iteration
-          if (value._2.isInstanceOf[CalculateMetricsSignal]) {
-            val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
-              .leaf)
+          println("----------------" + leafsObserver + "----------------")
 
-          }
-        }
-      }).split(new OutputSelector[Metrics] {
-      override def select(value: Metrics): Iterable[String] = {
-        val output = new util.ArrayList[String]()
+        //TODO:: if signal, calculate and feed the sub-model back to the iteration
+        if (value._2.isInstanceOf[CalculateMetricsSignal]) {
+          val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
+            .leaf)
 
-        if (value.isInstanceOf[EvaluationMetric]) {
-          output.add("feedback")
         }
-        else {
-          output.add("output")
-        }
-        output
       }
-    })
+  }).split(new OutputSelector[Metrics] {
+    override def select(value: Metrics): Iterable[String] = {
+      val output = new util.ArrayList[String]()
 
-    val feedback: DataStream[Metrics] = splitDs.select("feedback")
-    val output: DataStream[Metrics] = splitDs.select("output")
-    (feedback, output)
-  }
+      if (value.isInstanceOf[EvaluationMetric]) {
+        output.add("feedback")
+      }
+      else {
+        output.add("output")
+      }
+      output
+    }
+  })
+
+  val feedback: DataStream[Metrics] = splitDs.select("feedback")
+  val output: DataStream[Metrics] = splitDs.select("output")
+  (feedback, output)
+}
+
 }
 
 object VeryFastDecisionTree {

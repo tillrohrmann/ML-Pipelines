@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.evaluator
+package org.apache.flink.streaming.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.streaming.scala.examples.incrementalML.classifier.EvaluationMetric
+import org.apache.flink.streaming.incrementalML.classifier.EvaluationMetric
 
 
 /** Base trait for algorithm which evaluates the current model for the input data points
