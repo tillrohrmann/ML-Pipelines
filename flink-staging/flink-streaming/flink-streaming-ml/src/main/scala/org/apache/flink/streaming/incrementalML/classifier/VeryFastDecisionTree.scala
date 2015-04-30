@@ -26,7 +26,8 @@ import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
-import org.apache.flink.streaming.incrementalML.classifier.classSpectator.{AttributeSpectator, NominalAttributeSpectator, NumericalAttributeSpectator}
+import org.apache.flink.streaming.incrementalML.classifier.classObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -44,12 +45,12 @@ class VeryFastDecisionTree(
 
   //TODO:: Check what other parameters need to be set
   def setMinNumberOfInstances(minInstances: Int): VeryFastDecisionTree = {
-    parameters.add(minNumberOfInstances, minInstances)
+    parameters.add(MinNumberOfInstances, minInstances)
     this
   }
 
   def setThreshold(thresh: Double): VeryFastDecisionTree = {
-    parameters.add(threshold, thresh)
+    parameters.add(Threshold, thresh)
     this
   }
 
@@ -58,7 +59,7 @@ class VeryFastDecisionTree(
     val resultingParameters = this.parameters ++ fitParameters
 
     val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
-    val out = dataPointsStream.iterate[Metrics](dataPointsStream => iterationFunction
+    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => iterationFunction
       (dataPointsStream))
     out
   }
@@ -113,14 +114,14 @@ class VeryFastDecisionTree(
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast).flatMap(
       new FlatMapFunction[(Long, Metrics), Metrics] {
 
-        //[LeafId,HashMap[AttributeId,AttributeSpectator]]
-        val leafsObserver = new mutable.HashMap[Int, mutable.HashMap[String, mutable.HashMap[Long,
-          AttributeSpectator[Metrics]]]]()
+        //[LeafId,HashMap[AttributeId,AttributeObserver]]
+        val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
+          [Long, AttributeObserver[Metrics]]]()
 
-        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
-          AttributeSpectator[Metrics]]] = null
+        //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
+        //          AttributeObserver[Metrics]]] = null
 
-        var attributesSpectatorTemp: mutable.HashMap[Long, AttributeSpectator[Metrics]] = null
+        var attributesSpectatorTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
 
         override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -128,22 +129,23 @@ class VeryFastDecisionTree(
           if (value._2.isInstanceOf[VFDTAttributes]) {
             val attribute = value._2.asInstanceOf[VFDTAttributes]
 
-            //check if there is a spectator for this leaf
-            if (leafsObserver.contains(attribute.leaf)) {
-              leafClassTemp = leafsObserver.apply(attribute.leaf) //take the leaf observer
-            }
-            else {
-              leafClassTemp = new mutable.HashMap[String, mutable.HashMap[Long,
-                AttributeSpectator[Metrics]]]
-            }
+            //            //check if there is a spectator for this leaf
+            //            if (leafsObserver.contains(attribute.leaf)) {
+            //              leafClassTemp = leafsObserver.apply(attribute.leaf) //take the leaf
+            // observer
+            //            }
+            //            else {
+            //              leafClassTemp = new mutable.HashMap[String, mutable.HashMap[Long,
+            //                AttributeObserver[Metrics]]]
+            //            }
 
-            if (leafClassTemp.contains(attribute.clazz.toString)) {
+            if (leafsObserver.contains(attribute.leaf)) {
               //take the class observer
-              attributesSpectatorTemp = leafClassTemp.apply(attribute.clazz.toString)
+              attributesSpectatorTemp = leafsObserver.apply(attribute.leaf)
             }
             else {
               //if there is no spectator for that leaf
-              attributesSpectatorTemp = new mutable.HashMap[Long, AttributeSpectator[Metrics]]()
+              attributesSpectatorTemp = new mutable.HashMap[Long, AttributeObserver[Metrics]]()
             }
             //check if there is an attributeSpectator for this attribute, update metrics
             if (attributesSpectatorTemp.contains(value._1)) {
@@ -151,45 +153,48 @@ class VeryFastDecisionTree(
             }
             else {
               //if there is no attributeSpectator create one, nominal or numerical
-              val tempSpectator = if (attribute.attributeType == AttributeType.Nominal)
-                new NominalAttributeSpectator
-              else new NumericalAttributeSpectator
+              val tempSpectator = if (attribute.attributeType == AttributeType.Nominal) {
+                new NominalAttributeObserver
+              }
+              else {
+                new NumericalAttributeObserver
+              }
 
               tempSpectator.updateMetricsWithAttribute(attribute)
 
               attributesSpectatorTemp.put(value._1,
-                tempSpectator.asInstanceOf[AttributeSpectator[Metrics]])
+                tempSpectator.asInstanceOf[AttributeObserver[Metrics]])
             }
-            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
-            leafsObserver.put(attribute.leaf, leafClassTemp)
+            //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
+            leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
           }
           println("----------------" + leafsObserver + "----------------")
 
-        //TODO:: if signal, calculate and feed the sub-model back to the iteration
-        if (value._2.isInstanceOf[CalculateMetricsSignal]) {
-          val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
-            .leaf)
+          //TODO:: if signal, calculate and feed the sub-model back to the iteration
+          if (value._2.isInstanceOf[CalculateMetricsSignal]) {
+            val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
+              .leaf)
 
+          }
         }
-      }
-  }).split(new OutputSelector[Metrics] {
-    override def select(value: Metrics): Iterable[String] = {
-      val output = new util.ArrayList[String]()
+      }).setParallelism(1).split(new OutputSelector[Metrics] {
+      override def select(value: Metrics): Iterable[String] = {
+        val output = new util.ArrayList[String]()
 
-      if (value.isInstanceOf[EvaluationMetric]) {
-        output.add("feedback")
+        if (value.isInstanceOf[EvaluationMetric]) {
+          output.add("feedback")
+        }
+        else {
+          output.add("output")
+        }
+        output
       }
-      else {
-        output.add("output")
-      }
-      output
-    }
-  })
+    })
 
-  val feedback: DataStream[Metrics] = splitDs.select("feedback")
-  val output: DataStream[Metrics] = splitDs.select("output")
-  (feedback, output)
-}
+    val feedback: DataStream[Metrics] = splitDs.select("feedback")
+    val output: DataStream[Metrics] = splitDs.select("output")
+    (feedback, output)
+  }
 
 }
 
@@ -198,14 +203,14 @@ object VeryFastDecisionTree {
   /** Minimum number of instances seen, before deciding the new splitting feature.
     *
     */
-  case object minNumberOfInstances extends Parameter[Int] {
+  case object MinNumberOfInstances extends Parameter[Int] {
     override val defaultValue: Option[Int] = Some(200)
   }
 
   /** Hoeffding Bound threshold
     *
     */
-  case object threshold extends Parameter[Double] {
+  case object Threshold extends Parameter[Double] {
     override val defaultValue: Option[Double] = Some(1.0)
   }
 
@@ -223,7 +228,11 @@ object VeryFastDecisionTree {
     val con = StreamExecutionEnvironment.getExecutionEnvironment
     val vfdt = VeryFastDecisionTree(con)
     vfdt.fit(con.fromCollection(data))
-    println(con.getExecutionPlan())
+    //    println(con.getExecutionPlan())
     con.execute()
   }
+}
+
+object VeryFastDecisionTreeModel extends Serializable {
+
 }
