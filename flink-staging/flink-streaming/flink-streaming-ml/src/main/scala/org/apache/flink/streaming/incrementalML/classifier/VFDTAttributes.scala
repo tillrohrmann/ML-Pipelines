@@ -34,7 +34,8 @@ class VFDTAttributes(
 }
 
 object VFDTAttributes {
-  def apply(id: Int, value: Double, clazz: Double, leaf: Int, attrType: AttributeType): VFDTAttributes = {
+  def apply(id: Int, value: Double, clazz: Double, leaf: Int, attrType: AttributeType):
+  VFDTAttributes = {
     new VFDTAttributes(id, value, clazz, leaf, attrType)
   }
 }
@@ -42,5 +43,5 @@ object VFDTAttributes {
 
 object AttributeType extends Enumeration with Serializable {
   type AttributeType = Value
-  val Nominal,Numerical = Value
+  val Nominal, Numerical = Value
 }
