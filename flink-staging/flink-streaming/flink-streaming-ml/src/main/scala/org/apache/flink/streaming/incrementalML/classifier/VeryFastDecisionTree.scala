@@ -21,6 +21,7 @@ import java.lang.Iterable
 import java.util
 
 import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
+import org.apache.flink.api.java.typeutils.runtime.TupleComparator
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
@@ -30,7 +31,7 @@ import org.apache.flink.streaming.incrementalML.classifier.classObserver.{Attrib
 NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.util.Collector
 
-import scala.collection.mutable
+import scala.collection.{mutable, immutable}
 
 /**
  * O Job graph pou tha exei o algorithmos exei ulopoihthei (iterations and merged streams etc)
@@ -87,6 +88,7 @@ class VeryFastDecisionTree(
                   .getLabel, 10, AttributeType.Nominal)))
               }
             }
+            out.collect((-2,CalculateMetricsSignal(10)))
           } //metrics are received, then update global model
           else if (value.isInstanceOf[EvaluationMetric]) {
             //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
@@ -122,6 +124,8 @@ class VeryFastDecisionTree(
         //          AttributeObserver[Metrics]]] = null
 
         var attributesSpectatorTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
+
+        var bestAttributesToSplit = mutable.MutableList[(Long,Double)]()
 
         override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -159,7 +163,6 @@ class VeryFastDecisionTree(
               else {
                 new NumericalAttributeObserver
               }
-
               tempSpectator.updateMetricsWithAttribute(attribute)
 
               attributesSpectatorTemp.put(value._1,
@@ -168,16 +171,25 @@ class VeryFastDecisionTree(
             //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
             leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
           }
-          println("----------------" + leafsObserver + "----------------")
+          println(leafsObserver)
 
           //TODO:: if signal, calculate and feed the sub-model back to the iteration
           if (value._2.isInstanceOf[CalculateMetricsSignal]) {
-            val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
-              .leaf)
+            if (leafsObserver.contains(value._2.asInstanceOf[CalculateMetricsSignal].leaf)){
+              val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
+                .leaf)
 
+              //[Long,HasMap[String,(#Yes,#No)]]
+              for (attr <- leafToSplit) {
+                val temp = attr._2.getSplitEvaluationMetric
+                bestAttributesToSplit+=((attr._1,temp))
+              }
+              bestAttributesToSplit = bestAttributesToSplit sortWith( (x,y) => x._2 < y._2 )
+              println("___________________________________________________"+bestAttributesToSplit)
+            }
           }
         }
-      }).setParallelism(1).split(new OutputSelector[Metrics] {
+      }).split(new OutputSelector[Metrics] {
       override def select(value: Metrics): Iterable[String] = {
         val output = new util.ArrayList[String]()
 
