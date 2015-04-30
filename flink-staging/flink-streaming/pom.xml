@@ -65,6 +65,7 @@ under the License.
 			<artifactId>flink-java</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
 	</dependencies>
 
 </project>
