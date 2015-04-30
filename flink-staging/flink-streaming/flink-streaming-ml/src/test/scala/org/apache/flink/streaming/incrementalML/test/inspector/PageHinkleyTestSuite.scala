@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.incrementalML.test.inspector
 
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{Matchers, FlatSpec}
 
 class PageHinkleyTestSuite
   extends FlatSpec
@@ -30,19 +30,19 @@ class PageHinkleyTestSuite
 
     import PageHinkleyTestData._
 
-    val pht = PageHinkleyTest(lambda, delta, minNumberOfInstances)
+    val pht = PageHinkleyTest(lambda,delta,minNumberOfInstances)
     var changesDetected: Int = 0
 
-    for (dataPoint <- data) {
+    for (dataPoint <- data){
       val res = pht.input(dataPoint)
-      if (res) {
-        println(pht.toString + "\n")
+      if (res){
+        println(pht.toString+"\n")
         changesDetected += 1
         pht.reset()
       }
     }
     println(pht.toString)
-    println(s"\nTotal number of detected changed in the input dataStream: $changesDetected")
+    println (s"\nTotal number of detected changed in the input dataStream: $changesDetected")
 
     changesDetected should be >= 3
 
