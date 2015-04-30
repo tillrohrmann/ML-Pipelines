@@ -15,22 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier.classSpectator
+package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
 import scala.collection.mutable
 
-class NominalAttributeSpectator
-  extends AttributeSpectator[Metrics]
+class NominalAttributeObserver
+  extends AttributeObserver[Metrics]
   with Serializable {
 
-  val attributeValues = mutable.HashMap[String, Double]()
+  val attributeValues = mutable.HashMap[String, (Double, Double)]()
 
   /**
    *
+   * @return
    */
-  override def calculateBestAttributesToSplit: Unit = super.calculateBestAttributesToSplit
+  override def getSplitEvaluationMetric: Double = {
+    return 0.0
+  }
 
   /**
    *
@@ -43,11 +46,17 @@ class NominalAttributeSpectator
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
     if (attributeValues.contains(VFDTAttribute.value.toString)) {
       var temp = attributeValues.apply(VFDTAttribute.value.toString)
-      temp += 1.0
+      temp = if (VFDTAttribute.clazz == 0.0) (temp._1, temp._2 + 1.0) else (temp._1 + 1.0, temp._2)
       attributeValues.put(VFDTAttribute.value.toString, temp)
     }
     else {
-      attributeValues.put(VFDTAttribute.value.toString, 1.0)
+      if (VFDTAttribute.clazz == 0.0) {
+        attributeValues.put(VFDTAttribute.value.toString, (0.0, 1.0))
+      }
+      else {
+        attributeValues.put(VFDTAttribute.value.toString, (1.0, 0.0))
+      }
+
     }
   }
 

@@ -15,23 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier.classSpectator
+package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
-class NumericalAttributeSpectator
-  extends AttributeSpectator[Metrics]
+class NumericalAttributeObserver
+  extends AttributeObserver[Metrics]
   with Serializable {
 
   var attributeSum = 0.0
   var attributeSoS = 0.0
-  //  var attributeDistribution = (0.0, 0.0) //(#Yes,#No)
+  var attributeDistribution = (0.0, 0.0)
+  //(#Yes,#No)
   var instancesSeen = 0
 
   var attrMean = 0.0
   var attrStd = 0.0
 
-  override def calculateBestAttributesToSplit: Unit = super.calculateBestAttributesToSplit
+  override def getSplitEvaluationMetric: Double = {
+    return 0.0
+  }
 
   override def updateMetricsWithAttribute(attr: Metrics): Unit = {
     val attribute = attr.asInstanceOf[VFDTAttributes]
@@ -44,13 +47,26 @@ class NumericalAttributeSpectator
 
     attrMean = attributeSum / instancesSeen //update attribute mean
     attrStd = Math.sqrt(attributeSoS / instancesSeen) //update attribute std
-    //    attributeDistribution =
-    //      if (attribute.clazz == 0.0) (attributeDistribution._1, attributeDistribution._2 + 1.0)
-    //      else (attributeDistribution._1 + 1.0, attributeDistribution._2)
+    attributeDistribution =
+      if (attribute.clazz == 0.0) (attributeDistribution._1, attributeDistribution._2 + 1.0)
+      else (attributeDistribution._1 + 1.0, attributeDistribution._2)
+  }
+
+  def getAttrMean: Double = {
+    attrMean
+  }
+
+  def getAttrStd: Double = {
+    attrStd
+  }
+
+  def getAttributeDistribution: (Double, Double) = {
+    attributeDistribution
   }
 
   override def toString: String = {
     s"AttributeMean:$attrMean, attributeStd:$attrStd, " +
+      s"AttributeDistribution:$attributeDistribution" +
       s"and all these just with $instancesSeen instances"
   }
 }

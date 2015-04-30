@@ -18,8 +18,8 @@
 package org.apache.flink.streaming.incrementalML.classifier
 
 class EvaluationMetric(
-  val bestValue: (Int,Double),
-  val secondBestValue: (Int,Double))
+  val bestValue: (Int, Double),
+  val secondBestValue: (Int, Double))
   extends Metrics
   with Serializable {
 
@@ -31,29 +31,30 @@ class EvaluationMetric(
 object EvaluationMetric {
 
   def apply(firstSplitAttr: (Int, Double), secondSplitAttr: (Int, Double)): EvaluationMetric = {
-    new EvaluationMetric(firstSplitAttr,secondSplitAttr)
+    new EvaluationMetric(firstSplitAttr, secondSplitAttr)
   }
 }
 
 class EvaluationMetricFunction(
   evalMetric: EvaluationMetricFunction)
-  extends Serializable{
+  extends Serializable {
 
-//  import EvaluationMetricFunction._
+  //  import EvaluationMetricFunction._
 
-//  def calculateMetrics(): Double = evalMetric match {
-//    case InformationGain => calculateInformationGain
-//    case GiniImpurity => calculateGiniImpurity
-//  }
+  //  def calculateMetrics(): Double = evalMetric match {
+  //    case InformationGain => calculateInformationGain
+  //    case GiniImpurity => calculateGiniImpurity
+  //  }
 
   def calculateInformationGain: Double = {
 
     0.0
   }
-//  def calculateGiniImpurity: Double ={
-//
-//    0.0
-//  }
+
+  //  def calculateGiniImpurity: Double ={
+  //
+  //    0.0
+  //  }
 }
 
 //object EvaluationMetricFunction extends Enumeration {
