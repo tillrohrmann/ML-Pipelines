@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.test.inspector
+package org.apache.flink.streaming.incrementalML.test.inspector
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest
+import org.scalatest.{Matchers, FlatSpec}
 
 class PageHinkleyTestSuite
   extends FlatSpec
