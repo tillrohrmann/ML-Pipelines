@@ -17,9 +17,12 @@
  */
 package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
+import java.util.UUID
+
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
 import scala.collection.mutable
+import scala.util.Random
 
 class NominalAttributeObserver
   extends AttributeObserver[Metrics]
@@ -32,7 +35,7 @@ class NominalAttributeObserver
    * @return
    */
   override def getSplitEvaluationMetric: Double = {
-    return 0.0
+    return Random.nextDouble()
   }
 
   /**

@@ -33,7 +33,7 @@ class NumericalAttributeObserver
   var attrStd = 0.0
 
   override def getSplitEvaluationMetric: Double = {
-    return 0.0
+    return instancesSeen
   }
 
   override def updateMetricsWithAttribute(attr: Metrics): Unit = {
