@@ -17,7 +17,7 @@
  */
 package org.apache.flink.streaming.scala.examples.test.inspector
 
-import org.apache.flink.streaming.scala.examples.incrementalML.inspector.PageHinkleyTest
+import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest
 import org.scalatest.{FlatSpec, Matchers}
 
 class PageHinkleyTestSuite

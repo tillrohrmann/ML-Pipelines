@@ -71,7 +71,7 @@ public class LambdaTriggeredJoin {
 				FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
 
 		dataSetStream.print();
-		SingleOutputStreamOperator ds = dataSetStream.project(1).types(Tuple2.class);
+		SingleOutputStreamOperator ds = dataSetStream.project(1).returns(Tuple2.class);
 
 
 		periodicBatchJob = new BatchJob(batchEnvironment);

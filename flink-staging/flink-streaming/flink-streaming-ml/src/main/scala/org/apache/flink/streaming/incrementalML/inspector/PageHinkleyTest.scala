@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.inspector
+package org.apache.flink.streaming.incrementalML.inspector
 
 /**
  * Page Hinkley Test implementation of [[ChangeDetector]]. Detects changes
