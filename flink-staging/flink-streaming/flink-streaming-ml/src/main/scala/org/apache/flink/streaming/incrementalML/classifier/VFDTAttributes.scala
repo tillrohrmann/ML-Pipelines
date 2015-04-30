@@ -15,17 +15,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier.classSpectator
+package org.apache.flink.streaming.incrementalML.classifier
 
-import scala.collection.mutable
+import org.apache.flink.streaming.incrementalML.classifier.AttributeType.AttributeType
 
-/** Base trait for a class that will incrementally update the metrics of a class
-  *
-  */
+class VFDTAttributes(
+  val id: Int,
+  val value: Double,
+  val clazz: Double,
+  val leaf: Int,
+  val attributeType: AttributeType)
+  extends Metrics
+  with Serializable {
 
-trait AttributeSpectator[IN] extends Serializable{
+  override def toString: String = {
+    s"Attr. $id= $value, leaf: $leaf"
+  }
+}
 
-  def calculateBestAttributesToSplit: Unit ={}
+object VFDTAttributes {
+  def apply(id: Int, value: Double, clazz: Double, leaf: Int, attrType: AttributeType): VFDTAttributes = {
+    new VFDTAttributes(id, value, clazz, leaf, attrType)
+  }
+}
 
-  def updateMetricsWithAttribute(attribute: IN): Unit ={}
+
+object AttributeType extends Enumeration with Serializable {
+  type AttributeType = Value
+  val Nominal,Numerical = Value
 }

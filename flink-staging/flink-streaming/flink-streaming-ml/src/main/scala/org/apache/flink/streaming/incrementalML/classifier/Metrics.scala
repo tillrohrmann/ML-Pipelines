@@ -15,30 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.scala.examples.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classifier
 
-import org.apache.flink.ml.common.LabeledVector
-import org.apache.flink.ml.math.Vector
+trait Metrics {
 
-class DataPoints(dataPoint: LabeledVector)
-  extends Metrics
-  with Serializable {
-
-  def getVector: Vector = {
-    dataPoint.vector
-  }
-
-  def getLabel: Double = {
-    dataPoint.label
-  }
-
-  override def toString: String = {
-    dataPoint.toString
-  }
-}
-
-object DataPoints {
-  def apply(vector: LabeledVector): DataPoints = {
-    new DataPoints(vector)
-  }
 }
