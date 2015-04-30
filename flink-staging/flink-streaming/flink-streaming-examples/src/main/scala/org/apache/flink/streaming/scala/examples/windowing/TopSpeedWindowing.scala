@@ -24,8 +24,8 @@ import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.scala.windowing.{Delta, Time}
 
 import scala.Stream._
-import scala.math._
 import scala.language.postfixOps
+import scala.math._
 import scala.util.Random
 
 /**
