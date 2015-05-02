@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.incrementalML.test.classifier
 
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
+import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -27,7 +27,7 @@ class VeryFastDecisionTreeITSuite
   with Matchers
   with FlinkTestBase {
 
-  behavior of "Flink's Very Fast Decision Tree algorithm"
+  behavior of "Flink's Very Fast Decision tree algorithm"
 
   import VeryFastDecisionTreeData._
 
@@ -47,16 +47,16 @@ object VeryFastDecisionTreeData {
     (0.0, List("Rainy", "Hot", "High", 4.00, -7.0, 0.0)),
     (0.0, List("Rainy", "Hot", "High", 4.00, -12.0, 0.0)),
     (1.0, List("Overcast", "Hot", "High", -4.00, -3.0, 0.0)),
-    (1.0, List("Sunny", "Mild", "High", -3.00, -2.0, 0.0)),
-    (1.0, List("Sunny", "Cool", "Normal", -4.00, -1.0, 0.0)),
-    (0.0, List("Sunny", "Cool", "Normal", 4.00, -7.0, 0.0)),
-    (1.0, List("Overcast", "Cool", "Normal", -2.00, -3.0, 0.0)),
-    (0.0, List("Rainy", "Mild", "High", 4.00, -11.0, 0.0)),
-    (1.0, List("Rainy", "Cool", "Normal", -4.00, -3.0, 0.0)),
-    (1.0, List("Sunny", "Mild", "Normal", -3.00, -6.0, 0.0)),
-    (1.0, List("Rainy", "Mild", "Normal", -4.00, -4.0, 0.0)),
-    (1.0, List("Overcast", "Mild", "High", -2.00, -3.0, 0.0)),
-    (1.0, List("Overcast", "Hot", "Normal", -4.00, -2.0, 0.0)),
-    (0.0, List("Sunny", "Mild", "High", 4.00, -13.0, 0.0))
+    (1.0, List("Sunny", "Mild", "High", -3.00, -12.0, 0.0)),
+    (1.0, List("Sunny", "Cool", "Normal", -4.00, -12.0, 0.0)),
+    (0.0, List("Sunny", "Cool", "Normal", 4.00, -12.0, 0.0)),
+    (1.0, List("Overcast", "Cool", "Normal", -2.00, -12.0, 0.0)),
+    (0.0, List("Rainy", "Mild", "High", 4.00, -12.0, 0.0)),
+    (1.0, List("Rainy", "Cool", "Normal", -4.00, -12.0, 0.0)),
+    (1.0, List("Sunny", "Mild", "Normal", -3.00, -12.0, 0.0)),
+    (1.0, List("Rainy", "Mild", "Normal", -4.00, -12.0, 0.0)),
+    (1.0, List("Overcast", "Mild", "High", -2.00, -12.0, 0.0)),
+    (1.0, List("Overcast", "Hot", "Normal", -4.00, -12.0, 0.0)),
+    (0.0, List("Sunny", "Mild", "High", 4.00, -12.0, 0.0))
   )
 }
