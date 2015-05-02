@@ -39,9 +39,9 @@ class NumericalAttributeObserver
   override def updateMetricsWithAttribute(attr: Metrics): Unit = {
     val attribute = attr.asInstanceOf[VFDTAttributes]
     instancesSeen += 1
-    attributeSum += attribute.value
+    attributeSum += attribute.value.asInstanceOf[Double]
     if (instancesSeen != 1) {
-      val temp = instancesSeen * attribute.value - attributeSum
+      val temp = instancesSeen * attribute.value.asInstanceOf[Double] - attributeSum
       attributeSoS += (1.0 / (instancesSeen * (instancesSeen - 1))) * (Math.pow(temp, 2))
     }
 
