@@ -21,7 +21,7 @@ import org.apache.flink.streaming.incrementalML.classifier.AttributeType.Attribu
 
 class VFDTAttributes(
   val id: Int,
-  val value: Double,
+  val value: Any,
   val clazz: Double,
   val leaf: Int,
   val attributeType: AttributeType)
@@ -34,7 +34,7 @@ class VFDTAttributes(
 }
 
 object VFDTAttributes {
-  def apply(id: Int, value: Double, clazz: Double, leaf: Int, attrType: AttributeType):
+  def apply(id: Int, value: Any, clazz: Double, leaf: Int, attrType: AttributeType):
   VFDTAttributes = {
     new VFDTAttributes(id, value, clazz, leaf, attrType)
   }
