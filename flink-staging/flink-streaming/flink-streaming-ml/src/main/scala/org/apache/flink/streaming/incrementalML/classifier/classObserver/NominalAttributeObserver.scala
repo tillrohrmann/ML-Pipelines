@@ -17,25 +17,39 @@
  */
 package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
-import java.util.UUID
-
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
 import scala.collection.mutable
-import scala.util.Random
 
 class NominalAttributeObserver
   extends AttributeObserver[Metrics]
   with Serializable {
 
   val attributeValues = mutable.HashMap[String, (Double, Double)]()
-
+  var totalMetrics: Double = 0.0 // instancesSeen
   /**
    *
    * @return
    */
   override def getSplitEvaluationMetric: Double = {
-    return Random.nextDouble()
+    var entropy = 0.0
+    for (attrValue <- attributeValues) {
+      //E(attribute) = Sum { P(attrValue)*E(attrValue) }
+      val valueCounter: Double = (attrValue._2._1 + attrValue._2._2)
+      val valueProb: Double = valueCounter / totalMetrics
+      var valueEntropy = 0.0
+
+      if (attrValue._2._1 != 0.0) {
+        valueEntropy += (attrValue._2._1 / valueCounter) * logBase2((attrValue._2._1 /
+          valueCounter))
+      }
+      if (attrValue._2._2 != 0.0) {
+        valueEntropy += (attrValue._2._2 / valueCounter) * logBase2((attrValue._2._2 /
+          valueCounter))
+      }
+      entropy += valueEntropy * valueProb
+    }
+    return entropy
   }
 
   /**
@@ -47,9 +61,15 @@ class NominalAttributeObserver
     val VFDTAttribute = inputAttribute.asInstanceOf[VFDTAttributes]
     //if it's not the first time that we see the same value for e.g. attribute 1
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
+    totalMetrics += 1.0
     if (attributeValues.contains(VFDTAttribute.value.toString)) {
       var temp = attributeValues.apply(VFDTAttribute.value.toString)
-      temp = if (VFDTAttribute.clazz == 0.0) (temp._1, temp._2 + 1.0) else (temp._1 + 1.0, temp._2)
+      if (VFDTAttribute.clazz == 0.0) {
+        temp = (temp._1, temp._2 + 1.0)
+      }
+      else {
+        temp = (temp._1 + 1.0, temp._2)
+      }
       attributeValues.put(VFDTAttribute.value.toString, temp)
     }
     else {
@@ -59,12 +79,15 @@ class NominalAttributeObserver
       else {
         attributeValues.put(VFDTAttribute.value.toString, (1.0, 0.0))
       }
-
     }
   }
 
   override def toString: String = {
     s"$attributeValues"
+  }
+
+  private def logBase2(num: Double): Double = {
+    math.log10(num) / math.log10(2)
   }
 }
 
