@@ -26,7 +26,7 @@ class NominalAttributeObserver
   with Serializable {
 
   val attributeValues = mutable.HashMap[String, (Double, Double)]()
-  var totalMetrics: Double = 0.0 // instancesSeen
+  var instancesSeen: Double = 0.0 // instancesSeen
   /**
    *
    * @return
@@ -36,7 +36,7 @@ class NominalAttributeObserver
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
       val valueCounter: Double = (attrValue._2._1 + attrValue._2._2)
-      val valueProb: Double = valueCounter / totalMetrics
+      val valueProb: Double = valueCounter / instancesSeen
       var valueEntropy = 0.0
 
       if (attrValue._2._1 != 0.0) {
@@ -47,7 +47,7 @@ class NominalAttributeObserver
         valueEntropy += (attrValue._2._2 / valueCounter) * logBase2((attrValue._2._2 /
           valueCounter))
       }
-      entropy += valueEntropy * valueProb
+      entropy += (-valueEntropy) * valueProb
     }
     return entropy
   }
@@ -61,7 +61,7 @@ class NominalAttributeObserver
     val VFDTAttribute = inputAttribute.asInstanceOf[VFDTAttributes]
     //if it's not the first time that we see the same value for e.g. attribute 1
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
-    totalMetrics += 1.0
+    instancesSeen += 1.0
     if (attributeValues.contains(VFDTAttribute.value.toString)) {
       var temp = attributeValues.apply(VFDTAttribute.value.toString)
       if (VFDTAttribute.clazz == 0.0) {
