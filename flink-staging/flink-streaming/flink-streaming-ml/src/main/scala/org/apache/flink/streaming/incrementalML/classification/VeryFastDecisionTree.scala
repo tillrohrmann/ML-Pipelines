@@ -134,7 +134,7 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
   var counter = 0.0
 
   override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
-    val VFDT = DecisionTreeModel()
+//    val VFDT = DecisionTreeModel()
     //if a data point is received
     if (value.isInstanceOf[DataPoints]) {
       counter += 1.0
