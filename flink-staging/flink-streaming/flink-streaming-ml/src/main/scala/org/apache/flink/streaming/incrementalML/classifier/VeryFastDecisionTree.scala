@@ -26,7 +26,7 @@ import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
 import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
-import org.apache.flink.streaming.incrementalML.classifier.classObserver.{AttributeObserver,
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
 NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.util.Collector
 
@@ -178,7 +178,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
 
   var attributesSpectatorTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
 
-  var bestAttributesToSplit = mutable.MutableList[(Long, Double)]()
+  var bestAttributesToSplit = mutable.MutableList[(Long, (Double,Double))]()
 
   override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -223,7 +223,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
       }
       //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
       leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
-                  println(leafsObserver)
+//      println(leafsObserver)
     }
     //TODO:: if signal, calculate and feed the sub-model back to the iteration
     if (value._2.isInstanceOf[CalculateMetricsSignal]) {
@@ -235,7 +235,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
           val temp = attr._2.getSplitEvaluationMetric
           bestAttributesToSplit += ((attr._1, temp))
         }
-        bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2 < y._2)
+        bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
         println("------best Attribute: " + bestAttributesToSplit)
       }
     }
