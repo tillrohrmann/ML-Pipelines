@@ -26,7 +26,6 @@ import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
 import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
-import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
@@ -134,7 +133,6 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
   var counter = 0.0
 
   override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
-//    val VFDT = DecisionTreeModel()
     //if a data point is received
     if (value.isInstanceOf[DataPoints]) {
       counter += 1.0
@@ -158,7 +156,7 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
     } //metrics are received, then update global model
     else if (value.isInstanceOf[EvaluationMetric]) {
       //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
-      println("------------------------------Metric-------------------------------------" + value)
+      println("------------------------------Metric-------------------------------------"+value)
     }
     else {
       throw new RuntimeException("--------------------WTF is that, that you're " +
@@ -239,17 +237,16 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
         }
         bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
         println("------best Attribute: " + bestAttributesToSplit)
-        var bestAttr: (Long, Double) = null
-        var secondBestAttr: (Long, Double) = null
-        if (bestAttributesToSplit.size > 0) {
-          bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._2)
+        var bestAttr : (Long,Double) = null
+        var secondBestAttr : (Long,Double) = null
+        if (bestAttributesToSplit.size > 0){
+          bestAttr = (bestAttributesToSplit(0)._1,bestAttributesToSplit(0)._2._2)
         }
-        if (bestAttributesToSplit.size > 0) {
-          secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
+        if (bestAttributesToSplit.size > 0){
+          secondBestAttr = (bestAttributesToSplit(1)._1,bestAttributesToSplit(1)._2._2)
         }
-        out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
+        out.collect(EvaluationMetric(bestAttr,secondBestAttr))
       }
     }
   }
 }
-

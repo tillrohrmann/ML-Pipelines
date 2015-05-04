@@ -17,7 +17,7 @@
  */
 package org.apache.flink.streaming.incrementalML.attributeObserver
 
-import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
+import org.apache.flink.streaming.incrementalML.classification.{Metrics, VFDTAttributes}
 import org.apache.flink.streaming.incrementalML.common.Utils
 
 import scala.collection.mutable
