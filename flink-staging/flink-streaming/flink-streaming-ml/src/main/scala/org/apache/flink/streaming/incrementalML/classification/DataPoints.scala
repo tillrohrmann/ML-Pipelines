@@ -15,33 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classification
 
-import org.apache.flink.streaming.incrementalML.classifier.AttributeType.AttributeType
-
-class VFDTAttributes(
-  val id: Int,
-  val value: Any,
-  val clazz: Double,
-  val leaf: Int,
-  val attributeType: AttributeType)
+class DataPoints(dataPoint: (Double, List[Any]))
   extends Metrics
   with Serializable {
 
+  def getFeatures: List[Any] = {
+    dataPoint._2
+  }
+
+  def getLabel: Double = {
+    dataPoint._1
+  }
+
   override def toString: String = {
-    s"Attr. $id= $value, leaf: $leaf"
+    dataPoint.toString
   }
 }
 
-object VFDTAttributes {
-  def apply(id: Int, value: Any, clazz: Double, leaf: Int, attrType: AttributeType):
-  VFDTAttributes = {
-    new VFDTAttributes(id, value, clazz, leaf, attrType)
+object DataPoints {
+  def apply(vector: (Double, List[Any])): DataPoints = {
+    new DataPoints(vector)
   }
-}
-
-
-object AttributeType extends Enumeration with Serializable {
-  type AttributeType = Value
-  val Nominal, Numerical = Value
 }

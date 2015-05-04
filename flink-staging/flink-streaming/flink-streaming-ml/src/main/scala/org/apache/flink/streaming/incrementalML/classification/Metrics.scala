@@ -15,27 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classification
 
-class DataPoints(dataPoint: (Double, List[Any]))
-  extends Metrics
-  with Serializable {
+trait Metrics {
 
-  def getFeatures: List[Any] = {
-    dataPoint._2
-  }
-
-  def getLabel: Double = {
-    dataPoint._1
-  }
-
-  override def toString: String = {
-    dataPoint.toString
-  }
-}
-
-object DataPoints {
-  def apply(vector: (Double, List[Any])): DataPoints = {
-    new DataPoints(vector)
-  }
 }
