@@ -17,6 +17,8 @@
  */
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
+import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
+
 class VFDTAttributes(
   val id: Int,
   val value: Any,

@@ -73,7 +73,7 @@ object DecisionTreeModel {
   Int,
     splitAttrType: AttributeType, attrSplitValue: Double, infoGain: Double, label: Double):
   DecisionTreeModel = {
-    new DecisionTreeModel(leaf, id, children, splitAttr, splitAttrType, attrSplitValue, infoGain,
-      label)
+    new DecisionTreeModel(leaf, id, children, Some(splitAttr), Some(splitAttrType),
+      Some(attrSplitValue), Some(infoGain), Some(label))
   }
 }
