@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classification
 
 import java.lang.Iterable
 import java.util
@@ -26,7 +26,7 @@ import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
 import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
-import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
+import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -156,6 +156,7 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
     } //metrics are received, then update global model
     else if (value.isInstanceOf[EvaluationMetric]) {
       //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
+      println("------------------------------Metric-------------------------------------"+value)
     }
     else {
       throw new RuntimeException("--------------------WTF is that, that you're " +
@@ -236,6 +237,15 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
         }
         bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
         println("------best Attribute: " + bestAttributesToSplit)
+        var bestAttr : (Long,Double) = null
+        var secondBestAttr : (Long,Double) = null
+        if (bestAttributesToSplit.size > 0){
+          bestAttr = (bestAttributesToSplit(0)._1,bestAttributesToSplit(0)._2._2)
+        }
+        if (bestAttributesToSplit.size > 0){
+          secondBestAttr = (bestAttributesToSplit(1)._1,bestAttributesToSplit(1)._2._2)
+        }
+        out.collect(EvaluationMetric(bestAttr,secondBestAttr))
       }
     }
   }

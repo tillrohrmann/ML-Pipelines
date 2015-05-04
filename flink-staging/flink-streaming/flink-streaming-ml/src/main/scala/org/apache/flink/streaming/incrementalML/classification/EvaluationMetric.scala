@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier
+package org.apache.flink.streaming.incrementalML.classification
 
 class EvaluationMetric(
-  val bestValue: (Int, Double),
-  val secondBestValue: (Int, Double))
+  val bestValue: (Long, Double),
+  val secondBestValue: (Long, Double))
   extends Metrics
   with Serializable {
 
@@ -30,7 +30,7 @@ class EvaluationMetric(
 
 object EvaluationMetric {
 
-  def apply(firstSplitAttr: (Int, Double), secondSplitAttr: (Int, Double)): EvaluationMetric = {
+  def apply(firstSplitAttr: (Long, Double), secondSplitAttr: (Long, Double)): EvaluationMetric = {
     new EvaluationMetric(firstSplitAttr, secondSplitAttr)
   }
 }
