@@ -25,9 +25,8 @@ import org.apache.flink.ml.common.{Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -178,7 +177,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
 
   var attributesSpectatorTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
 
-  var bestAttributesToSplit = mutable.MutableList[(Long, (Double,Double))]()
+  var bestAttributesToSplit = mutable.MutableList[(Long, (Double, Double))]()
 
   override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -223,7 +222,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
       }
       //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
       leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
-//      println(leafsObserver)
+      //      println(leafsObserver)
     }
     //TODO:: if signal, calculate and feed the sub-model back to the iteration
     if (value._2.isInstanceOf[CalculateMetricsSignal]) {
