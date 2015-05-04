@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classification
+package org.apache.flink.streaming.incrementalML.classification.Metrics
 
 class EvaluationMetric(
   val bestValue: (Long, Double),
@@ -31,8 +31,9 @@ class EvaluationMetric(
 
 object EvaluationMetric {
 
-  def apply(firstSplitAttr: (Long, Double), secondSplitAttr: (Long, Double), classLabel: Double): EvaluationMetric = {
-    new EvaluationMetric(firstSplitAttr, secondSplitAttr,classLabel)
+  def apply(firstSplitAttr: (Long, Double), secondSplitAttr: (Long, Double), classLabel: Double):
+  EvaluationMetric = {
+    new EvaluationMetric(firstSplitAttr, secondSplitAttr, classLabel)
   }
 }
 

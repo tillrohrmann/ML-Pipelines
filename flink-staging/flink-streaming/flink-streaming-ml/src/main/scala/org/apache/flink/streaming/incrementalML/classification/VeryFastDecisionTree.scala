@@ -25,8 +25,8 @@ import org.apache.flink.ml.common.{Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
 
@@ -134,6 +134,7 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
   var counter = 0.0
 
   override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
+    val VFDT = DecisionTreeModel()
     //if a data point is received
     if (value.isInstanceOf[DataPoints]) {
       counter += 1.0
@@ -246,7 +247,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
         if (bestAttributesToSplit.size > 0) {
           secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
         }
-        out.collect(EvaluationMetric(bestAttr, secondBestAttr,0.0))
+        out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
       }
     }
   }

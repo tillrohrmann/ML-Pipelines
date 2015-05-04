@@ -17,7 +17,8 @@
  */
 package org.apache.flink.streaming.incrementalML.classification
 
-import org.apache.flink.streaming.incrementalML.classification.AttributeType.AttributeType
+import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{AttributeType, DataPoints}
 
 import scala.collection.mutable
 
@@ -42,20 +43,20 @@ import scala.collection.mutable
  *             specific leaf
  */
 class DecisionTreeModel(
-  val isLeaf: Boolean,
+  val isLeaf: Boolean = true,
   val nodeId: Int,
-  val children: mutable.MutableList[DecisionTreeModel],
-  val splitAttribute: Int,
-  val splitAttributeType: AttributeType,
-  val attributeSplitValue: Double,
-  val informationGain: Double,
-  val label: Double)
+  val children: mutable.MutableList[DecisionTreeModel] = mutable.MutableList[DecisionTreeModel](),
+  val splitAttribute: Option[Int],
+  val splitAttributeType: Option[AttributeType],
+  val attributeSplitValue: Option[Double],
+  val informationGain: Option[Double],
+  val label: Option[Double])
   extends Serializable {
 
   /**
    *
-   * @param dataPoint
-   * @return
+   * @param dataPoint The dataPoint to be Classified with the Decision tree as-is till now
+   * @return The leaf, that this was classified to
    */
   def classifyDataPoint(dataPoint: DataPoints): Int = {
     //classify data point and return leaf id
