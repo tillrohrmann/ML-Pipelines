@@ -24,6 +24,7 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.incrementalML.Learner
 import org.apache.flink.streaming.incrementalML.classifier.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.classifier.classObserver.{AttributeObserver,
 NominalAttributeObserver, NumericalAttributeObserver}
@@ -64,7 +65,7 @@ class VeryFastDecisionTree(
   private def iterationFunction(dataPointsStream: DataStream[Metrics]): (DataStream[Metrics],
     DataStream[Metrics]) = {
 
-    val mSAds = dataPointsStream.flatMap(new GlobalModelMapper ).setParallelism(1)
+    val mSAds = dataPointsStream.flatMap(new GlobalModelMapper).setParallelism(1)
 
     //TODO:: Decide which values will declare if it is a Model or a Signal
     val attributes = mSAds.filter(new FilterFunction[(Long, Metrics)] {
@@ -75,7 +76,7 @@ class VeryFastDecisionTree(
 
     val modelAndSignal = mSAds.filter(new FilterFunction[(Long, Metrics)] {
       override def filter(value: (Long, Metrics)): Boolean = {
-        return (value._1 == -1 || value._1 == -2)
+        return (value._1 == -1 || value._1 == -2) //metric or Signal
       }
     })
 
@@ -122,9 +123,9 @@ object VeryFastDecisionTree {
   }
 }
 
-object VeryFastDecisionTreeModel extends Serializable {
-
-}
+//object VeryFastDecisionTreeModel extends Serializable {
+//
+//}
 
 /**
  *
@@ -142,13 +143,11 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
       for (i <- 0 until tempVector.size) {
         if (tempVector.apply(i).isInstanceOf[String]) {
           out.collect((i, VFDTAttributes(i, tempVector.apply(i).asInstanceOf[String], value
-            .asInstanceOf[DataPoints]
-            .getLabel, 10, AttributeType.Nominal)))
+            .asInstanceOf[DataPoints].getLabel, 10, AttributeType.Nominal)))
         }
         else {
           out.collect((i, VFDTAttributes(i, tempVector.apply(i), value
-            .asInstanceOf[DataPoints]
-            .getLabel, 10, AttributeType.Numerical)))
+            .asInstanceOf[DataPoints].getLabel, 10, AttributeType.Numerical)))
         }
       }
       if (counter == 14.0) {
@@ -224,13 +223,12 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
       }
       //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
       leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
-      //            println(leafsObserver)
+                  println(leafsObserver)
     }
     //TODO:: if signal, calculate and feed the sub-model back to the iteration
     if (value._2.isInstanceOf[CalculateMetricsSignal]) {
       if (leafsObserver.contains(value._2.asInstanceOf[CalculateMetricsSignal].leaf)) {
-        val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
-          .leaf)
+        val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal].leaf)
 
         //[Long,HasMap[String,(#Yes,#No)]]
         for (attr <- leafToSplit) {
