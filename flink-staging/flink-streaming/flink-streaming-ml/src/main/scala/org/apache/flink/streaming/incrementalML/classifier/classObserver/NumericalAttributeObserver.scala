@@ -19,6 +19,8 @@ package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 
+import scala.collection.mutable
+
 class NumericalAttributeObserver
   extends AttributeObserver[Metrics]
   with Serializable {
@@ -28,6 +30,9 @@ class NumericalAttributeObserver
   var attributeDistribution = (0.0, 0.0)
   //(#Yes,#No)
   var instancesSeen = 0
+
+  var minValuePerClass = mutable.MutableList[Double](Double.MaxValue, Double.MaxValue)
+  var maxValuePerClass = mutable.MutableList[Double](Double.MinValue, Double.MinValue)
 
   var attrMean = 0.0
   var attrStd = 0.0
@@ -50,6 +55,18 @@ class NumericalAttributeObserver
     attributeDistribution =
       if (attribute.clazz == 0.0) (attributeDistribution._1, attributeDistribution._2 + 1.0)
       else (attributeDistribution._1 + 1.0, attributeDistribution._2)
+
+    //--------------------------------------------------------------------------------------
+    if (attribute.value.asInstanceOf[Double] < minValuePerClass(attribute.clazz
+      .asInstanceOf[Int])) {
+      minValuePerClass.update(attribute.clazz.asInstanceOf[Int], attribute.value
+        .asInstanceOf[Double])
+    }
+    if (attribute.value.asInstanceOf[Double] > maxValuePerClass(attribute.clazz
+      .asInstanceOf[Int])) {
+      maxValuePerClass.update(attribute.clazz.asInstanceOf[Int], attribute.value
+        .asInstanceOf[Double])
+    }
   }
 
   def getAttrMean: Double = {
@@ -65,7 +82,7 @@ class NumericalAttributeObserver
   }
 
   override def toString: String = {
-    s"AttributeMean:$attrMean, attributeStd:$attrStd, " +
+    s"AttributeMin:$minValuePerClass, AttributeMax:$maxValuePerClass, " +
       s"AttributeDistribution:$attributeDistribution" +
       s"and all these just with $instancesSeen instances"
   }
