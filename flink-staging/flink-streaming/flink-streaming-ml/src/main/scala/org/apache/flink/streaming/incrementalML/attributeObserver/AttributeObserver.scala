@@ -23,7 +23,7 @@ package org.apache.flink.streaming.incrementalML.attributeObserver
 
 trait AttributeObserver[IN] extends Serializable {
 
-  def getSplitEvaluationMetric: (Double, Double)
+  def getSplitEvaluationMetric: (Double,Double)
 
   def updateMetricsWithAttribute(attribute: IN): Unit
 }

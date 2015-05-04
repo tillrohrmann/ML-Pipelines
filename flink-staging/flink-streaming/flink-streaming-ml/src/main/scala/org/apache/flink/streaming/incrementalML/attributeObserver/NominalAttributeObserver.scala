@@ -17,9 +17,8 @@
  */
 package org.apache.flink.streaming.incrementalML.attributeObserver
 
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{Metrics, VFDTAttributes}
+import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 import org.apache.flink.streaming.incrementalML.common.Utils
-
 import scala.collection.mutable
 
 class NominalAttributeObserver
@@ -33,7 +32,7 @@ class NominalAttributeObserver
    *
    * @return
    */
-  override def getSplitEvaluationMetric: (Double, Double) = {
+  override def getSplitEvaluationMetric: (Double,Double) = {
     var entropy = 0.0
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
@@ -51,7 +50,7 @@ class NominalAttributeObserver
       }
       entropy += (-valueEntropy) * valueProb
     }
-    (0.0, entropy)
+    (0.0,entropy)
   }
 
   /**

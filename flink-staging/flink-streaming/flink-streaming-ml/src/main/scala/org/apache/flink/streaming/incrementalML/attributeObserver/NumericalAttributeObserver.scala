@@ -17,7 +17,8 @@
  */
 package org.apache.flink.streaming.incrementalML.attributeObserver
 
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{Metrics, VFDTAttributes}
+import breeze.stats.distributions.Gaussian
+import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
 import org.apache.flink.streaming.incrementalML.common.Utils
 
 import scala.collection.mutable
@@ -54,10 +55,10 @@ class NumericalAttributeObserver
   override def getSplitEvaluationMetric(): (Double, Double) = {
 
     val potentialSplitPoints = Utils.getSplitPointsWithUniformApproximation(
-      SPLIT_POINTS_TO_CONSIDER, minValueObserved, maxValueObserved)
+      SPLIT_POINTS_TO_CONSIDER,minValueObserved,maxValueObserved)
 
     val metricsForSplitPoints = mutable.MutableList[Double]()
-    var bestValueToSplit = (Double.MaxValue, Double.MaxValue)
+    var bestValueToSplit = (Double.MaxValue,Double.MaxValue)
     //------------------ Decide Best Split Option ------------------------------------
     var entropy = 0.0
     for (point <- potentialSplitPoints) {
@@ -103,14 +104,14 @@ class NumericalAttributeObserver
       }
       //--------------------------------------------------
       metricsForSplitPoints += entropy
-      if (entropy < bestValueToSplit._2) {
-        bestValueToSplit = (point, entropy)
+      if (entropy < bestValueToSplit._2){
+        bestValueToSplit  = (point,entropy)
       }
     }
 
-    //    println(s"------split points:$potentialSplitPoints, metrics for split " +
-    //      s"points$metricsForSplitPoints")
-    //    getPotentialSplitPointsWithGaussianApproximation())
+//    println(s"------split points:$potentialSplitPoints, metrics for split " +
+//      s"points$metricsForSplitPoints")
+//    getPotentialSplitPointsWithGaussianApproximation())
 
     bestValueToSplit
   }
