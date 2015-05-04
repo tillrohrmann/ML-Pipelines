@@ -15,33 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classification
+package org.apache.flink.streaming.incrementalML.classification.Metrics
 
-import org.apache.flink.streaming.incrementalML.classification.AttributeType.AttributeType
+trait Metrics {
 
-class VFDTAttributes(
-  val id: Int,
-  val value: Any,
-  val clazz: Double,
-  val leaf: Int,
-  val attributeType: AttributeType)
-  extends Metrics
-  with Serializable {
-
-  override def toString: String = {
-    s"Attr. $id= $value, leaf: $leaf"
-  }
-}
-
-object VFDTAttributes {
-  def apply(id: Int, value: Any, clazz: Double, leaf: Int, attrType: AttributeType):
-  VFDTAttributes = {
-    new VFDTAttributes(id, value, clazz, leaf, attrType)
-  }
-}
-
-
-object AttributeType extends Enumeration with Serializable {
-  type AttributeType = Value
-  val Nominal, Numerical = Value
 }
