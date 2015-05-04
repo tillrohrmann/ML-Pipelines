@@ -15,41 +15,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier.classObserver
+package org.apache.flink.streaming.incrementalML.attributeObserver
 
 import org.apache.flink.streaming.incrementalML.classifier.{Metrics, VFDTAttributes}
-
+import org.apache.flink.streaming.incrementalML.common.Utils
 import scala.collection.mutable
 
 class NominalAttributeObserver
   extends AttributeObserver[Metrics]
   with Serializable {
 
+  // [AttributeVale,(#Yes,#No)]
   val attributeValues = mutable.HashMap[String, (Double, Double)]()
   var instancesSeen: Double = 0.0 // instancesSeen
   /**
    *
    * @return
    */
-  override def getSplitEvaluationMetric: Double = {
+  override def getSplitEvaluationMetric: (Double,Double) = {
     var entropy = 0.0
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
-      val valueCounter: Double = (attrValue._2._1 + attrValue._2._2)
+      val valueCounter: Double = attrValue._2._1 + attrValue._2._2
       val valueProb: Double = valueCounter / instancesSeen
       var valueEntropy = 0.0
 
       if (attrValue._2._1 != 0.0) {
-        valueEntropy += (attrValue._2._1 / valueCounter) * logBase2((attrValue._2._1 /
+        valueEntropy += (attrValue._2._1 / valueCounter) * Utils.logBase2((attrValue._2._1 /
           valueCounter))
       }
       if (attrValue._2._2 != 0.0) {
-        valueEntropy += (attrValue._2._2 / valueCounter) * logBase2((attrValue._2._2 /
+        valueEntropy += (attrValue._2._2 / valueCounter) * Utils.logBase2((attrValue._2._2 /
           valueCounter))
       }
       entropy += (-valueEntropy) * valueProb
     }
-    return entropy
+    (0.0,entropy)
   }
 
   /**
@@ -85,9 +86,4 @@ class NominalAttributeObserver
   override def toString: String = {
     s"$attributeValues"
   }
-
-  private def logBase2(num: Double): Double = {
-    math.log10(num) / math.log10(2)
-  }
 }
-

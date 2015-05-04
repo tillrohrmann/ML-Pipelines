@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.classifier.classObserver
+package org.apache.flink.streaming.incrementalML.attributeObserver
 
 /** Base trait for a class that will incrementally update the metrics of a class
   *
@@ -23,7 +23,7 @@ package org.apache.flink.streaming.incrementalML.classifier.classObserver
 
 trait AttributeObserver[IN] extends Serializable {
 
-  def getSplitEvaluationMetric: Double
+  def getSplitEvaluationMetric: (Double,Double)
 
   def updateMetricsWithAttribute(attribute: IN): Unit
 }
