@@ -41,7 +41,7 @@ class VeryFastDecisionTreeITSuite
     val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
-    val nominalAttributes = Map(1 -> 3, 2 -> 3, 3 -> 2)
+    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 14)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
@@ -62,7 +62,7 @@ class VeryFastDecisionTreeITSuite
       LabeledVector(point._1, featuresVector)
     })
 
-    println(dataPoints)
+//    println(dataPoints)
     vfdt.fit(env.fromCollection(dataPoints),parameters)
     env.execute()
   }

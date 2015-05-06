@@ -138,9 +138,9 @@ class NumericalAttributeObserver
   }
 
   /** Calculates incrementally the gaussian mean and standard deviation of this numerical attribute.
-   *
-   * @param value the input value of the attribute
-   */
+    *
+    * @param value the input value of the attribute
+    */
   private def calculateMeanAndStd(value: Double): Unit = {
     instancesSeen += 1
     attributeSum += value

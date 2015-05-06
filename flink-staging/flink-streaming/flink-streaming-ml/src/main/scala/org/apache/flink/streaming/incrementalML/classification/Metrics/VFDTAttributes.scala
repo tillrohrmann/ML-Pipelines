@@ -35,7 +35,8 @@ class VFDTAttributes(
 }
 
 object VFDTAttributes {
-  def apply(id: Int, value: Double, clazz: Double, nOfValues: Int, leaf: Int, attrType: AttributeType):
+  def apply(id: Int, value: Double, clazz: Double, nOfValues: Int, leaf: Int, attrType:
+  AttributeType):
   VFDTAttributes = {
     new VFDTAttributes(id, value, clazz, nOfValues, leaf, attrType)
   }

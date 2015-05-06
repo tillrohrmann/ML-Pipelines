@@ -17,10 +17,16 @@
  */
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
+/** Represents the local results for the best and the second best attributes that could be used
+  * to split upon
+  *
+  * @param bestValue (attributeId,(entropy,listOfSplittingValues))
+  * @param secondBestValue (attributeId,(entropy,listOfSplittingValues))
+  */
 class EvaluationMetric(
-  val bestValue: (Long, Double),
-  val secondBestValue: (Long, Double),
-  val label: Double)
+  val bestValue: (Int, (Double, List[Double])),
+  val secondBestValue: (Int, (Double, List[Double])),
+  val leafId: Int)
   extends Metrics
   with Serializable {
 
@@ -31,9 +37,9 @@ class EvaluationMetric(
 
 object EvaluationMetric {
 
-  def apply(firstSplitAttr: (Long, Double), secondSplitAttr: (Long, Double), classLabel: Double):
-  EvaluationMetric = {
-    new EvaluationMetric(firstSplitAttr, secondSplitAttr, classLabel)
+  def apply(firstSplitAttr: (Int, (Double, List[Double])), secondSplitAttr: (Int,
+    (Double, List[Double])), leafId: Int): EvaluationMetric = {
+    new EvaluationMetric(firstSplitAttr, secondSplitAttr, leafId)
   }
 }
 
