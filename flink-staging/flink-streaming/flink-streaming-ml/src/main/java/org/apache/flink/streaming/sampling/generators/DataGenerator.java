@@ -20,8 +20,8 @@ package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.examples.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.examples.sampling.helpers.StreamTimestamp;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 /**
  * Created by marthavk on 2015-04-24.

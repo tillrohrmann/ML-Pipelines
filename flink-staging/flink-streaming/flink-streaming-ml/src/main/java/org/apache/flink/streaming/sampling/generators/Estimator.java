@@ -19,8 +19,8 @@
 package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.flink.api.java.tuple.Tuple4;
-import org.apache.flink.streaming.examples.sampling.applications.Edge;
-import org.apache.flink.streaming.examples.sampling.applications.Triangle;
+import org.apache.flink.streaming.sampling.applications.Edge;
+import org.apache.flink.streaming.sampling.applications.Triangle;
 
 import java.util.HashSet;
 

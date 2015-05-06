@@ -19,7 +19,7 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.streaming.examples.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
 
