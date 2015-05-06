@@ -38,29 +38,32 @@ class VeryFastDecisionTreeITSuite
   it should "Create the classification HT of the given data set" in {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-//    val vfdt = VeryFastDecisionTree(env)
+    val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
     val nominalAttributes = Map(1 -> 3, 2 -> 3, 3 -> 2)
 
+    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 14)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
     parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val dataPoints = data.map(point => {
-      val featuresVector = DenseVector(point._2.size)
+      val featuresVector = DenseVector.zeros(point._2.size)
       for (i <- 0 until point._2.size) {
-        if (point._2.apply(i).isInstanceOf[Double]) {
-          featuresVector(i) = point._2.apply(i).asInstanceOf[Double]
-        }
-        else {
-          featuresVector(i) = MurmurHash3.stringHash(point._2.apply(i).asInstanceOf[String])
+        val value = point._2.apply(i)
+        value match {
+          case a: Double =>
+            featuresVector.update(i, a)
+          case a: String =>
+            featuresVector(i) = MurmurHash3.stringHash(a)
+          case _ =>
         }
       }
       LabeledVector(point._1, featuresVector)
     })
 
     println(dataPoints)
-    //vfdt.fit(env.fromCollection(dataPoints))
+    vfdt.fit(env.fromCollection(dataPoints),parameters)
     env.execute()
   }
 }
