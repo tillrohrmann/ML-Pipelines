@@ -30,7 +30,8 @@ import java.util.Random;
 
 public final class SamplingUtils {
 
-
+	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
+			"/flink-streaming-ml/src/main/resources/";
 	static Random rand = new Random();
 
 	public static boolean flip(int sides) {
