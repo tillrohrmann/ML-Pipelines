@@ -79,13 +79,11 @@ object DecisionTreeModel
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is no" +
       " leaf to split with that Id"))
     nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
-
   }
 
   override def toString(): String = {
     s"DecisionTree:$decisionTree"
   }
-
 
 }
 
@@ -149,18 +147,10 @@ case class DTNode(
     }
   }
 
-
   override def toString(): String = {
     val s = new StringBuilder()
     s.append(s"NodeId:$nodeId -> children:$children")
     s.toString()
   }
-
 }
 
-object DTNode {
-
-  def apply(root: Boolean, leaf: Boolean, id: Int): DTNode = {
-    new DTNode(root, leaf, id)
-  }
-}
