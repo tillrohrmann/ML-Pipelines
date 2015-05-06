@@ -15,27 +15,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Created by marthavk on 2015-05-06.
+ */
+
 package org.apache.flink.streaming.sampling.evaluators;
 
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
+
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.samplers.Sample;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 
-/**
- * Created by marthavk on 2015-03-18.
- */
-public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double>  {
+public class KLDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
 	GaussianDistribution currentDist = new GaussianDistribution();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
 		GaussianDistribution sampledDist = new GaussianDistribution(value);
-		//System.out.println(currentDist.toString() + " " + sampledDist.toString());
-		out.collect(bhattacharyyaDistance(currentDist, sampledDist));
+		out.collect(klDivergence(currentDist, sampledDist));
 	}
 
 	@Override
@@ -43,26 +42,10 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 		currentDist = value;
 	}
 
-	public double bhattacharyyaDistance(GaussianDistribution greal, GaussianDistribution gsampled) {
+	public double klDivergence(GaussianDistribution greal, GaussianDistribution gsampled) {
+		//TODO
+		return 0;
 
-		//Bhattacharyya distance
-		double m1 = greal.getMean();
-		double m2 = gsampled.getMean();
-		double s1 = greal.getStandardDeviation();
-		double s2 = gsampled.getStandardDeviation();
-
-		double factor1 = Math.pow(s1, 2) / Math.pow(s2, 2) + Math.pow(s2, 2) / Math.pow(s1, 2) + 2;
-		double factor2 = Math.pow((m1 - m2),2) / (Math.pow(s1,2) + Math.pow(s2,2));
-		double distance = (0.25) * Math.log((0.25) * factor1) + (0.25) * factor2;
-		return distance;
-
-	}
-
-	public void printIndexedString(String str, int subtaskIndex) {
-		StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-		if (context.getIndexOfThisSubtask() == subtaskIndex) {
-			System.out.println(str);
-		}
 	}
 
 }

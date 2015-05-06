@@ -20,5 +20,4 @@ _site
 docs/api
 build-target
 flink-staging/flink-avro/src/test/java/org/apache/flink/api/io/avro/generated/
-flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/evaluation
 atlassian-ide-plugin.xml
