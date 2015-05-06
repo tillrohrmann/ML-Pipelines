@@ -23,6 +23,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
+import org.apache.flink.streaming.incrementalML.inspector.ChangeDetector;
 import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
@@ -41,7 +42,8 @@ import java.util.Properties;
  * Created by marthavk on 2015-03-13.
  */
 public class StreamApproximationExample {
-	public static String path = "flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/";
+	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
+			"/flink-streaming-ml/src/main/resources/";
 	public static long MAX_COUNT;  // max count of generated numbers
 	public static int COUNT_WINDOW_SIZE;
 	public static long TIME_WINDOW_SIZE; //In milliseconds
@@ -90,8 +92,6 @@ public class StreamApproximationExample {
 
 		/*generate random numbers according to Distribution parameters*/
 
-
-
 		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
 
 				/*generate double value from GaussianDistribution and wrap around
@@ -107,27 +107,29 @@ public class StreamApproximationExample {
 
 				/*sample the stream*/
 				//.map(new PrioritySampler<Double>(sampleSize, TIME_WINDOW_SIZE))
-				//.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
+				.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
 				//.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
 				//.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-				.map(new FifoSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
+				//.map(new FifoSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
 				//.setParallelism(1)
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SimpleUnwrapper<Double>())
+				.map(new SampleExtractor<Double>()) //use that for Chain and Priority Samplers.
+				// .map(new SimpleUnwrapper<Double>()) //use that for Reservoir, Biased Reservoir, FIFO Samplers
 				//.setParallelism(1)
 
 				/*connect sampled stream to source*/
 				.connect(operator)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistanceEvaluator())
+				.flatMap(new DistributionComparator())
 
 				//.setParallelism(1)
 
 				//sink
 				//.print();
-				.writeAsText("flink-staging/flink-streaming/flink-streaming-examples/src/main/resources/evaluation");
+				.writeAsText(path + "evaluation");
 				//.setParallelism(1);
 	}
 
