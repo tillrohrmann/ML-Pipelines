@@ -90,6 +90,12 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 		this.sigma = newStDev;
 	}
 
+	public double density(double x) {
+		double a = 1/(sigma*Math.sqrt(2*Math.PI));
+		double b = Math.exp(-Math.pow((x-mean),2)/(2*Math.pow(sigma,2)));
+		return a*b;
+	}
+
 
 	/** AUXILIARY METHODS **/
 	public String toString() {
