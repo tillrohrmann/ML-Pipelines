@@ -17,10 +17,14 @@
  */
 package org.apache.flink.streaming.incrementalML.test.classifier
 
+import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
+import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
+
+import scala.util.hashing.MurmurHash3
 
 class VeryFastDecisionTreeITSuite
   extends FlatSpec
@@ -34,9 +38,29 @@ class VeryFastDecisionTreeITSuite
   it should "Create the classification HT of the given data set" in {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val vfdt = VeryFastDecisionTree(env)
-    vfdt.fit(env.fromCollection(data))
-    //    println(con.getExecutionPlan())
+//    val vfdt = VeryFastDecisionTree(env)
+
+    val parameters = ParameterMap()
+    val nominalAttributes = Map(1 -> 3, 2 -> 3, 3 -> 2)
+
+    parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
+    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+
+    val dataPoints = data.map(point => {
+      val featuresVector = DenseVector(point._2.size)
+      for (i <- 0 until point._2.size) {
+        if (point._2.apply(i).isInstanceOf[Double]) {
+          featuresVector(i) = point._2.apply(i).asInstanceOf[Double]
+        }
+        else {
+          featuresVector(i) = MurmurHash3.stringHash(point._2.apply(i).asInstanceOf[String])
+        }
+      }
+      LabeledVector(point._1, featuresVector)
+    })
+
+    println(dataPoints)
+    //vfdt.fit(env.fromCollection(dataPoints))
     env.execute()
   }
 }

@@ -52,6 +52,16 @@ class VeryFastDecisionTree(
     this
   }
 
+  def setNominalAttributes(noNominalAttrs: Map[Int,Int]): VeryFastDecisionTree ={
+    parameters.add(NominalAttributes, noNominalAttrs)
+    this
+  }
+
+  def setNumberOfClasses(noClasses: Int): VeryFastDecisionTree ={
+    parameters.add(NumberOfClasses, noClasses)
+    this
+  }
+
   override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
   DataStream[Metrics] = {
     val resultingParameters = this.parameters ++ fitParameters
@@ -118,6 +128,20 @@ object VeryFastDecisionTree {
     override val defaultValue: Option[Double] = Some(1.0)
   }
 
+  /** Map that specifies which attributes are Nominal and how many possible values they will have
+    *
+    */
+  case object NominalAttributes extends Parameter[Map[Int,Int]] {
+    override val defaultValue: Option[Map[Int,Int]] = Some(Map[Int,Int]())
+  }
+
+  /**
+   * Specifies the number of classes that the problem to be solved will have
+   */
+  case object NumberOfClasses extends Parameter[Int] {
+    override val defaultValue: Option[Int] = Some(2)
+  }
+
   def apply(context: StreamExecutionEnvironment): VeryFastDecisionTree = {
     new VeryFastDecisionTree(context)
   }
@@ -146,17 +170,17 @@ class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
       //TODO:: 2. number of instances seen till now
       val leafId = VFDT.classifyDataPointToLeaf(newDataPoint.getFeatures)
       val tempVector = newDataPoint.getFeatures
-      for (i <- 0 until tempVector.size) {
-        //TODO:: how to identify nominal from numerical attributes
-        if (i%2==0){//.isInstanceOf[String]) {
-          out.collect((i, VFDTAttributes(i, tempVector(i).asInstanceOf[String],
-            newDataPoint.getLabel, 10, AttributeType.Nominal)))
-        }
-        else {
-          out.collect((i, VFDTAttributes(i, tempVector.apply(i), newDataPoint.getLabel, leafId,
-            AttributeType.Numerical)))
-        }
-      }
+
+//      for (i <- 0 until tempVector.size) {
+//        if (tempVector.apply(i).isInstanceOf[String]) {
+//          out.collect((i, VFDTAttributes(i, tempVector(i).asInstanceOf[String],
+//            newDataPoint.getLabel, 10, AttributeType.Nominal)))
+//        }
+//        else {
+//          out.collect((i, VFDTAttributes(i, tempVector.apply(i), newDataPoint.getLabel, leafId,
+//            AttributeType.Numerical)))
+//        }
+//      }
       if (counter == 14.0) {
         println("-----------------Signal----------------------------")
         out.collect((-2, CalculateMetricsSignal(10)))
@@ -219,7 +243,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
       else {
         //if there is no attributeSpectator create one, nominal or numerical
         val tempSpectator = if (attribute.attributeType == AttributeType.Nominal) {
-          new NominalAttributeObserver
+          new NominalAttributeObserver(2)
         }
         else {
           new NumericalAttributeObserver

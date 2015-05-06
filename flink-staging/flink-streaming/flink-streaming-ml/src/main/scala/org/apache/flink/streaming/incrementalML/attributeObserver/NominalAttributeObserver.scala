@@ -22,7 +22,8 @@ import org.apache.flink.streaming.incrementalML.common.Utils
 
 import scala.collection.mutable
 
-class NominalAttributeObserver
+class NominalAttributeObserver(
+  val numberOfValues: Int)
   extends AttributeObserver[Metrics]
   with Serializable {
 
