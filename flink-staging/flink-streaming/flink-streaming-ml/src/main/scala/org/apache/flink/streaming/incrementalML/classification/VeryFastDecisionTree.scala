@@ -21,7 +21,7 @@ import java.lang.Iterable
 import java.util
 
 import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
-import org.apache.flink.ml.common.{Parameter, ParameterMap}
+import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
@@ -38,7 +38,7 @@ import scala.collection.mutable
  */
 class VeryFastDecisionTree(
   context: StreamExecutionEnvironment)
-  extends Learner[(Double, List[Any]), Metrics]
+  extends Learner[LabeledVector, Metrics]
   with Serializable {
 
   //TODO:: Check what other parameters need to be set
@@ -52,7 +52,7 @@ class VeryFastDecisionTree(
     this
   }
 
-  override def fit(input: DataStream[(Double, List[Any])], fitParameters: ParameterMap):
+  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
   DataStream[Metrics] = {
     val resultingParameters = this.parameters ++ fitParameters
 
@@ -132,23 +132,29 @@ object VeryFastDecisionTree {
  */
 class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
   var counter = 0.0
+  val VFDT = DecisionTreeModel
+  VFDT.createRootOfTheTree
+  println(s"---------------------My decision tree:$VFDT")
 
   override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
-//    val VFDT = DecisionTreeModel()
+
     //if a data point is received
     if (value.isInstanceOf[DataPoints]) {
+      val newDataPoint = value.asInstanceOf[DataPoints]
       counter += 1.0
       //TODO:: 1. classify data point first
       //TODO:: 2. number of instances seen till now
-      val tempVector = value.asInstanceOf[DataPoints].getFeatures
+      val leafId = VFDT.classifyDataPointToLeaf(newDataPoint.getFeatures)
+      val tempVector = newDataPoint.getFeatures
       for (i <- 0 until tempVector.size) {
-        if (tempVector.apply(i).isInstanceOf[String]) {
-          out.collect((i, VFDTAttributes(i, tempVector.apply(i).asInstanceOf[String], value
-            .asInstanceOf[DataPoints].getLabel, 10, AttributeType.Nominal)))
+        //TODO:: how to identify nominal from numerical attributes
+        if (i%2==0){//.isInstanceOf[String]) {
+          out.collect((i, VFDTAttributes(i, tempVector(i).asInstanceOf[String],
+            newDataPoint.getLabel, 10, AttributeType.Nominal)))
         }
         else {
-          out.collect((i, VFDTAttributes(i, tempVector.apply(i), value
-            .asInstanceOf[DataPoints].getLabel, 10, AttributeType.Numerical)))
+          out.collect((i, VFDTAttributes(i, tempVector.apply(i), newDataPoint.getLabel, leafId,
+            AttributeType.Numerical)))
         }
       }
       if (counter == 14.0) {
@@ -178,7 +184,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
   //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
   //          AttributeObserver[Metrics]]] = null
 
-  var attributesSpectatorTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
+  var attributesObserverTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
 
   var bestAttributesToSplit = mutable.MutableList[(Long, (Double, Double))]()
 
@@ -200,15 +206,15 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
 
       if (leafsObserver.contains(attribute.leaf)) {
         //take the class observer
-        attributesSpectatorTemp = leafsObserver.apply(attribute.leaf)
+        attributesObserverTemp = leafsObserver.apply(attribute.leaf)
       }
       else {
-        //if there is no spectator for that leaf
-        attributesSpectatorTemp = new mutable.HashMap[Long, AttributeObserver[Metrics]]()
+        //if there is no observer for that leaf
+        attributesObserverTemp = new mutable.HashMap[Long, AttributeObserver[Metrics]]()
       }
       //check if there is an attributeSpectator for this attribute, update metrics
-      if (attributesSpectatorTemp.contains(value._1)) {
-        attributesSpectatorTemp.apply(value._1).updateMetricsWithAttribute(attribute)
+      if (attributesObserverTemp.contains(value._1)) {
+        attributesObserverTemp.apply(value._1).updateMetricsWithAttribute(attribute)
       }
       else {
         //if there is no attributeSpectator create one, nominal or numerical
@@ -220,11 +226,11 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
         }
         tempSpectator.updateMetricsWithAttribute(attribute)
 
-        attributesSpectatorTemp.put(value._1,
+        attributesObserverTemp.put(value._1,
           tempSpectator.asInstanceOf[AttributeObserver[Metrics]])
       }
       //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
-      leafsObserver.put(attribute.leaf, attributesSpectatorTemp)
+      leafsObserver.put(attribute.leaf, attributesObserverTemp)
       //      println(leafsObserver)
     }
     //TODO:: if signal, calculate and feed the sub-model back to the iteration
