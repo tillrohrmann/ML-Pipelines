@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.flink.streaming.examples.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Sample;
 
 import java.io.Serializable;
 import java.util.Random;

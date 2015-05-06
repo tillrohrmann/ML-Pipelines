@@ -20,8 +20,8 @@ package org.apache.flink.streaming.sampling.evaluators;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
-import org.apache.flink.streaming.examples.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.examples.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 

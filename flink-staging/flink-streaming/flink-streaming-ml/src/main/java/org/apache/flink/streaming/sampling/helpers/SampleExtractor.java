@@ -20,10 +20,10 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.examples.sampling.samplers.ChainSample;
-import org.apache.flink.streaming.examples.sampling.samplers.PrioritySampler;
-import org.apache.flink.streaming.examples.sampling.samplers.Sample;
-import org.apache.flink.streaming.examples.sampling.samplers.Sampler;
+import org.apache.flink.streaming.sampling.samplers.ChainSample;
+import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
+import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Sampler;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 
 import java.util.ArrayList;
