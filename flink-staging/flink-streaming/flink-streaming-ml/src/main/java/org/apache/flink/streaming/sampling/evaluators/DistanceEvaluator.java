@@ -29,7 +29,6 @@ import org.apache.flink.util.Collector;
  * Created by marthavk on 2015-03-18.
  */
 public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double>  {
-	//TODO: Implement the Kullback-Leibler distance as metrics
 	GaussianDistribution currentDist = new GaussianDistribution();
 
 	@Override
