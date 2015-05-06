@@ -17,16 +17,19 @@
  */
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
-class DataPoints(dataPoint: (Double, List[Any]))
+import org.apache.flink.ml.common.LabeledVector
+import org.apache.flink.ml.math.Vector
+
+class DataPoints(dataPoint: LabeledVector)
   extends Metrics
   with Serializable {
 
-  def getFeatures: List[Any] = {
-    dataPoint._2
+  def getFeatures: Vector = {
+    dataPoint.vector
   }
 
   def getLabel: Double = {
-    dataPoint._1
+    dataPoint.label
   }
 
   override def toString: String = {
@@ -35,7 +38,7 @@ class DataPoints(dataPoint: (Double, List[Any]))
 }
 
 object DataPoints {
-  def apply(vector: (Double, List[Any])): DataPoints = {
+  def apply(vector: LabeledVector): DataPoints = {
     new DataPoints(vector)
   }
 }
