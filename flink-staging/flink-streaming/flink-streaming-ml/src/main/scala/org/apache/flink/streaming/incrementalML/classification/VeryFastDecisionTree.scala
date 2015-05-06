@@ -25,7 +25,8 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
@@ -52,12 +53,12 @@ class VeryFastDecisionTree(
     this
   }
 
-  def setNominalAttributes(noNominalAttrs: Map[Int,Int]): VeryFastDecisionTree ={
+  def setNominalAttributes(noNominalAttrs: Map[Int, Int]): VeryFastDecisionTree = {
     parameters.add(NominalAttributes, noNominalAttrs)
     this
   }
 
-  def setNumberOfClasses(noClasses: Int): VeryFastDecisionTree ={
+  def setNumberOfClasses(noClasses: Int): VeryFastDecisionTree = {
     parameters.add(NumberOfClasses, noClasses)
     this
   }
@@ -68,25 +69,26 @@ class VeryFastDecisionTree(
 
     val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
     val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => iterationFunction
-      (dataPointsStream))
+      (dataPointsStream, resultingParameters))
     out
   }
 
-  private def iterationFunction(dataPointsStream: DataStream[Metrics]): (DataStream[Metrics],
-    DataStream[Metrics]) = {
+  private def iterationFunction(dataPointsStream: DataStream[Metrics],
+    resultingParameters: ParameterMap): (DataStream[Metrics], DataStream[Metrics]) = {
 
-    val mSAds = dataPointsStream.flatMap(new GlobalModelMapper).setParallelism(1)
+    val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
+      .setParallelism(1)
 
     //TODO:: Decide which values will declare if it is a Model or a Signal
-    val attributes = mSAds.filter(new FilterFunction[(Long, Metrics)] {
-      override def filter(value: (Long, Metrics)): Boolean = {
+    val attributes = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+      override def filter(value: (Int, Metrics)): Boolean = {
         return value._1 >= 0
       }
     })
 
-    val modelAndSignal = mSAds.filter(new FilterFunction[(Long, Metrics)] {
-      override def filter(value: (Long, Metrics)): Boolean = {
-        return (value._1 == -1 || value._1 == -2) //metric or Signal
+    val modelAndSignal = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+      override def filter(value: (Int, Metrics)): Boolean = {
+        return (value._1 == -2) //metric or Signal
       }
     })
 
@@ -131,8 +133,8 @@ object VeryFastDecisionTree {
   /** Map that specifies which attributes are Nominal and how many possible values they will have
     *
     */
-  case object NominalAttributes extends Parameter[Map[Int,Int]] {
-    override val defaultValue: Option[Map[Int,Int]] = Some(Map[Int,Int]())
+  case object NominalAttributes extends Parameter[Map[Int, Int]] {
+    override val defaultValue: Option[Map[Int, Int]] = None
   }
 
   /**
@@ -147,60 +149,139 @@ object VeryFastDecisionTree {
   }
 }
 
-//object VeryFastDecisionTreeModel extends Serializable {
-//
-//}
 
-/**
- *
- */
-class GlobalModelMapper extends FlatMapFunction[Metrics, (Long, Metrics)] {
-  var counter = 0.0
+/** This Flat Mapper can take as input any value of  Metrics type.
+  * Specifically the input values can be:
+  * inType1: [[DataPoints]] -> Is a wrapper for a [[LabeledVector]] value
+  * inType2: [[EvaluationMetric]] -> Contains, per node, at most two attributes that will give the
+  * maximum Information Gain.
+  *
+  * This mapper emits tuples of (attributeId,valueToBeSent), where the identifier is used for
+  * filtering the different types of [[Metrics]] that the valueToBeSent can be.
+  *
+  * The (identifier,valueToBeSent) can have any of the following values
+  * outType1: (Int,VFDTAttributes) -> when an attribute has been emitted
+  * outType2: (-2,CalculateMetricsSignal) -> When a signal for splitting a leaf is sent
+  *
+  */
+class GlobalModelMapper(
+  resultingParameters: ParameterMap)
+  extends FlatMapFunction[Metrics, (Int, Metrics)] {
+
+  //Create the root of the DecisionTreeModel
+  var counterPerLeaf = Map[Int, Int]((0, 0))
   val VFDT = DecisionTreeModel
-  VFDT.createRootOfTheTree
-  println(s"---------------------My decision tree:$VFDT")
+  //  VFDT.createRootOfTheTree
 
-  override def flatMap(value: Metrics, out: Collector[(Long, Metrics)]): Unit = {
+  override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
 
-    //if a data point is received
-    if (value.isInstanceOf[DataPoints]) {
-      val newDataPoint = value.asInstanceOf[DataPoints]
-      counter += 1.0
-      //TODO:: 1. classify data point first
-      //TODO:: 2. number of instances seen till now
-      val leafId = VFDT.classifyDataPointToLeaf(newDataPoint.getFeatures)
-      val tempVector = newDataPoint.getFeatures
+    value match {
+      case newDataPoint: DataPoints => {
+        //data point is received
 
-//      for (i <- 0 until tempVector.size) {
-//        if (tempVector.apply(i).isInstanceOf[String]) {
-//          out.collect((i, VFDTAttributes(i, tempVector(i).asInstanceOf[String],
-//            newDataPoint.getLabel, 10, AttributeType.Nominal)))
-//        }
-//        else {
-//          out.collect((i, VFDTAttributes(i, tempVector.apply(i), newDataPoint.getLabel, leafId,
-//            AttributeType.Numerical)))
-//        }
-//      }
-      if (counter == 14.0) {
-        println("-----------------Signal----------------------------")
-        out.collect((-2, CalculateMetricsSignal(10)))
+        val featuresVector = newDataPoint.getFeatures
+
+        //TODO:: 1. classify data point first
+        val leafId = 0 //VFDT.classifyDataPointToLeaf(featuresVector)
+
+        //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
+        // information gain -> is not need, we will just select the attribute with the smallest
+        // entropy, which as a result will have the highest Information gain
+
+        //TODO:: 3. number of instances seen till now in the specific leaf
+        val temp = counterPerLeaf.getOrElse(leafId, throw new RuntimeException(s"------ 1 " +
+          s"-----leaf:$leafId doesn't exist"))
+        counterPerLeaf = counterPerLeaf.updated(leafId, temp + 1)
+
+        for (i <- 0 until featuresVector.size) {
+
+          resultingParameters.get(NominalAttributes).get.getOrElse(i, None) match {
+            case nOfValue: Int => {
+              //emit Nominal attribute
+              out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                nOfValue, leafId, AttributeType.Nominal)))
+            }
+            case None => {
+              //emit numerical attribute
+              out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
+                leafId, AttributeType.Numerical)))
+            }
+          }
+        }
+
+        counterPerLeaf.getOrElse(leafId, None) match {
+          case instancesSeenInLeaf: Int => {
+            if (instancesSeenInLeaf == MinNumberOfInstances) {
+              println("-----------------Signal----------------------------")
+              out.collect((-2, CalculateMetricsSignal(leafId)))
+            }
+          }
+          case None =>
+            throw new RuntimeException(s"------ 1 -----leaf:$leafId doesn't exist")
+        }
+        
       }
-    } //metrics are received, then update global model
-    else if (value.isInstanceOf[EvaluationMetric]) {
-      //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
-      println("------------------------------Metric-------------------------------------" + value)
+      case evaluationMetric: EvaluationMetric => {
+        //metrics are received, then update global model
+        //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
+        println("------------------------------Metric-------------------------------------" + value)
+      }
+      case _ =>
+        throw new RuntimeException("- WTF is that, that you're " +
+          "sending in the GlobalModelMapper" + value.getClass.toString)
     }
-    else {
-      throw new RuntimeException("--------------------WTF is that, that you're " +
-        "sending me ??? x-( :" + value.getClass.toString)
-    }
+
+    //    //if a data point is received
+    //    if (value.isInstanceOf[DataPoints]) {
+    //      val newDataPoint = value.asInstanceOf[DataPoints]
+    //      counter += 1.0
+    //      //TO DO:: 1. classify data point first
+    //      //TO DO:: 2. number of instances seen till now
+    //      val leafId = VFDT.classifyDataPointToLeaf(newDataPoint.getFeatures)
+    //      val tempVector = newDataPoint.getFeatures
+    //
+    //      for (i <- 0 until tempVector.size) {
+    //        if (tempVector.apply(i).isInstanceOf[String]) {
+    //          out.collect((i, VFDTAttributes(i, tempVector(i).asInstanceOf[String],
+    //            newDataPoint.getLabel, 10, AttributeType.Nominal)))
+    //        }
+    //        else {
+    //          out.collect((i, VFDTAttributes(i, tempVector.apply(i), newDataPoint.getLabel,
+    // leafId,
+    //            AttributeType.Numerical)))
+    //        }
+    //      }
+    //      if (counter == 14.0) {
+    //        println("-----------------Signal----------------------------")
+    //        out.collect((-2, CalculateMetricsSignal(10)))
+    //      }
+    //    } //metrics are received, then update global model
+    //    else if (value.isInstanceOf[EvaluationMetric]) {
+    //      //TO DO:: Aggregate metrics and update global model. Do NOT broadcast global model
+    //      println("------------------------------Metric-------------------------------------" +
+    // value)
+    //    }
+    //    else {
+    //      throw new RuntimeException("--------------------WTF is that, that you're " +
+    //        "sending me ??? x-( :" + value.getClass.toString)
+    //    }
   }
+
 }
 
-/**
- *
- */
-class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics] {
+/** This Flat Mapper can take as input a tuple2 (Int,Metrics), which is either broadcasted or
+  * groupedByKey from the [[GlobalModelMapper]].
+  *
+  * inType1: (Int,VFDTAttributes) -> when an attribute is received. It updates the metrics for
+  * the specific attribute.
+  * inType2: (-2,CalculateMetricsSignal) -> When a signal for splitting a leaf is received. It
+  * calculates which of the attributes is a better candidate for a split in that leaf.
+  *
+  * This mapper emits values of type [[EvaluationMetric]], which extends [[Metrics]].
+  *
+  */
+class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] {
+
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
     [Long, AttributeObserver[Metrics]]]()
@@ -208,78 +289,141 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Long, Metrics), Metrics]
   //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
   //          AttributeObserver[Metrics]]] = null
 
-  var attributesObserverTemp: mutable.HashMap[Long, AttributeObserver[Metrics]] = null
+  var attributesObserverTemp = mutable.HashMap[Long, AttributeObserver[Metrics]]()
 
   var bestAttributesToSplit = mutable.MutableList[(Long, (Double, Double))]()
 
-  override def flatMap(value: (Long, Metrics), out: Collector[Metrics]): Unit = {
+  override def flatMap(value: (Int, Metrics), out: Collector[Metrics]): Unit = {
 
-    //TODO:: if attribute just do update the metrics
-    if (value._2.isInstanceOf[VFDTAttributes]) {
-      val attribute = value._2.asInstanceOf[VFDTAttributes]
 
-      //            //check if there is a spectator for this leaf
-      //            if (leafsObserver.contains(attribute.leaf)) {
-      //              leafClassTemp = leafsObserver.apply(attribute.leaf) //take the leaf
-      // observer
-      //            }
-      //            else {
-      //              leafClassTemp = new mutable.HashMap[String, mutable.HashMap[Long,
-      //                AttributeObserver[Metrics]]]
-      //            }
+    value._2 match {
+      case attribute: VFDTAttributes => {
+        //take the class observer, else if there is no observer for that leaf
+        leafsObserver.getOrElseUpdate(attribute.leaf, {
+          new mutable.HashMap[Long,
+            AttributeObserver[Metrics]]()
+        })
 
-      if (leafsObserver.contains(attribute.leaf)) {
-        //take the class observer
-        attributesObserverTemp = leafsObserver.apply(attribute.leaf)
-      }
-      else {
-        //if there is no observer for that leaf
-        attributesObserverTemp = new mutable.HashMap[Long, AttributeObserver[Metrics]]()
-      }
-      //check if there is an attributeSpectator for this attribute, update metrics
-      if (attributesObserverTemp.contains(value._1)) {
-        attributesObserverTemp.apply(value._1).updateMetricsWithAttribute(attribute)
-      }
-      else {
+        //check if there is an attributeSpectator for this attribute, update metrics
         //if there is no attributeSpectator create one, nominal or numerical
-        val tempSpectator = if (attribute.attributeType == AttributeType.Nominal) {
+        val tempObserver = if (attribute.attributeType == AttributeType.Nominal) {
           new NominalAttributeObserver(2)
         }
         else {
           new NumericalAttributeObserver
         }
-        tempSpectator.updateMetricsWithAttribute(attribute)
+        attributesObserverTemp.getOrElseUpdate(value._1, {
+          if (attribute.attributeType == AttributeType.Nominal) {
+            new NominalAttributeObserver(2)
+          }
+          else {
+            new NumericalAttributeObserver
+          }
+        }).updateMetricsWithAttribute(attribute)
 
-        attributesObserverTemp.put(value._1,
-          tempSpectator.asInstanceOf[AttributeObserver[Metrics]])
+        leafsObserver.put(attribute.leaf, attributesObserverTemp)
+        println(leafsObserver)
       }
-      //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
-      leafsObserver.put(attribute.leaf, attributesObserverTemp)
-      //      println(leafsObserver)
-    }
-    //TODO:: if signal, calculate and feed the sub-model back to the iteration
-    if (value._2.isInstanceOf[CalculateMetricsSignal]) {
-      if (leafsObserver.contains(value._2.asInstanceOf[CalculateMetricsSignal].leaf)) {
-        val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal].leaf)
+      case calcMetricsSignal: CalculateMetricsSignal => {
 
-        //[Long,HasMap[String,(#Yes,#No)]]
-        for (attr <- leafToSplit) {
-          val temp = attr._2.getSplitEvaluationMetric
-          bestAttributesToSplit += ((attr._1, temp))
+        leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
+
+          case leafToSplit: mutable.HashMap[Long, AttributeObserver[Metrics]] => {
+
+            //[Long,HasMap[String,(#Yes,#No)]]
+            for (attr <- leafToSplit) {
+              val temp = attr._2.getSplitEvaluationMetric
+              bestAttributesToSplit += ((attr._1, temp))
+            }
+            bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
+            println("------best Attribute: " + bestAttributesToSplit)
+            var bestAttr: (Long, Double) = null
+            var secondBestAttr: (Long, Double) = null
+            if (bestAttributesToSplit.size > 0) {
+              bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._2)
+            }
+            if (bestAttributesToSplit.size > 1) {
+              secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
+            }
+            out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
+
+          }
+          case None =>
+            throw new RuntimeException("-There is no AttributeObserver for that lead-")
         }
-        bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
-        println("------best Attribute: " + bestAttributesToSplit)
-        var bestAttr: (Long, Double) = null
-        var secondBestAttr: (Long, Double) = null
-        if (bestAttributesToSplit.size > 0) {
-          bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._2)
-        }
-        if (bestAttributesToSplit.size > 0) {
-          secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
-        }
-        out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
       }
+      case _ =>
+        throw new RuntimeException("- WTF is that, that you're " +
+          "sending in the  PartialVFDTMetricsMapper" + value.getClass.toString)
     }
+
+    //    //TODO:: if attribute just do update the metrics
+    //    if (value._2.isInstanceOf[VFDTAttributes]) {
+    //      val attribute = value._2.asInstanceOf[VFDTAttributes]
+    //
+    //      //            //check if there is a spectator for this leaf
+    //      //            if (leafsObserver.contains(attribute.leaf)) {
+    //      //              leafClassTemp = leafsObserver.apply(attribute.leaf) //take the leaf
+    //      // observer
+    //      //            }
+    //      //            else {
+    //      //              leafClassTemp = new mutable.HashMap[String, mutable.HashMap[Long,
+    //      //                AttributeObserver[Metrics]]]
+    //      //            }
+    //
+    //      if (leafsObserver.contains(attribute.leaf)) {
+    //        //take the class observer
+    //        attributesObserverTemp = leafsObserver.apply(attribute.leaf)
+    //      }
+    //      else {
+    //        //if there is no observer for that leaf
+    //        attributesObserverTemp = new mutable.HashMap[Long, AttributeObserver[Metrics]]()
+    //      }
+    //      //check if there is an attributeSpectator for this attribute, update metrics
+    //      if (attributesObserverTemp.contains(value._1)) {
+    //        attributesObserverTemp.apply(value._1).updateMetricsWithAttribute(attribute)
+    //      }
+    //      else {
+    //        //if there is no attributeSpectator create one, nominal or numerical
+    //        val tempSpectator = if (attribute.attributeType == AttributeType.Nominal) {
+    //          new NominalAttributeObserver(2)
+    //        }
+    //        else {
+    //          new NumericalAttributeObserver
+    //        }
+    //        tempSpectator.updateMetricsWithAttribute(attribute)
+    //
+    //        attributesObserverTemp.put(value._1,
+    //          tempSpectator.asInstanceOf[AttributeObserver[Metrics]])
+    //      }
+    //      //            leafClassTemp.put(attribute.clazz.toString, attributesSpectatorTemp)
+    //      leafsObserver.put(attribute.leaf, attributesObserverTemp)
+    //      //      println(leafsObserver)
+    //    }
+    //    //TODO:: if signal, calculate and feed the sub-model back to the iteration
+    //    if (value._2.isInstanceOf[CalculateMetricsSignal]) {
+    //      if (leafsObserver.contains(value._2.asInstanceOf[CalculateMetricsSignal].leaf)) {
+    //        val leafToSplit = leafsObserver.apply(value._2.asInstanceOf[CalculateMetricsSignal]
+    // .leaf)
+    //
+    //        //[Long,HasMap[String,(#Yes,#No)]]
+    //        for (attr <- leafToSplit) {
+    //          val temp = attr._2.getSplitEvaluationMetric
+    //          bestAttributesToSplit += ((attr._1, temp))
+    //        }
+    //        bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
+    //        println("------best Attribute: " + bestAttributesToSplit)
+    //        var bestAttr: (Long, Double) = null
+    //        var secondBestAttr: (Long, Double) = null
+    //        if (bestAttributesToSplit.size > 0) {
+    //          bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._2)
+    //        }
+    //        if (bestAttributesToSplit.size > 0) {
+    //          secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
+    //        }
+    //        out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
+    //      }
+    //    }
   }
 }
 

@@ -21,8 +21,9 @@ import org.apache.flink.streaming.incrementalML.classification.Metrics.Attribute
 
 class VFDTAttributes(
   val id: Int,
-  val value: Any,
+  val value: Double,
   val clazz: Double,
+  val nOfDifferentValues: Int,
   val leaf: Int,
   val attributeType: AttributeType)
   extends Metrics
@@ -34,9 +35,9 @@ class VFDTAttributes(
 }
 
 object VFDTAttributes {
-  def apply(id: Int, value: Any, clazz: Double, leaf: Int, attrType: AttributeType):
+  def apply(id: Int, value: Double, clazz: Double, nOfValues: Int, leaf: Int, attrType: AttributeType):
   VFDTAttributes = {
-    new VFDTAttributes(id, value, clazz, leaf, attrType)
+    new VFDTAttributes(id, value, clazz, nOfValues, leaf, attrType)
   }
 }
 
