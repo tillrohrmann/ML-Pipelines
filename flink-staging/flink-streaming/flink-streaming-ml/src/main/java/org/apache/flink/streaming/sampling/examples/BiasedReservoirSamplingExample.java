@@ -15,38 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.flink.streaming.sampling;
+package org.apache.flink.streaming.sampling.examples;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
-import org.apache.flink.streaming.incrementalML.inspector.ChangeDetector;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
-import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.streaming.sampling.samplers.*;
-import org.apache.flink.util.Collector;
+import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
 
 import java.util.Properties;
 
 /**
- * Created by marthavk on 2015-03-13.
+ * Created by marthavk on 2015-05-06.
  */
-public class StreamApproximationExample {
-	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
-			"/flink-streaming-ml/src/main/resources/";
+public class BiasedReservoirSamplingExample {
 	public static long MAX_COUNT;  // max count of generated numbers
-	public static int COUNT_WINDOW_SIZE;
-	public static long TIME_WINDOW_SIZE; //In milliseconds
 	public static int SAMPLE_SIZE;
 	public static Properties initProps = new Properties();
 
@@ -56,10 +46,8 @@ public class StreamApproximationExample {
 	public static void main(String args[]) throws Exception {
 
 		/*read properties file and set static variables*/
-		initProps = SamplingUtils.readProperties(path + "distributionconfig.properties");
+		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
-		TIME_WINDOW_SIZE = Long.parseLong(initProps.getProperty("timeWindowSize"));
 		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
 
 		/*set execution environment*/
@@ -84,14 +72,12 @@ public class StreamApproximationExample {
 	 */
 	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
 
-		int defaultParallelism = Runtime.getRuntime().availableProcessors();
 		int sampleSize = SAMPLE_SIZE;
 
 		/*create source*/
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-
 		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
 
 				/*generate double value from GaussianDistribution and wrap around
@@ -103,20 +89,13 @@ public class StreamApproximationExample {
 					}
 				});
 
-				operator.map(new DataGenerator())
+		operator.map(new DataGenerator())
 
 				/*sample the stream*/
-				//.map(new PrioritySampler<Double>(sampleSize, TIME_WINDOW_SIZE))
-				.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
-				//.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-				//.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-				//.map(new FifoSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-				//.setParallelism(1)
+				.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SampleExtractor<Double>()) //use that for Chain and Priority Samplers.
-				// .map(new SimpleUnwrapper<Double>()) //use that for Reservoir, Biased Reservoir, FIFO Samplers
-				//.setParallelism(1)
+				.map(new SimpleUnwrapper<Double>()) //use that for Reservoir, Biased Reservoir, FIFO Samplers
 
 				/*connect sampled stream to source*/
 				.connect(operator)
@@ -125,12 +104,8 @@ public class StreamApproximationExample {
 				//.flatMap(new DistanceEvaluator())
 				.flatMap(new DistributionComparator())
 
-				//.setParallelism(1)
-
-				//sink
-				//.print();
-				.writeAsText(path + "evaluation");
-				//.setParallelism(1);
+				/*sink*/
+				.writeAsText(SamplingUtils.path + "evaluation");
 	}
 
 
@@ -143,24 +118,5 @@ public class StreamApproximationExample {
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
 		return env.addSource(new GaussianStreamGenerator(props));
 	}
-
-	/********* debug functions ***********/
-	public static DataStreamSource<Integer> createOrderedSrc(StreamExecutionEnvironment env) {
-		return env.addSource(new RichSourceFunction<Integer>() {
-			int counter = 0;
-			@Override
-			public void run(Collector<Integer> collector) throws Exception {
-				while (counter < MAX_COUNT) {
-					counter++;
-					collector.collect(counter);
-				}
-			}
-			@Override
-			public void cancel() {
-
-			}
-		});
-	}
-
 
 }
