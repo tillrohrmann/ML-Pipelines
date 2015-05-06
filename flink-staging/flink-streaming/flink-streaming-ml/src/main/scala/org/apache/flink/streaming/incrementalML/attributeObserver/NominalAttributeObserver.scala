@@ -28,13 +28,10 @@ class NominalAttributeObserver(
   with Serializable {
 
   // [AttributeVale,(#Yes,#No)]
-  val attributeValues = mutable.HashMap[String, (Double, Double)]()
+  val attributeValues = mutable.HashMap[Double, (Double, Double)]()
   var instancesSeen: Double = 0.0 // instancesSeen
-  /**
-   *
-   * @return
-   */
-  override def getSplitEvaluationMetric: (Double, Double) = {
+
+  override def getSplitEvaluationMetric: (Double, List[Double]) = {
     var entropy = 0.0
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
@@ -52,7 +49,7 @@ class NominalAttributeObserver(
       }
       entropy += (-valueEntropy) * valueProb
     }
-    (0.0, entropy)
+    (entropy,attributeValues.keySet.toList)
   }
 
   /**
@@ -65,22 +62,22 @@ class NominalAttributeObserver(
     //if it's not the first time that we see the same value for e.g. attribute 1
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
     instancesSeen += 1.0
-    if (attributeValues.contains(VFDTAttribute.value.toString)) {
-      var temp = attributeValues.apply(VFDTAttribute.value.toString)
+    if (attributeValues.contains(VFDTAttribute.value)) {
+      var temp = attributeValues.apply(VFDTAttribute.value)
       if (VFDTAttribute.clazz == 0.0) {
         temp = (temp._1, temp._2 + 1.0)
       }
       else {
         temp = (temp._1 + 1.0, temp._2)
       }
-      attributeValues.put(VFDTAttribute.value.toString, temp)
+      attributeValues.put(VFDTAttribute.value, temp)
     }
     else {
       if (VFDTAttribute.clazz == 0.0) {
-        attributeValues.put(VFDTAttribute.value.toString, (0.0, 1.0))
+        attributeValues.put(VFDTAttribute.value, (0.0, 1.0))
       }
       else {
-        attributeValues.put(VFDTAttribute.value.toString, (1.0, 0.0))
+        attributeValues.put(VFDTAttribute.value, (1.0, 0.0))
       }
     }
   }

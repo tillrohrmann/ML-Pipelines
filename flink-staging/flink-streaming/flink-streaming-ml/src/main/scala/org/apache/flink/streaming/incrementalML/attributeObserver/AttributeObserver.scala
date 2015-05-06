@@ -17,13 +17,28 @@
  */
 package org.apache.flink.streaming.incrementalML.attributeObserver
 
-/** Base trait for a class that will incrementally update the metrics of a class
+/** Base trait for an attribute observer, which will incrementally update the metrics for a
+  * specific attribute which can be either Nominal or Numerical
   *
   */
 
 trait AttributeObserver[IN] extends Serializable {
 
-  def getSplitEvaluationMetric: (Double, Double)
+  /**
+   * If it is called for a Nominal attribute, it calculates the entropy of splitting in that
+   * attribute.
+   * If it is called for a Numerical attribute, it calculates the best value for binary splitting
+   * of this attribute.
+   *
+   * @return a (entropy,listOfSplittingValues) tuple2. The first value of the tuple is the
+   *         entropy of this attribute and the second value of the tuple is the List of values
+   *         for splitting in that attribute
+   */
+  def getSplitEvaluationMetric: (Double, List[Double])
 
+  /** It is called for incrementally update of the metrics for a specific attribute
+   *
+   * @param attribute The attribute of type [[IN]]
+   */
   def updateMetricsWithAttribute(attribute: IN): Unit
 }

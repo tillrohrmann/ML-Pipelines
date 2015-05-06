@@ -46,18 +46,14 @@ class NumericalAttributeObserver
   var minValueObserved = Double.MaxValue
   var maxValueObserved = Double.MinValue
 
-  /**
-   *
-   * @return a (Value,Entropy) Tuple2, where the first element is the value to split on and the
-   *         second is the entropy of the attribute
-   */
-  override def getSplitEvaluationMetric(): (Double, Double) = {
+  override def getSplitEvaluationMetric(): (Double, List[Double]) = {
 
     val potentialSplitPoints = Utils.getSplitPointsWithUniformApproximation(
       SPLIT_POINTS_TO_CONSIDER, minValueObserved, maxValueObserved)
 
     val metricsForSplitPoints = mutable.MutableList[Double]()
-    var bestValueToSplit = (Double.MaxValue, Double.MaxValue)
+    var bestValueToSplit = (Double.MaxValue, List[Double]())
+
     //------------------ Decide Best Split Option ------------------------------------
     var entropy = 0.0
     for (point <- potentialSplitPoints) {
@@ -103,15 +99,11 @@ class NumericalAttributeObserver
       }
       //--------------------------------------------------
       metricsForSplitPoints += entropy
-      if (entropy < bestValueToSplit._2) {
-        bestValueToSplit = (point, entropy)
+      if (entropy < bestValueToSplit._1) {
+        bestValueToSplit = (entropy, bestValueToSplit._2.::(point))
       }
     }
-
-    //    println(s"------split points:$potentialSplitPoints, metrics for split " +
-    //      s"points$metricsForSplitPoints")
-    //    getPotentialSplitPointsWithGaussianApproximation())
-
+    instances.clear()
     bestValueToSplit
   }
 
@@ -145,6 +137,10 @@ class NumericalAttributeObserver
     }
   }
 
+  /** Calculates incrementally the gaussian mean and standard deviation of this numerical attribute.
+   *
+   * @param value the input value of the attribute
+   */
   private def calculateMeanAndStd(value: Double): Unit = {
     instancesSeen += 1
     attributeSum += value

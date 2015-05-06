@@ -211,7 +211,7 @@ class GlobalModelMapper(
 
         counterPerLeaf.getOrElse(leafId, None) match {
           case instancesSeenInLeaf: Int => {
-            if (instancesSeenInLeaf == MinNumberOfInstances) {
+            if (instancesSeenInLeaf == resultingParameters.get(MinNumberOfInstances).get) {
               println("-----------------Signal----------------------------")
               out.collect((-2, CalculateMetricsSignal(leafId)))
             }
@@ -219,7 +219,7 @@ class GlobalModelMapper(
           case None =>
             throw new RuntimeException(s"------ 1 -----leaf:$leafId doesn't exist")
         }
-        
+
       }
       case evaluationMetric: EvaluationMetric => {
         //metrics are received, then update global model
@@ -291,7 +291,8 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
   var attributesObserverTemp = mutable.HashMap[Long, AttributeObserver[Metrics]]()
 
-  var bestAttributesToSplit = mutable.MutableList[(Long, (Double, Double))]()
+  //[attributeId,(entropy,ListOfSplittingValues)]
+  var bestAttributesToSplit = mutable.MutableList[(Long, (Double, List[Double]))]()
 
   override def flatMap(value: (Int, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -300,18 +301,11 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
       case attribute: VFDTAttributes => {
         //take the class observer, else if there is no observer for that leaf
         leafsObserver.getOrElseUpdate(attribute.leaf, {
-          new mutable.HashMap[Long,
-            AttributeObserver[Metrics]]()
+          new mutable.HashMap[Long, AttributeObserver[Metrics]]()
         })
 
         //check if there is an attributeSpectator for this attribute, update metrics
         //if there is no attributeSpectator create one, nominal or numerical
-        val tempObserver = if (attribute.attributeType == AttributeType.Nominal) {
-          new NominalAttributeObserver(2)
-        }
-        else {
-          new NumericalAttributeObserver
-        }
         attributesObserverTemp.getOrElseUpdate(value._1, {
           if (attribute.attributeType == AttributeType.Nominal) {
             new NominalAttributeObserver(2)
@@ -322,8 +316,9 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
         }).updateMetricsWithAttribute(attribute)
 
         leafsObserver.put(attribute.leaf, attributesObserverTemp)
-        println(leafsObserver)
+//        println(leafsObserver)
       }
+
       case calcMetricsSignal: CalculateMetricsSignal => {
 
         leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
@@ -335,15 +330,15 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
               val temp = attr._2.getSplitEvaluationMetric
               bestAttributesToSplit += ((attr._1, temp))
             }
-            bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._2 < y._2._2)
+            bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
             println("------best Attribute: " + bestAttributesToSplit)
             var bestAttr: (Long, Double) = null
             var secondBestAttr: (Long, Double) = null
             if (bestAttributesToSplit.size > 0) {
-              bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._2)
+              bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._1)
             }
             if (bestAttributesToSplit.size > 1) {
-              secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._2)
+              secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._1)
             }
             out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
 
