@@ -49,7 +49,7 @@ class NominalAttributeObserver(
       }
       entropy += (-valueEntropy) * valueProb
     }
-    (entropy,attributeValues.keySet.toList)
+    (entropy, attributeValues.keySet.toList)
   }
 
   /**

@@ -27,7 +27,7 @@ import scala.collection.mutable
 object DecisionTreeModel
   extends Serializable {
 
-  var decisionTree: mutable.HashMap[Int, DTNode] = null
+  var decisionTree: mutable.Map[Int, DTNode] = mutable.HashMap[Int, DTNode]()
 
   def createRootOfTheTree: Unit = {
     decisionTree.+=((0, DTNode(true, true, 0)))
@@ -40,28 +40,45 @@ object DecisionTreeModel
     * @return The leaf, that this was sorted to
     */
   def classifyDataPointToLeaf(dataPointFeatures: Vector): Int = {
-    //    var leaf = nodeId
-    //    //classify data point and return leaf id
-    //    var currentNode = this
-    //    var tempChildrenList = children
-    //    if (!currentNode.isLeaf) {
-    //      if (currentNode.splitAttributeType == AttributeType.Numerical) {
-    //        if (dataPointFeatures(splitAttribute).asInstanceOf[Double] < currentNode
-    //          .attributeSplitValue) {
-    //          currentNode = tempChildrenList.getOrElse("LeftHandSide", throw new RuntimeException
-    //          ("Left Hand Side branch doesn't exist"))
-    //          tempChildrenList = currentNode.children
-    //          leaf = currentNode.nodeId
-    //        }
-    //        else{
-    //          currentNode = tempChildrenList.getOrElse("RightHandSide", throw new RuntimeException
-    //          ("Right Hand Side branch doesn't exist"))
-    //          tempChildrenList = currentNode.children
-    //          leaf = currentNode.nodeId
-    //        }
-    //      }
-    //    }
-    0
+    var leaf = 0
+
+    //classify data point and return leaf id
+    var currentNode = decisionTree.get(0).get
+
+    while (!currentNode.isLeaf) {
+      var tempChildrenList = currentNode.children.get
+
+      currentNode.splitAttributeType match {
+        case AttributeType.Numerical => {
+          //left hand side of the tree for values <=
+          if (dataPointFeatures(currentNode.splitAttribute.get) <= currentNode
+            .attributeSplitValue(0)) {
+            val temp = tempChildrenList.getOrElse(0, throw new RuntimeException
+            ("Left Hand Side branch doesn't exist-----1"))
+            currentNode = decisionTree.getOrElse(temp, throw new RuntimeException
+            ("Left Hand Side branch doesn't exist-----1"))
+            if (currentNode.children != None) {
+              tempChildrenList = currentNode.children.get
+            }
+            leaf = currentNode.nodeId
+          }
+          else {
+            //right hand side of the tree for values >
+            val temp = tempChildrenList.getOrElse(1.0, throw new RuntimeException(
+              "Right Hand Side branch doesn't exist"))
+            currentNode = decisionTree.getOrElse(temp, throw new RuntimeException(
+              "Right Hand Side branch doesn't exist"))
+            if (currentNode.children != None) {
+              tempChildrenList = currentNode.children.get
+            }
+            leaf = currentNode.nodeId
+          }
+        }
+        case AttributeType.Nominal => {
+        }
+      }
+    }
+    leaf
   }
 
   /** Grows a tree, meaning that it will split a leaf with the given attribute
@@ -74,11 +91,12 @@ object DecisionTreeModel
     * @param splitValue The Value of the splitting. Applies for numerical attributes
     * @param infoGain The information gain of this splitting
     */
-  def growTree(leafToSplit: Int, splitAttribute: Int, attrType: AttributeType, splitValue: Double,
-    infoGain: Double): Unit = {
+  def growTree(leafToSplit: Int, splitAttribute: Int, attrType: AttributeType,
+    splitValue: List[Double], infoGain: Double): Unit = {
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is no" +
       " leaf to split with that Id"))
-    nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
+    val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
+    decisionTree = decisionTree ++ newNodes
   }
 
   override def toString(): String = {
@@ -88,7 +106,7 @@ object DecisionTreeModel
 }
 
 /**
- *
+ * @param isRoot: True only for the root of the tree
  * @param isLeaf: True if a node is a Leaf
  * @param nodeId: A unique integer, identifying each one of the tree's nodes
  *
@@ -118,10 +136,10 @@ case class DTNode(
    * specific leaf
    *
    */
-  var children: Option[mutable.HashMap[String, Int]] = None
+  var children: Option[mutable.Map[Double, Int]] = None
   var splitAttribute: Option[Int] = None
   var splitAttributeType: Option[AttributeType] = None
-  var attributeSplitValue = Double.NaN
+  var attributeSplitValue = List[Double]()
   var informationGain = Double.NaN
   var label = Double.NaN
 
@@ -131,25 +149,43 @@ case class DTNode(
     * @param splitAttr The id of the split attribute of the node
     * @param splitAttrType The type of the attribute: either  [[AttributeType.Nominal]] or
     *                      [[AttributeType.Numerical]]
-    * @param attrSplitValue The Value of the splitting. Applies for numerical attributes
+    * @param attrSplitValues The Value of the splitting. Applies for numerical attributes
     * @param infoGain The information gain of this splitting
     */
-  def splitNode(splitAttr: Int, splitAttrType: AttributeType,
-    attrSplitValue: Double, infoGain: Double): Unit = {
-    //TODO:: Change attrSplitValue type to List[Double]
-    children = Some(new mutable.HashMap[String, Int]())
+  def splitNode(splitAttr: Int, splitAttrType: AttributeType, attrSplitValues: List[Double],
+    infoGain: Double): mutable.Map[Int, DTNode] = {
+
+    val tempNodes = mutable.HashMap[Int, DTNode]()
+    val tempChildren = mutable.HashMap[Double, Int]()
+
     splitAttribute = Some(splitAttr)
     splitAttributeType = Some(splitAttrType)
-    attributeSplitValue = attrSplitValue
+    attributeSplitValue = attrSplitValues
     informationGain = infoGain
+
     if (isLeaf) {
       isLeaf = false
+      if (splitAttributeType.get == AttributeType.Numerical) {
+        tempNodes.put(nodeId + 1, DTNode(false, true, nodeId + 1))
+        tempChildren.put(0.0, nodeId + 1)
+
+        tempNodes.put(nodeId + 2, DTNode(false, true, nodeId + 2))
+        tempChildren.put(1.0, nodeId + 2)
+      }
+      else {
+        for (i <- 0 until attrSplitValues.size) {
+          tempNodes.put(nodeId + i + 1, DTNode(false, true, nodeId + i + 1))
+          tempChildren.put(attrSplitValues(i), nodeId + i + 1)
+        }
+      }
     }
+    children = Some(tempChildren)
+    tempNodes
   }
 
   override def toString(): String = {
     val s = new StringBuilder()
-    s.append(s"NodeId:$nodeId -> children:$children")
+    s.append(s"NodeId:$nodeId -> children:$children, splitting value:$attributeSplitValue")
     s.toString()
   }
 }

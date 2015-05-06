@@ -37,8 +37,8 @@ trait AttributeObserver[IN] extends Serializable {
   def getSplitEvaluationMetric: (Double, List[Double])
 
   /** It is called for incrementally update of the metrics for a specific attribute
-   *
-   * @param attribute The attribute of type [[IN]]
-   */
+    *
+    * @param attribute The attribute of type [[IN]]
+    */
   def updateMetricsWithAttribute(attribute: IN): Unit
 }

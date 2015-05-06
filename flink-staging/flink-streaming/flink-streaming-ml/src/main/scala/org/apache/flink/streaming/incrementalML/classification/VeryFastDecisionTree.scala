@@ -25,8 +25,7 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.util.Collector
@@ -97,11 +96,11 @@ class VeryFastDecisionTree(
       override def select(value: Metrics): Iterable[String] = {
         val output = new util.ArrayList[String]()
 
-        if (value.isInstanceOf[EvaluationMetric]) {
-          output.add("feedback")
-        }
-        else {
-          output.add("output")
+        value match {
+          case _: EvaluationMetric =>
+            output.add("feedback")
+          case _ =>
+            output.add("output")
         }
         output
       }
@@ -171,10 +170,12 @@ class GlobalModelMapper(
   //Create the root of the DecisionTreeModel
   var counterPerLeaf = Map[Int, Int]((0, 0))
   val VFDT = DecisionTreeModel
-  //  VFDT.createRootOfTheTree
+  VFDT.createRootOfTheTree
+
+  //  println(s"-----------$VFDT-------------------------")
 
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
-
+    var leafId = 0
     value match {
       case newDataPoint: DataPoints => {
         //data point is received
@@ -182,13 +183,12 @@ class GlobalModelMapper(
         val featuresVector = newDataPoint.getFeatures
 
         //TODO:: 1. classify data point first
-        val leafId = 0 //VFDT.classifyDataPointToLeaf(featuresVector)
+        leafId = VFDT.classifyDataPointToLeaf(featuresVector)
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
         // entropy, which as a result will have the highest Information gain
 
-        //TODO:: 3. number of instances seen till now in the specific leaf
         val temp = counterPerLeaf.getOrElse(leafId, throw new RuntimeException(s"------ 1 " +
           s"-----leaf:$leafId doesn't exist"))
         counterPerLeaf = counterPerLeaf.updated(leafId, temp + 1)
@@ -225,6 +225,20 @@ class GlobalModelMapper(
         //metrics are received, then update global model
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
         println("------------------------------Metric-------------------------------------" + value)
+        resultingParameters.get(NominalAttributes).get.getOrElse(evaluationMetric.bestValue._1
+          .asInstanceOf[Int], None) match {
+          case None =>
+            VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1
+              .asInstanceOf[Int], AttributeType.Numerical, evaluationMetric.bestValue._2._2,
+              evaluationMetric.bestValue._2._1)
+          case Int =>
+            VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1
+              .asInstanceOf[Int], AttributeType.Nominal, evaluationMetric.bestValue._2._2,
+              evaluationMetric.bestValue._2._1)
+        }
+        println(s"--------------*********---------------$VFDT" +
+          s"--------------*********---------------")
+
       }
       case _ =>
         throw new RuntimeException("- WTF is that, that you're " +
@@ -284,15 +298,15 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
-    [Long, AttributeObserver[Metrics]]]()
+    [Int, AttributeObserver[Metrics]]]()
 
   //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
   //          AttributeObserver[Metrics]]] = null
 
-  var attributesObserverTemp = mutable.HashMap[Long, AttributeObserver[Metrics]]()
+  var attributesObserverTemp = mutable.HashMap[Int, AttributeObserver[Metrics]]()
 
   //[attributeId,(entropy,ListOfSplittingValues)]
-  var bestAttributesToSplit = mutable.MutableList[(Long, (Double, List[Double]))]()
+  var bestAttributesToSplit = mutable.MutableList[(Int, (Double, List[Double]))]()
 
   override def flatMap(value: (Int, Metrics), out: Collector[Metrics]): Unit = {
 
@@ -301,14 +315,14 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
       case attribute: VFDTAttributes => {
         //take the class observer, else if there is no observer for that leaf
         leafsObserver.getOrElseUpdate(attribute.leaf, {
-          new mutable.HashMap[Long, AttributeObserver[Metrics]]()
+          new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
 
         //check if there is an attributeSpectator for this attribute, update metrics
         //if there is no attributeSpectator create one, nominal or numerical
         attributesObserverTemp.getOrElseUpdate(value._1, {
           if (attribute.attributeType == AttributeType.Nominal) {
-            new NominalAttributeObserver(2)
+            new NominalAttributeObserver(attribute.nOfDifferentValues)
           }
           else {
             new NumericalAttributeObserver
@@ -316,14 +330,14 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
         }).updateMetricsWithAttribute(attribute)
 
         leafsObserver.put(attribute.leaf, attributesObserverTemp)
-//        println(leafsObserver)
+        //        println(leafsObserver)
       }
 
       case calcMetricsSignal: CalculateMetricsSignal => {
 
         leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
 
-          case leafToSplit: mutable.HashMap[Long, AttributeObserver[Metrics]] => {
+          case leafToSplit: mutable.HashMap[Int, AttributeObserver[Metrics]] => {
 
             //[Long,HasMap[String,(#Yes,#No)]]
             for (attr <- leafToSplit) {
@@ -331,16 +345,16 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
               bestAttributesToSplit += ((attr._1, temp))
             }
             bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
-            println("------best Attribute: " + bestAttributesToSplit)
-            var bestAttr: (Long, Double) = null
-            var secondBestAttr: (Long, Double) = null
+            println("------best Attributes: " + bestAttributesToSplit)
+            var bestAttr: (Int, (Double, List[Double])) = null
+            var secondBestAttr: (Int, (Double, List[Double])) = null
             if (bestAttributesToSplit.size > 0) {
-              bestAttr = (bestAttributesToSplit(0)._1, bestAttributesToSplit(0)._2._1)
+              bestAttr = bestAttributesToSplit(0)
             }
             if (bestAttributesToSplit.size > 1) {
-              secondBestAttr = (bestAttributesToSplit(1)._1, bestAttributesToSplit(1)._2._1)
+              secondBestAttr = bestAttributesToSplit(1)
             }
-            out.collect(EvaluationMetric(bestAttr, secondBestAttr, 0.0))
+            out.collect(EvaluationMetric(bestAttr, secondBestAttr, calcMetricsSignal.leaf))
 
           }
           case None =>
