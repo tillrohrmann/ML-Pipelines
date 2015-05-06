@@ -1,0 +1,101 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.flink.streaming.sampling.helpers;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.Random;
+
+/**
+ * Created by marthavk on 2015-03-31.
+ */
+
+public final class SamplingUtils {
+
+
+	static Random rand = new Random();
+
+	public static boolean flip(int sides) {
+		return (rand.nextDouble() * sides < 1);
+	}
+
+
+	public static boolean flip(double probability) {
+		return (rand.nextDouble()  < probability);
+	}
+
+	/**
+	 *
+	 * @param min
+	 * @param max
+	 * @return a random int between min and max (both inclusive)
+	 */
+	public static int randomBoundedInteger(int min, int max) {
+		int length = max-min+1;
+		return (rand.nextInt(length)+min);
+	}
+
+	public static long randomBoundedLong(Long min, Long max) {
+		int length = (int)(max - min + 1);
+		int offset = rand.nextInt(length);
+		return min+offset;
+	}
+
+
+
+	/**
+	 * Reads properties file
+	 * @param filename the path of the file
+	 * @return the file as Properties Object
+	 */
+	public static Properties readProperties(String filename) {
+		Properties properties = new Properties();
+		File file = new File(filename);
+		try {
+			FileInputStream fileInput = new FileInputStream(file);
+			properties.load(fileInput);
+			fileInput.close();
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return properties;
+	}
+
+	public static int min(int o1, int o2) {
+		return o1<o2 ? o1 : o2;
+	}
+
+	public static long min(long l1, long l2) {
+		return l1<l2 ? l1 :l2;
+	}
+
+	public static long max(long l1, long l2) {
+		return l1>l2 ? l1 : l2;
+	}
+
+	public static double randomPriority() {
+		return rand.nextDouble();
+	}
+
+}
