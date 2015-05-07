@@ -18,10 +18,9 @@
 package org.apache.flink.streaming.sampling.evaluators;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
+
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
@@ -30,23 +29,23 @@ import org.apache.flink.util.Collector;
 /**
  * Created by marthavk on 2015-03-18.
  */
-public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, NormalDistribution, Double>  {
-	NormalDistribution currentDist = new NormalDistribution();
+public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double>  {
+	GaussianDistribution currentDist = new GaussianDistribution();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
-		NormalDistribution sampledDist = new NormalDistribution(stats.getMean(), stats.getStandardDeviation());
+		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
 		//System.out.println(currentDist.toString() + " " + sampledDist.toString());
 		out.collect(bhattacharyyaDistance(currentDist, sampledDist));
 	}
 
 	@Override
-	public void flatMap2(NormalDistribution value, Collector<Double> out) throws Exception {
+	public void flatMap2(GaussianDistribution value, Collector<Double> out) throws Exception {
 		currentDist = value;
 	}
 
-	public double bhattacharyyaDistance(NormalDistribution greal, NormalDistribution gsampled) {
+	public double bhattacharyyaDistance(GaussianDistribution greal, GaussianDistribution gsampled) {
 
 		//Bhattacharyya distance
 		double m1 = greal.getMean();

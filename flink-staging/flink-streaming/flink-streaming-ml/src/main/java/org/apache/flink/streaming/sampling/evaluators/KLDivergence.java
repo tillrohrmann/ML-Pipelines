@@ -24,35 +24,35 @@ package org.apache.flink.streaming.sampling.evaluators;
 
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 
-public class KLDivergence extends RichCoFlatMapFunction<Sample<Double>, NormalDistribution, Double> {
-	NormalDistribution currentDist = new NormalDistribution();
+public class KLDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
+	GaussianDistribution currentDist = new GaussianDistribution();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
-		NormalDistribution sampledDist = new NormalDistribution(stats.getMean(), stats.getStandardDeviation());
+		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
 		out.collect(klDivergence(currentDist, sampledDist));
 	}
 
 	@Override
-	public void flatMap2(NormalDistribution value, Collector<Double> out) throws Exception {
+	public void flatMap2(GaussianDistribution value, Collector<Double> out) throws Exception {
 		currentDist = value;
 	}
 
-	public double klDivergence(NormalDistribution greal, NormalDistribution gsampled) {
+	public double klDivergence(GaussianDistribution greal, GaussianDistribution gsampled) {
 		//TODO
 		return 0;
 
 	}
 
-	private double additive(NormalDistribution p, NormalDistribution q, int x) {
+	/*private double additive(GaussianDistribution p, GaussianDistribution q, int x) {
 		return p.density(x) * Math.log(q.density(x));
-	}
+	}*/
 
 }
