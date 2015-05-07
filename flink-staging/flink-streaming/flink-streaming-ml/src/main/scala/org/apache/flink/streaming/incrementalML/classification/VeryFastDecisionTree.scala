@@ -25,8 +25,7 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.Utils
@@ -132,14 +131,14 @@ object VeryFastDecisionTree {
   /** Hoeffding Bound tau parameter
     *
     */
-  case object  VfdtTau extends Parameter[Double] {
+  case object VfdtTau extends Parameter[Double] {
     override val defaultValue: Option[Double] = Some(0.05)
   }
 
   /** Hoeffding Bound delta parameter
     *
     */
-  case object  VfdtDelta extends Parameter[Double] {
+  case object VfdtDelta extends Parameter[Double] {
     override val defaultValue: Option[Double] = Some(0.0000001)
   }
 
@@ -182,7 +181,7 @@ class GlobalModelMapper(
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //counterPerLeaf -> (leafId,(#Yes,#No))
-  var counterPerLeaf: mutable.Map[Int, (Int, Int)] = mutable.HashMap[Int, ( Int, Int)](
+  var counterPerLeaf: mutable.Map[Int, (Int, Int)] = mutable.HashMap[Int, (Int, Int)](
     (0, (0, 0)))
 
   //Create the root of the DecisionTreeModel
@@ -236,7 +235,8 @@ class GlobalModelMapper(
         counterPerLeaf.getOrElse(leafId, None) match {
           case leafMetrics: (Int, Int) => {
             //if we have seen at least MinNumberOfInstances and are not all of the same class
-            if (( (leafMetrics._1+leafMetrics._2) % resultingParameters.get(MinNumberOfInstances).get == 0) &&
+            if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
+              (MinNumberOfInstances).get == 0) &&
               leafMetrics._1 != 0 && leafMetrics._2 != 0) {
               println("-----------------Signal----------------------------")
               out.collect((-2, CalculateMetricsSignal(leafId)))
@@ -252,15 +252,18 @@ class GlobalModelMapper(
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
         println("------------------------------Metric-------------------------------------" + value)
 
-        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get._1, counterPerLeaf.get(evaluationMetric.leafId).get._2)
+        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get
+          ._1, counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
         val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
         println(s"---bestValue: $bestInfoGain, ---secondBestInfoGain: $secondBestInfoGain, ---" +
-          s" bestInfoGain-secondBestInfoGain: ${bestInfoGain-secondBestInfoGain}, ---nonSplitEntro: $nonSplitEntro")
+          s" bestInfoGain-secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
+          s"---nonSplitEntro: $nonSplitEntro")
 
         if ((bestInfoGain - secondBestInfoGain >
-          hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId).get._1+counterPerLeaf.get(evaluationMetric.leafId).get._2)) && bestInfoGain >= nonSplitEntro) {
+          hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId).get._1 + counterPerLeaf.get
+            (evaluationMetric.leafId).get._2)) && bestInfoGain >= nonSplitEntro) {
 
           resultingParameters.get(NominalAttributes).get
             .getOrElse(evaluationMetric.bestValue._1, None) match {
@@ -322,11 +325,11 @@ class GlobalModelMapper(
     //    }
   }
 
-  private def hoeffdingBound( n: Int): Double = {
-    val R_square = math.pow(math.log10(resultingParameters.get(NumberOfClasses).get),2.0)
+  private def hoeffdingBound(n: Int): Double = {
+    val R_square = math.pow(math.log10(resultingParameters.get(NumberOfClasses).get), 2.0)
     val delta = resultingParameters.get(VfdtDelta).get
 
-    val hoeffdingBound = math.sqrt((R_square*math.log(1.0/delta))/(2.0*n))
+    val hoeffdingBound = math.sqrt((R_square * math.log(1.0 / delta)) / (2.0 * n))
     println(s"---hoeffding bound: $hoeffdingBound")
     hoeffdingBound
   }
