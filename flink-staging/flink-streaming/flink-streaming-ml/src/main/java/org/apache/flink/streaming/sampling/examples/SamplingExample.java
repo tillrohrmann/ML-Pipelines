@@ -43,7 +43,7 @@ public class SamplingExample {
 
 		// set up the execution environment
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment();
-		env.setDegreeOfParallelism(1);
+		env.setParallelism(1);
 
 		// get text data stream
 		//DataStream<String> text = getTextDataStream(env);

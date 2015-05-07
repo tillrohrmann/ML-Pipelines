@@ -18,32 +18,29 @@
 
 package org.apache.flink.streaming.sampling.generators;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 /**
  * Created by marthavk on 2015-04-24.
  */
-public class DataGenerator extends RichMapFunction<GaussianDistribution, Tuple3<Double, StreamTimestamp, Long>>{
+public class DataGenerator extends RichMapFunction<NormalDistribution, Tuple3<Double, StreamTimestamp, Long>>{
 
 	long index = 0;
 
 	@Override
-	public Tuple3<Double, StreamTimestamp, Long> map(GaussianDistribution value) throws Exception {
+	public Tuple3<Double, StreamTimestamp, Long> map(NormalDistribution value) throws Exception {
 
 		//value
-		Double rand = value.generate();
-		//System.out.println(value);
+		Double rand = value.sample();
 
 		//timestamp
 		final StreamTimestamp t = new StreamTimestamp();
 
 		//order
 		index++;
-
-
 
 		return new Tuple3<Double, StreamTimestamp, Long>(rand, t, index);
 	}
