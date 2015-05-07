@@ -37,7 +37,6 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 	public GaussianDistribution (double mean, double sigma) {
 		this.mean = mean;
 		this.sigma = sigma;
-		//super(mean, sigma);
 	}
 
 	public double getMean() {
@@ -50,8 +49,11 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 
 	@Override
 	public double generate() {
-
 		return n.nextGaussian()*sigma+mean;
-		//return this.sample();
+	}
+
+	@Override
+	public String toString() {
+		return "[" + mean + "," + sigma +"]";
 	}
 }
