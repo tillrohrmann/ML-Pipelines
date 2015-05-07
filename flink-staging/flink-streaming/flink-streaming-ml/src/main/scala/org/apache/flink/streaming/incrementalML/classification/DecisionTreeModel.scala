@@ -139,7 +139,7 @@ case class DTNode(
   var children: Option[mutable.Map[Double, Int]] = None
   var splitAttribute: Option[Int] = None
   var splitAttributeType: Option[AttributeType] = None
-  var attributeSplitValue : Option[List[Double]] = None
+  var attributeSplitValue: Option[List[Double]] = None
   var informationGain = Double.NaN
   var label = Double.NaN
 
