@@ -17,6 +17,7 @@
  */
 package org.apache.flink.streaming.sampling.generators;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.util.Collector;
 
@@ -25,10 +26,10 @@ import java.util.Properties;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class GaussianStreamGenerator implements SourceFunction<GaussianDistribution> {
+public class GaussianStreamGenerator implements SourceFunction<NormalDistribution> {
 
 	long count = 0;
-	GaussianDistribution gaussD;
+	NormalDistribution gaussD;
 	Properties props;
 	long numberOfEvents;
 	double mean, stDev, meanStep, stDevStep, meanTarget,  stDevTarget;
@@ -40,7 +41,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 		mean = Double.parseDouble(props.getProperty("meanInit"));
 		stDev = Double.parseDouble(props.getProperty("stDevInit"));
 
-		gaussD = new GaussianDistribution(mean, stDev);
+		gaussD = new NormalDistribution(mean, stDev) ;
 
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
 		meanTarget = Double.parseDouble(props.getProperty("meanTarget"));
@@ -51,7 +52,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	}
 
 	@Override
-	public void run(Collector<GaussianDistribution> collector) throws Exception {
+	public void run(Collector<NormalDistribution> collector) throws Exception {
 
 		while (count < numberOfEvents) {
 			count++;
@@ -60,7 +61,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 
 			mean += meanStep;
 			stDev += stDevStep;
-			gaussD.update(mean, stDev);
+			gaussD = new NormalDistribution(mean, stDev);
 		}
 
 	}
