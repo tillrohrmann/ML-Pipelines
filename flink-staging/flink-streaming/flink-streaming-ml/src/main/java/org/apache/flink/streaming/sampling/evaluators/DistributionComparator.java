@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.evaluators;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -35,10 +37,9 @@ public class DistributionComparator implements CoFlatMapFunction<Sample<Double>,
 	//GaussianDistribution currentDist = new GaussianDistribution();
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Tuple2<GaussianDistribution,Integer>> out) throws Exception {
-		GaussianDistribution sampledDist = new GaussianDistribution(value);
+		SummaryStatistics stats = SamplingUtils.getStats(value);
+		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
 		out.collect(new Tuple2<GaussianDistribution,Integer>(sampledDist,EMPIRICAL_DISTRIBUTION));
-		//System.out.println(currentDist.toString() + " " + sampledDist.toString());
-		//out.collect(bhattacharyyaDistance(currentDist, sampledDist));
 	}
 
 	@Override

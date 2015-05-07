@@ -17,6 +17,9 @@
  */
 package org.apache.flink.streaming.sampling.helpers;
 
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
+import org.apache.flink.streaming.sampling.samplers.Sample;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -97,6 +100,14 @@ public final class SamplingUtils {
 
 	public static double randomPriority() {
 		return rand.nextDouble();
+	}
+
+	public static SummaryStatistics getStats(Sample<Double> sample) {
+		SummaryStatistics stats = new SummaryStatistics();
+		for (Double value : sample.getSample()) {
+			stats.addValue(value);
+		}
+		return stats;
 	}
 
 }

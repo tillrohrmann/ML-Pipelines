@@ -14,97 +14,52 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+
+
 package org.apache.flink.streaming.sampling.generators;
 
-import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.io.Serializable;
 import java.util.Random;
 
-/**
+*
  * Created by marthavk on 2015-03-18.
- */
 
-public class GaussianDistribution implements Serializable, NumberGenerator {
 
-	double mean;
-	double sigma;
 
-	/**
+public class GaussianDistribution extends NormalDistribution implements Serializable, NumberGenerator {
+
+*
 	 * Constructs an empty distribution
-	 */
+
+
 	public GaussianDistribution() {
 
 	}
 
-	/**
+*
 	 * Constructs a Normal Distribution
 	 * @param cmeans the means of the Normal Distribution
 	 * @param cstdev the standard deviation of the Normal Distribution
-	 */
+
+
 	public GaussianDistribution(double cmeans, double cstdev) {
-		this.mean = cmeans;
-		this.sigma = cstdev;
-	}
-
-	/**
-	 * Constructs an empirical normal distribution
-	 * @param sample the sampled values
-	 */
-	public GaussianDistribution(Sample<Double> sample) {
-
-		SummaryStatistics stats = new SummaryStatistics();
-		for (Double value : sample.getSample()) {
-			stats.addValue(value);
-		}
-
-		this.mean = stats.getMean();
-		this.sigma = stats.getStandardDeviation();
+		super(cmeans, cstdev);
 	}
 
 
-	/** GETTERS **/
-	public double getMean() {
-		return mean;
-	}
+* AUXILIARY METHODS *
 
-
-	public double getStandardDeviation() {
-		return sigma;
-	}
-
-
-	/** UPDATES **/
-	/*public void updateMean(long count, double mStep, int interval) {
-		this.mean += (count % interval == 0 ? mStep : 0);
-	}
-
-	public void updateSigma(long count, double sStep, int interval) {
-		this.sigma += (count % interval == 0 ? sStep : 0);
-	}*/
-
-	public void update(double newMean, double newStDev) {
-		this.mean = newMean;
-		this.sigma = newStDev;
-	}
-
-	public double density(double x) {
-		double a = 1/(sigma*Math.sqrt(2*Math.PI));
-		double b = Math.exp(-Math.pow((x-mean),2)/(2*Math.pow(sigma,2)));
-		return a*b;
-	}
-
-
-	/** AUXILIARY METHODS **/
+	@Override
 	public String toString() {
-		return "[" + this.mean + ", " + this.sigma + "]";
+		return "[" + this.getMean() + ", " + this.getStandardDeviation() + "]";
 	}
 
 
 	@Override
 	public double generate() {
-		return (new Random().nextGaussian() * sigma + mean);
+		return (new Random().nextGaussian() * this.getStandardDeviation() + this.getMean());
 	}
 }
+*/
