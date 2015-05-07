@@ -105,7 +105,7 @@ public class ReservoirSamplingExample {
 				.flatMap(new DistributionComparator())
 
 				/*sink*/
-				.writeAsText(SamplingUtils.path + "evaluation");
+				.writeAsText(SamplingUtils.path + "reservoir");
 
 	}
 

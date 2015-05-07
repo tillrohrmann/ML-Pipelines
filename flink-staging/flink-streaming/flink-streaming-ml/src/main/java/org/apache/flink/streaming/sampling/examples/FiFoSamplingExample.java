@@ -105,7 +105,7 @@ public class FiFoSamplingExample {
 				.flatMap(new DistributionComparator())
 
 				/*sink*/
-				.writeAsText(SamplingUtils.path + "evaluation");
+				.writeAsText(SamplingUtils.path + "fifo");
 	}
 
 

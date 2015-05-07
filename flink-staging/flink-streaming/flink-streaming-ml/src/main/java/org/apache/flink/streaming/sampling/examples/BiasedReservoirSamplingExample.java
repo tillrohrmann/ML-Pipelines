@@ -105,7 +105,7 @@ public class BiasedReservoirSamplingExample {
 				.flatMap(new DistributionComparator())
 
 				/*sink*/
-				.writeAsText(SamplingUtils.path + "evaluation");
+				.writeAsText(SamplingUtils.path + "biased");
 	}
 
 

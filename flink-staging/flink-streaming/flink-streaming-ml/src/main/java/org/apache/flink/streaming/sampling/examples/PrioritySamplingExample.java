@@ -106,7 +106,7 @@ public class PrioritySamplingExample {
 				.flatMap(new DistributionComparator())
 
 				/*sink*/
-				.writeAsText(SamplingUtils.path + "evaluation");
+				.writeAsText(SamplingUtils.path + "priority");
 	}
 
 
