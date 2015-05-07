@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.examples;
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
 import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
@@ -75,16 +75,16 @@ public class ChainSamplingExample {
 		int sampleSize = SAMPLE_SIZE;
 
 		/*create source*/
-		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
+		DataStreamSource<NormalDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
+		SingleOutputStreamOperator<NormalDistribution,?> operator = source.shuffle()
 
 				/*generate double value from GaussianDistribution and wrap around
 				Tuple3<Double, Timestamp, Long> */
-				.map(new MapFunction<GaussianDistribution, GaussianDistribution>() {
+				.map(new MapFunction<NormalDistribution, NormalDistribution>() {
 					@Override
-					public GaussianDistribution map(GaussianDistribution value) throws Exception {
+					public NormalDistribution map(NormalDistribution value) throws Exception {
 						return value;
 					}
 				});
@@ -115,7 +115,7 @@ public class ChainSamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
+	public static DataStreamSource<NormalDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
 		return env.addSource(new GaussianStreamGenerator(props));
 	}
 }
