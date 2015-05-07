@@ -17,7 +17,6 @@
  */
 package org.apache.flink.streaming.sampling.generators;
 
-import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.util.Collector;
 
@@ -26,42 +25,56 @@ import java.util.Properties;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class GaussianStreamGenerator implements SourceFunction<NormalDistribution> {
+public class GaussianStreamGenerator implements SourceFunction<GaussianDistribution> {
 
 	long count = 0;
-	NormalDistribution gaussD;
+	GaussianDistribution gaussD;
 	Properties props;
-	long numberOfEvents;
-	double mean, stDev, meanStep, stDevStep, meanTarget,  stDevTarget;
+	long numberOfEvents, steps;
+	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget,  stDevTarget;
 
 
 	public GaussianStreamGenerator(Properties lProps) {
 		props = lProps;
 
-		mean = Double.parseDouble(props.getProperty("meanInit"));
-		stDev = Double.parseDouble(props.getProperty("stDevInit"));
-
-		gaussD = new NormalDistribution(mean, stDev) ;
-
-		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
+		/*parse properties*/
+		meanInit = Double.parseDouble(props.getProperty("meanInit"));
+		stDevInit = Double.parseDouble(props.getProperty("stDevInit"));
 		meanTarget = Double.parseDouble(props.getProperty("meanTarget"));
 		stDevTarget = Double.parseDouble(props.getProperty("stDevTarget"));
 
-		meanStep = (meanTarget - mean) / (numberOfEvents-1);
-		stDevStep = (stDevTarget - stDev) / (numberOfEvents-1);
+		/*create initial normal distribution*/
+		mean=meanInit;
+		stDev=stDevInit;
+		gaussD = new GaussianDistribution(mean, stDev) ;
+
+		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
+
+		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth"));
+		if (!isSmooth && steps<=(numberOfEvents/2)) {
+			steps = Long.parseLong(props.getProperty("numberOfSteps"));
+		}
+		else {
+			steps = numberOfEvents;
+		}
+
+
+		meanStep = (meanTarget - mean) / (steps-1);
+		stDevStep = (stDevTarget - stDev) / (steps-1);
 	}
 
 	@Override
-	public void run(Collector<NormalDistribution> collector) throws Exception {
+	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
 		while (count < numberOfEvents) {
 			count++;
 
 			collector.collect(gaussD);
 
-			mean += meanStep;
-			stDev += stDevStep;
-			gaussD = new NormalDistribution(mean, stDev);
+			double multiplier = Math.floor(count*steps/numberOfEvents);
+			mean = meanInit + meanStep*multiplier;
+			stDev = stDevInit + stDevStep*multiplier;
+			gaussD = new GaussianDistribution(mean, stDev);
 		}
 
 	}
