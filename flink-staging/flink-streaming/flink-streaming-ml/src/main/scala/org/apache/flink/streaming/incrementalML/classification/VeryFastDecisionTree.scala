@@ -25,9 +25,11 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
+import org.apache.flink.streaming.incrementalML.common.Utils
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -47,8 +49,13 @@ class VeryFastDecisionTree(
     this
   }
 
-  def setThreshold(thresh: Double): VeryFastDecisionTree = {
-    parameters.add(Threshold, thresh)
+  def setVfdtDelta(delta: Double): VeryFastDecisionTree = {
+    parameters.add(VfdtDelta, delta)
+    this
+  }
+
+  def setVfdtTau(tau: Double): VeryFastDecisionTree = {
+    parameters.add(VfdtTau, tau)
     this
   }
 
@@ -122,11 +129,18 @@ object VeryFastDecisionTree {
     override val defaultValue: Option[Int] = Some(200)
   }
 
-  /** Hoeffding Bound threshold
+  /** Hoeffding Bound tau parameter
     *
     */
-  case object Threshold extends Parameter[Double] {
-    override val defaultValue: Option[Double] = Some(1.0)
+  case object  VfdtTau extends Parameter[Double] {
+    override val defaultValue: Option[Double] = Some(0.05)
+  }
+
+  /** Hoeffding Bound delta parameter
+    *
+    */
+  case object  VfdtDelta extends Parameter[Double] {
+    override val defaultValue: Option[Double] = Some(0.0000001)
   }
 
   /** Map that specifies which attributes are Nominal and how many possible values they will have
@@ -167,8 +181,11 @@ class GlobalModelMapper(
   resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
+  //counterPerLeaf -> (leafId,(#Yes,#No))
+  var counterPerLeaf: mutable.Map[Int, (Int, Int)] = mutable.HashMap[Int, ( Int, Int)](
+    (0, (0, 0)))
+
   //Create the root of the DecisionTreeModel
-  var counterPerLeaf = Map[Int, Int]((0, 0))
   val VFDT = DecisionTreeModel
   VFDT.createRootOfTheTree
 
@@ -182,16 +199,23 @@ class GlobalModelMapper(
 
         val featuresVector = newDataPoint.getFeatures
 
-        //TODO:: 1. classify data point first
+        //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
         // entropy, which as a result will have the highest Information gain
 
-        val temp = counterPerLeaf.getOrElse(leafId, throw new RuntimeException(s"------ 1 " +
-          s"-----leaf:$leafId doesn't exist"))
-        counterPerLeaf = counterPerLeaf.updated(leafId, temp + 1)
+        val temp = counterPerLeaf.getOrElseUpdate(leafId, (0, 0))
+        newDataPoint.getLabel match {
+          case 0.0 =>
+            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
+          case 1.0 =>
+            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2))
+          case _ =>
+            throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
+              s" ${newDataPoint.getLabel}")
+        }
 
         for (i <- 0 until featuresVector.size) {
 
@@ -210,8 +234,10 @@ class GlobalModelMapper(
         }
 
         counterPerLeaf.getOrElse(leafId, None) match {
-          case instancesSeenInLeaf: Int => {
-            if (instancesSeenInLeaf == resultingParameters.get(MinNumberOfInstances).get) {
+          case leafMetrics: (Int, Int) => {
+            //if we have seen at least MinNumberOfInstances and are not all of the same class
+            if (( (leafMetrics._1+leafMetrics._2) % resultingParameters.get(MinNumberOfInstances).get == 0) &&
+              leafMetrics._1 != 0 && leafMetrics._2 != 0) {
               println("-----------------Signal----------------------------")
               out.collect((-2, CalculateMetricsSignal(leafId)))
             }
@@ -225,20 +251,35 @@ class GlobalModelMapper(
         //metrics are received, then update global model
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
         println("------------------------------Metric-------------------------------------" + value)
-        resultingParameters.get(NominalAttributes).get.getOrElse(evaluationMetric.bestValue._1
-          .asInstanceOf[Int], None) match {
-          case None =>
-            VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1
-              .asInstanceOf[Int], AttributeType.Numerical, evaluationMetric.bestValue._2._2,
-              evaluationMetric.bestValue._2._1)
-          case Int =>
-            VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1
-              .asInstanceOf[Int], AttributeType.Nominal, evaluationMetric.bestValue._2._2,
-              evaluationMetric.bestValue._2._1)
-        }
-        println(s"--------------*********---------------$VFDT" +
-          s"--------------*********---------------")
 
+        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get._1, counterPerLeaf.get(evaluationMetric.leafId).get._2)
+
+        val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
+        val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
+        println(s"---bestValue: $bestInfoGain, ---secondBestInfoGain: $secondBestInfoGain, ---" +
+          s" bestInfoGain-secondBestInfoGain: ${bestInfoGain-secondBestInfoGain}, ---nonSplitEntro: $nonSplitEntro")
+
+        if ((bestInfoGain - secondBestInfoGain >
+          hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId).get._1+counterPerLeaf.get(evaluationMetric.leafId).get._2)) && bestInfoGain >= nonSplitEntro) {
+
+          resultingParameters.get(NominalAttributes).get
+            .getOrElse(evaluationMetric.bestValue._1, None) match {
+
+            case None => {
+              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
+                AttributeType.Numerical, evaluationMetric.bestValue._2._2,
+                evaluationMetric.bestValue._2._1)
+            }
+
+            case Int => {
+              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
+                AttributeType.Nominal, evaluationMetric.bestValue._2._2,
+                evaluationMetric.bestValue._2._1)
+            }
+          }
+        }
+        println(s"---VFDT:$VFDT")
+        println(s"---counterPerLeaf: $counterPerLeaf")
       }
       case _ =>
         throw new RuntimeException("- WTF is that, that you're " +
@@ -279,6 +320,23 @@ class GlobalModelMapper(
     //      throw new RuntimeException("--------------------WTF is that, that you're " +
     //        "sending me ??? x-( :" + value.getClass.toString)
     //    }
+  }
+
+  private def hoeffdingBound( n: Int): Double = {
+    val R_square = math.pow(math.log10(resultingParameters.get(NumberOfClasses).get),2.0)
+    val delta = resultingParameters.get(VfdtDelta).get
+
+    val hoeffdingBound = math.sqrt((R_square*math.log(1.0/delta))/(2.0*n))
+    println(s"---hoeffding bound: $hoeffdingBound")
+    hoeffdingBound
+  }
+
+  private def nonSplittingEntropy(nOfYes: Int, nOfNo: Int): Double = {
+    //P(Yes)Entropy(Yes) + P(No)Entropy(No)
+    val total = (nOfYes + nOfNo).asInstanceOf[Double]
+    val entropy = -(nOfYes / total) * Utils.logBase2(nOfYes / total) -
+      (nOfNo / total) * Utils.logBase2(nOfNo / total)
+    entropy
   }
 
 }

@@ -51,8 +51,8 @@ object DecisionTreeModel
       currentNode.splitAttributeType match {
         case AttributeType.Numerical => {
           //left hand side of the tree for values <=
-          if (dataPointFeatures(currentNode.splitAttribute.get) <= currentNode
-            .attributeSplitValue(0)) {
+          if (dataPointFeatures(currentNode.splitAttribute.get) <= currentNode.
+            attributeSplitValue.get.head) {
             val temp = tempChildrenList.getOrElse(0, throw new RuntimeException
             ("Left Hand Side branch doesn't exist-----1"))
             currentNode = decisionTree.getOrElse(temp, throw new RuntimeException
@@ -139,7 +139,7 @@ case class DTNode(
   var children: Option[mutable.Map[Double, Int]] = None
   var splitAttribute: Option[Int] = None
   var splitAttributeType: Option[AttributeType] = None
-  var attributeSplitValue = List[Double]()
+  var attributeSplitValue : Option[List[Double]] = None
   var informationGain = Double.NaN
   var label = Double.NaN
 
@@ -160,7 +160,7 @@ case class DTNode(
 
     splitAttribute = Some(splitAttr)
     splitAttributeType = Some(splitAttrType)
-    attributeSplitValue = attrSplitValues
+    attributeSplitValue = Some(attrSplitValues)
     informationGain = infoGain
 
     if (isLeaf) {
