@@ -31,6 +31,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	GaussianDistribution gaussD;
 	Properties props;
 	long numberOfEvents, steps;
+	long stablePoints;
 	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget,  stDevTarget;
 
 
@@ -50,31 +51,44 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
 
-		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth"));
-		if (!isSmooth && steps<=(numberOfEvents/2)) {
+		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth"))&& steps<=(numberOfEvents/2);
+
+		if (!isSmooth) {
 			steps = Long.parseLong(props.getProperty("numberOfSteps"));
+			stablePoints = 0;
+			meanStep = (meanTarget - mean) / (steps-1);
+			stDevStep = (stDevTarget - stDev) / (steps-1);
 		}
 		else {
-			steps = numberOfEvents;
+			steps = numberOfEvents-2*stablePoints;
+			stablePoints = Long.parseLong(props.getProperty("stablePoints"));
+			meanStep = (meanTarget - mean) / (steps);
+			stDevStep = (stDevTarget - stDev) / (steps);
 		}
 
-
-		meanStep = (meanTarget - mean) / (steps-1);
-		stDevStep = (stDevTarget - stDev) / (steps-1);
 	}
 
 	@Override
 	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
-		while (count < numberOfEvents) {
-			count++;
-
-			collector.collect(gaussD);
-
-			double multiplier = Math.floor(count*steps/numberOfEvents);
-			mean = meanInit + meanStep*multiplier;
-			stDev = stDevInit + stDevStep*multiplier;
+		for (count=0; count<stablePoints; count++) {
 			gaussD = new GaussianDistribution(mean, stDev);
+			collector.collect(gaussD);
+		}
+
+		for (count=stablePoints; count<numberOfEvents-stablePoints; count++) {
+			long interval = numberOfEvents-2*stablePoints;
+			long countc = count-stablePoints;
+			double multiplier = Math.floor(countc * steps / interval);
+			mean = meanInit + meanStep * multiplier;
+			stDev = stDevInit + stDevStep * multiplier;
+			gaussD = new GaussianDistribution(mean, stDev);
+			collector.collect(gaussD);
+		}
+
+		for (count=numberOfEvents-stablePoints; count<numberOfEvents; count++) {
+			gaussD = new GaussianDistribution(mean, stDev);
+			collector.collect(gaussD);
 		}
 
 	}
