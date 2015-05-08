@@ -15,33 +15,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.flink.streaming.sampling.generators;
 
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
+import org.apache.commons.math3.distribution.NormalDistribution;
+
+import java.io.Serializable;
+import java.util.Random;
 
 /**
- * Created by marthavk on 2015-04-24.
+ * Created by marthavk on 2015-05-07.
  */
-public class DataGenerator extends RichMapFunction<GaussianDistribution, Tuple3<Double, StreamTimestamp, Long>>{
+public class GaussianDistribution implements Serializable, NumberGenerator {
+	Random n = new Random();
+	double mean;
+	double sigma;
 
-	long index = 0;
+	public GaussianDistribution() {
+		super();
+	}
+
+	public GaussianDistribution (double mean, double sigma) {
+		this.mean = mean;
+		this.sigma = sigma;
+	}
+
+	public double getMean() {
+		return this.mean;
+	}
+
+	public double getStandardDeviation() {
+		return this.sigma;
+	}
 
 	@Override
-	public Tuple3<Double, StreamTimestamp, Long> map(GaussianDistribution value) throws Exception {
+	public double generate() {
+		return n.nextGaussian()*sigma+mean;
+	}
 
-		//value
-		Double rand = value.generate();
-
-		//timestamp
-		final StreamTimestamp t = new StreamTimestamp();
-
-		//order
-		index++;
-
-		return new Tuple3<Double, StreamTimestamp, Long>(rand, t, index);
+	@Override
+	public String toString() {
+		return "[" + mean + "," + sigma +"]";
 	}
 }
