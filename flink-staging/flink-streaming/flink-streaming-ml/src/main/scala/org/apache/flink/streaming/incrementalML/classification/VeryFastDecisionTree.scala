@@ -207,10 +207,10 @@ class GlobalModelMapper(
 
         val temp = counterPerLeaf.getOrElseUpdate(leafId, (0, 0))
         newDataPoint.getLabel match {
-          case 0.0 =>
-            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
           case 1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2))
+          case -1.0 =>
+            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
           case _ =>
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
