@@ -42,31 +42,31 @@ class VeryFastDecisionTreeITSuite
     val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
-    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
+//    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
 
-    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 14)
+    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
-    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+//    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-    val dataPoints = data.map(point => {
-      val featuresVector = DenseVector.zeros(point._2.size)
-      for (i <- 0 until point._2.size) {
-        val value = point._2.apply(i)
-        value match {
-          case a: Double =>
-            featuresVector.update(i, a)
-          case a: String =>
-            featuresVector(i) = MurmurHash3.stringHash(a)
-          case _ =>
-        }
-      }
-      LabeledVector(point._1, featuresVector)
-    })
-//    StreamingMLUtils.writeLibSVM("testLibSVM",dataPoints)
-    StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/Downloads/decisionTreeTestData.t")
+//    val dataPoints = data.map(point => {
+//      val featuresVector = DenseVector.zeros(point._2.size)
+//      for (i <- 0 until point._2.size) {
+//        val value = point._2.apply(i)
+//        value match {
+//          case a: Double =>
+//            featuresVector.update(i, a)
+//          case a: String =>
+//            featuresVector(i) = MurmurHash3.stringHash(a)
+//          case _ =>
+//        }
+//      }
+//      LabeledVector(point._1, featuresVector)
+//    })
+
+    val dataPoints = StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/Downloads/decisionTreeTestData.t",123)
 
 //    println(dataPoints)
-    vfdt.fit(env.fromCollection(dataPoints),parameters)
+    vfdt.fit(dataPoints,parameters)
     env.execute()
   }
 }
