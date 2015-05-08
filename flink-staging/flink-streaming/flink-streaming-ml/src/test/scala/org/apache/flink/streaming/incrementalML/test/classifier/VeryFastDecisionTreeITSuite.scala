@@ -34,7 +34,7 @@ class VeryFastDecisionTreeITSuite
 
   behavior of "Flink's Very Fast Decision Tree algorithm"
 
-  import VeryFastDecisionTreeData._
+//  import VeryFastDecisionTreeData._
 
   it should "Create the classification HT of the given data set" in {
 
@@ -65,7 +65,6 @@ class VeryFastDecisionTreeITSuite
 
     val dataPoints = StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/Downloads/decisionTreeTestData.t",123)
 
-//    println(dataPoints)
     vfdt.fit(dataPoints,parameters)
     env.execute()
   }
