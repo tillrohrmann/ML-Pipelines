@@ -75,6 +75,16 @@ object DecisionTreeModel
           }
         }
         case AttributeType.Nominal => {
+          val temp = tempChildrenList.getOrElse(dataPointFeatures(currentNode.splitAttribute.get),
+            throw new RuntimeException("I ve got the powerrrrrrrr--------------------------0!!"))
+
+          currentNode = decisionTree.getOrElse(temp, throw new RuntimeException
+          ("I ve got the powerrrrrrrr!!---------------------------1"))
+          if (currentNode.children != None) {
+            tempChildrenList = currentNode.children.get
+          }
+          leaf = currentNode.nodeId
+
         }
       }
     }
