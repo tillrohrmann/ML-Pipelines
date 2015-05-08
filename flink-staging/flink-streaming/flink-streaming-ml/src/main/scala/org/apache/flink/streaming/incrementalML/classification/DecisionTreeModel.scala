@@ -49,7 +49,7 @@ object DecisionTreeModel
       var tempChildrenList = currentNode.children.get
 
       currentNode.splitAttributeType match {
-        case AttributeType.Numerical => {
+        case Some(AttributeType.Numerical) => {
           //left hand side of the tree for values <=
           if (dataPointFeatures(currentNode.splitAttribute.get) <= currentNode.
             attributeSplitValue.get.head) {
@@ -74,7 +74,7 @@ object DecisionTreeModel
             leaf = currentNode.nodeId
           }
         }
-        case AttributeType.Nominal => {
+        case Some(AttributeType.Nominal) => {
           val temp = tempChildrenList.getOrElse(dataPointFeatures(currentNode.splitAttribute.get),
             throw new RuntimeException("I ve got the powerrrrrrrr--------------------------0!!"))
 
@@ -106,7 +106,11 @@ object DecisionTreeModel
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is no" +
       " leaf to split with that Id"))
     val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
-    decisionTree = decisionTree ++ newNodes
+    newNodes match {
+      case None =>
+      case _ =>
+        decisionTree = decisionTree ++ newNodes.get
+    }
   }
 
   override def toString(): String = {
@@ -163,7 +167,7 @@ case class DTNode(
     * @param infoGain The information gain of this splitting
     */
   def splitNode(splitAttr: Int, splitAttrType: AttributeType, attrSplitValues: List[Double],
-    infoGain: Double): mutable.Map[Int, DTNode] = {
+    infoGain: Double): Option[mutable.Map[Int, DTNode]] = {
 
     val tempNodes = mutable.HashMap[Int, DTNode]()
     val tempChildren = mutable.HashMap[Double, Int]()
@@ -173,6 +177,7 @@ case class DTNode(
     attributeSplitValue = Some(attrSplitValues)
     informationGain = infoGain
 
+    println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, attrSplitValues:$attrSplitValues")
     if (isLeaf) {
       isLeaf = false
       if (splitAttributeType.get == AttributeType.Numerical) {
@@ -188,9 +193,13 @@ case class DTNode(
           tempChildren.put(attrSplitValues(i), nodeId + i + 1)
         }
       }
+      println(s"--------node:$nodeId, Temp---------children:$tempChildren")
+
+      children = Some(tempChildren)
+      println(s"--------node:$nodeId, children:$children")
+      return Some(tempNodes)
     }
-    children = Some(tempChildren)
-    tempNodes
+    None
   }
 
   override def toString(): String = {

@@ -26,7 +26,7 @@ class NumericalAttributeObserver
   extends AttributeObserver[Metrics]
   with Serializable {
 
-  val SPLIT_POINTS_TO_CONSIDER = 2
+  val SPLIT_POINTS_TO_CONSIDER = 3
   var attributeSum = 0.0
   var attributeSoS = 0.0
   var attributeDistribution = (0.0, 0.0) //(#Yes,#No)
