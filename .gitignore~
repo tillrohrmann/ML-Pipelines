@@ -21,4 +21,9 @@ docs/api
 build-target
 flink-staging/flink-avro/src/test/java/org/apache/flink/api/io/avro/generated/
 flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/evaluation
+flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/biased
+flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/reservoir
+flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/chain
+flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/priority
+flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/fifo
 atlassian-ide-plugin.xml
