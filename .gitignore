@@ -26,4 +26,5 @@ flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/reservoir
 flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/chain
 flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/priority
 flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/fifo
+flink-staging/flink-streaming/flink-streaming-ml/src/main/java/org/apache/flink/streaming/sampling/examples/Test.java
 atlassian-ide-plugin.xml
