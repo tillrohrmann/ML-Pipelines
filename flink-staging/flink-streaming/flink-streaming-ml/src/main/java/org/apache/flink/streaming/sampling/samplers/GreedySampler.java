@@ -16,8 +16,38 @@ package org.apache.flink.streaming.sampling.samplers;/*
  * limitations under the License.
  */
 
+import org.apache.flink.api.common.functions.MapFunction;
+
+import java.util.ArrayList;
+
 /**
  * Created by marthavk on 2015-05-11.
  */
-public class GreedySampler {
+public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+
+
+	@Override
+	public Sample<IN> map(IN value) throws Exception {
+		return null;
+	}
+
+	@Override
+	public ArrayList<IN> getElements() {
+		return null;
+	}
+
+	@Override
+	public void sample(IN element) {
+
+	}
+
+	@Override
+	public int size() {
+		return 0;
+	}
+
+	@Override
+	public int maxSize() {
+		return 0;
+	}
 }
