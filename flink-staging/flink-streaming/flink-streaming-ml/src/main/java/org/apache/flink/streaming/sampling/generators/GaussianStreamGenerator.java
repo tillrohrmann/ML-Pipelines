@@ -32,7 +32,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	Properties props;
 	long numberOfEvents, steps;
 	long stablePoints;
-	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget,  stDevTarget;
+	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget,  stDevTarget, outlierRate;
 
 
 	public GaussianStreamGenerator(Properties lProps) {
@@ -43,11 +43,13 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 		stDevInit = Double.parseDouble(props.getProperty("stDevInit"));
 		meanTarget = Double.parseDouble(props.getProperty("meanTarget"));
 		stDevTarget = Double.parseDouble(props.getProperty("stDevTarget"));
+		outlierRate = Double.parseDouble(props.getProperty("outlierRate"));
+
 
 		/*create initial normal distribution*/
 		mean=meanInit;
 		stDev=stDevInit;
-		gaussD = new GaussianDistribution(mean, stDev) ;
+		gaussD = new GaussianDistribution(mean, stDev, outlierRate) ;
 
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
 
@@ -72,7 +74,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
 		for (count=0; count<stablePoints; count++) {
-			gaussD = new GaussianDistribution(mean, stDev);
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
 		}
 
@@ -82,15 +84,14 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 			double multiplier = Math.floor(countc * steps / interval);
 			mean = meanInit + meanStep * multiplier;
 			stDev = stDevInit + stDevStep * multiplier;
-			gaussD = new GaussianDistribution(mean, stDev);
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
 		}
 
 		for (count=numberOfEvents-stablePoints; count<numberOfEvents; count++) {
-			gaussD = new GaussianDistribution(mean, stDev);
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
 		}
-
 	}
 
 	@Override

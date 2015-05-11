@@ -44,4 +44,6 @@ public class DataGenerator extends RichMapFunction<GaussianDistribution, Tuple3<
 
 		return new Tuple3<Double, StreamTimestamp, Long>(rand, t, index);
 	}
+
+
 }
