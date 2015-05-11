@@ -31,10 +31,8 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 
 	Reservoir reservoirSample;
 	int count = 0;
-	boolean softConstraints;
 
 	public BiasedReservoirSampler(int size) {
-		softConstraints = true;
 		reservoirSample = new Reservoir(size) ;
 	}
 
