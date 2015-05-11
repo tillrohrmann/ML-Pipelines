@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
 import java.util.Random;
@@ -29,6 +30,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 	Random n = new Random();
 	double mean;
 	double sigma;
+	double outlierRate;
 
 	public GaussianDistribution() {
 		super();
@@ -37,6 +39,13 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 	public GaussianDistribution (double mean, double sigma) {
 		this.mean = mean;
 		this.sigma = sigma;
+		this.outlierRate = 0;
+	}
+
+	public GaussianDistribution(double mean, double sigma, double outlierRate) {
+		this.mean = mean;
+		this.sigma = sigma;
+		this.outlierRate = outlierRate;
 	}
 
 	public double getMean() {
@@ -49,11 +58,40 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 
 	@Override
 	public double generate() {
-		return n.nextGaussian()*sigma+mean;
+
+		boolean success = SamplingUtils.flip(outlierRate);
+		if (success) {
+			return generateOutlier();
+		}
+		else {
+			return n.nextGaussian() * sigma + mean;
+		}
 	}
 
 	@Override
 	public String toString() {
 		return "[" + mean + "," + sigma +"]";
+	}
+
+
+	/**
+	 * an outlier is generated using the 1.5xIQR rule uniformly at random
+	 * inside the interval: [q1-2*IQR, q1-1.5IQR)U[q3+1.5*IQR, q3+2*IQR)
+	 *
+	 * @return
+	 */
+	public double generateOutlier() {
+		NormalDistribution dist = new NormalDistribution(mean, sigma);
+		double q1 = dist.inverseCumulativeProbability(0.25);
+		double q3 = dist.inverseCumulativeProbability(0.75);
+		double iqr =  q3 - q1;
+		double outlier;
+		if(SamplingUtils.flip(0.5)) {
+			outlier = q3 + 1.5*iqr + Math.random()*sigma;
+		}
+		else {
+			outlier = q1 - 1.5*iqr - Math.random()*sigma;
+		}
+		return outlier;
 	}
 }
