@@ -17,17 +17,48 @@ package org.apache.flink.streaming.sampling.samplers;/*
  */
 
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.streaming.incrementalML.inspector.ChangeDetector;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
 
 /**
  * Created by marthavk on 2015-05-11.
+ * Greedy sampler uses a change detection component in order to detect concept drift
+ * in the stream. If such a change is detected then a certain percentage of tuples
+ * from the reservoir are evicted and new ones are sampled using the biased reservoir sampling
+ * algorithm.
  */
 public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
+	Reservoir reservoirSample;
+	ChangeDetector detector = new ChangeDetector();
+	private boolean hasDrift =false;
+	double bias;
+	int count=0;
+
+	public GreedySampler(int size) {
+		reservoirSample = new Reservoir(size);
+	}
 
 	@Override
 	public Sample<IN> map(IN value) throws Exception {
+		count++;
+		detector.input((Double)value);
+		hasDrift = detector.isChangedDetected();
+		if (hasDrift) {
+			reservoirSample.discard(0.5);
+			hasDrift = false;
+			detector.reset();
+		}
+
+		double proportion = reservoirSample.getSize()/reservoirSample.getMaxSize();
+		if (SamplingUtils.flip(proportion)) {
+			reservoirSample.replaceSample(value);
+		}
+		else {
+			reservoirSample.addSample(value);
+		}
 		return null;
 	}
 
@@ -38,6 +69,10 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 
 	@Override
 	public void sample(IN element) {
+
+	}
+
+	public void insertBias(double bias) {
 
 	}
 
