@@ -19,6 +19,8 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -85,5 +87,13 @@ public class Sample<T> implements Serializable {
 	@Override
 	public String toString() {
 		return sample.toString();
+	}
+
+	public void discard(double proportion) {
+		int tuplesToEvict = (int) Math.round(this.getSize()*proportion);
+		for (int i=0; i<tuplesToEvict; i++) {
+			int pos = SamplingUtils.randomBoundedInteger(0, this.getSize());
+			this.removeSample(pos);
+		}
 	}
 }
