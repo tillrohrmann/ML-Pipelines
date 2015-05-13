@@ -16,12 +16,11 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.examples;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
+import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
@@ -78,16 +77,7 @@ public class BiasedReservoirSamplingExample {
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
-
-				/*generate double value from GaussianDistribution and wrap around
-				Tuple3<Double, Timestamp, Long> */
-				.map(new MapFunction<GaussianDistribution, GaussianDistribution>() {
-					@Override
-					public GaussianDistribution map(GaussianDistribution value) throws Exception {
-						return value;
-					}
-				});
+		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle();
 
 		operator.map(new DataGenerator())
 
@@ -102,7 +92,7 @@ public class BiasedReservoirSamplingExample {
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
 				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
+				.flatMap(new DistanceEvaluator())
 
 				/*sink*/
 				.writeAsText(SamplingUtils.path + "biased");

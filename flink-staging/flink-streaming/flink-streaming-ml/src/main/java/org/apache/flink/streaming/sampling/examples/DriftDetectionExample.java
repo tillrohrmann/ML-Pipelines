@@ -16,27 +16,26 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.examples;
+
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
+
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
-import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
+import org.apache.flink.streaming.sampling.helpers.DriftDetector;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.ChainSampler;
+
 import java.util.Properties;
 
 /**
- * Created by marthavk on 2015-05-06.
+ * Created by marthavk on 2015-05-11.
  */
-public class ChainSamplingExample {
+public class DriftDetectionExample<T> {
 
 	public static long MAX_COUNT;  // max count of generated numbers
-	public static int COUNT_WINDOW_SIZE;
 	public static int SAMPLE_SIZE;
 	public static Properties initProps = new Properties();
 
@@ -48,7 +47,6 @@ public class ChainSamplingExample {
 		/*read properties file and set static variables*/
 		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
 		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
 
 		/*set execution environment*/
@@ -79,34 +77,16 @@ public class ChainSamplingExample {
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
+		SingleOutputStreamOperator<GaussianDistribution,?> shuffledSource = source.shuffle();
 
-				/*generate double value from GaussianDistribution and wrap around
-				Tuple3<Double, Timestamp, Long> */
-				.map(new MapFunction<GaussianDistribution, GaussianDistribution>() {
-					@Override
-					public GaussianDistribution map(GaussianDistribution value) throws Exception {
-						return value;
-					}
-				});
-
-		operator.map(new DataGenerator())
-
-				/*sample the stream*/
-				.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
-
-				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SampleExtractor<Double>()) //use that for Chain and Priority Samplers.
-
-				/*connect sampled stream to source*/
-				.connect(operator)
-
-				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-						//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistanceEvaluator())
-
-				/*sink*/
-				.writeAsText(SamplingUtils.path + "chain");
+		shuffledSource.map(new MapFunction<GaussianDistribution, Tuple2<GaussianDistribution, Double>>() {
+			@Override
+			public Tuple2<GaussianDistribution, Double> map(GaussianDistribution value) throws Exception {
+				return new Tuple2<GaussianDistribution, Double>(value, value.generate());
+			}
+		})
+				.map(new DriftDetector())
+				.writeAsText(SamplingUtils.path + "drift");
 	}
 
 

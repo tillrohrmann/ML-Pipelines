@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 
 import java.io.File;
@@ -32,6 +33,8 @@ import java.util.Random;
  */
 
 public final class SamplingUtils {
+	public static final int REAL_DISTRIBUTION = 1;
+	public static final int EMPIRICAL_DISTRIBUTION = 2;
 
 	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
 			"/flink-streaming-ml/src/main/resources/";
@@ -63,7 +66,9 @@ public final class SamplingUtils {
 		return min+offset;
 	}
 
-
+	public static int nextRandInt(int n) {
+		return rand.nextInt(n);
+	}
 
 	/**
 	 * Reads properties file
@@ -108,6 +113,21 @@ public final class SamplingUtils {
 			stats.addValue(value);
 		}
 		return stats;
+	}
+
+	public static double bhattacharyyaDistance(GaussianDistribution greal, GaussianDistribution gsampled) {
+
+		//Bhattacharyya distance
+		double m1 = greal.getMean();
+		double m2 = gsampled.getMean();
+		double s1 = greal.getStandardDeviation();
+		double s2 = gsampled.getStandardDeviation();
+
+		double factor1 = Math.pow(s1, 2) / Math.pow(s2, 2) + Math.pow(s2, 2) / Math.pow(s1, 2) + 2;
+		double factor2 = Math.pow((m1 - m2),2) / (Math.pow(s1,2) + Math.pow(s2,2));
+		double distance = (0.25) * Math.log((0.25) * factor1) + (0.25) * factor2;
+		return distance;
+
 	}
 
 }
