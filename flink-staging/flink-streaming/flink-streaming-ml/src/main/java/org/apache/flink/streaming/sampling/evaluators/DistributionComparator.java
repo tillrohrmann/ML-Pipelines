@@ -30,20 +30,18 @@ import org.apache.flink.api.java.tuple.Tuple2;
  */
 public class DistributionComparator implements CoFlatMapFunction<Sample<Double>, GaussianDistribution,
 		Tuple2<GaussianDistribution, Integer>> {
-	public static final int REAL_DISTRIBUTION = 1;
-	public static final int EMPIRICAL_DISTRIBUTION = 2;
 	//GaussianDistribution currentDist = new GaussianDistribution();
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Tuple2<GaussianDistribution,Integer>> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
 		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
-		out.collect(new Tuple2<GaussianDistribution,Integer>(sampledDist,EMPIRICAL_DISTRIBUTION));
+		out.collect(new Tuple2<GaussianDistribution, Integer>(sampledDist, SamplingUtils.EMPIRICAL_DISTRIBUTION));
 	}
 
 	@Override
 	public void flatMap2(GaussianDistribution value, Collector<Tuple2<GaussianDistribution,Integer>> out)
 			throws Exception {
-		out.collect(new Tuple2<GaussianDistribution, Integer>(value,REAL_DISTRIBUTION));
+		out.collect(new Tuple2<GaussianDistribution, Integer>(value, SamplingUtils.REAL_DISTRIBUTION));
 		//currentDist = value;
 	}
 

@@ -90,9 +90,9 @@ public class Sample<T> implements Serializable {
 	}
 
 	public void discard(double proportion) {
-		int tuplesToEvict = (int) Math.round(this.getSize()*proportion);
+		int tuplesToEvict = (int) Math.floor(this.getSize()*proportion);
 		for (int i=0; i<tuplesToEvict; i++) {
-			int pos = SamplingUtils.randomBoundedInteger(0, this.getSize());
+			int pos = SamplingUtils.nextRandInt(this.getSize());
 			this.removeSample(pos);
 		}
 	}

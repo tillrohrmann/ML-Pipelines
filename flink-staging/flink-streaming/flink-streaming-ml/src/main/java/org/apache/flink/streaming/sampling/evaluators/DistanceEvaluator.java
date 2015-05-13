@@ -19,6 +19,8 @@ package org.apache.flink.streaming.sampling.evaluators;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
@@ -26,38 +28,43 @@ import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 
+import java.util.ArrayList;
+
 /**
  * Created by marthavk on 2015-03-18.
  */
 public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double>  {
-	GaussianDistribution currentDist = new GaussianDistribution();
+	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
+	ArrayList<GaussianDistribution> empAggregator = new ArrayList<GaussianDistribution>();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
 		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
-		//System.out.println(currentDist.toString() + " " + sampledDist.toString());
-		out.collect(bhattacharyyaDistance(currentDist, sampledDist));
+		empAggregator.add(sampledDist);
+
+		if (trueAggregator.size() == empAggregator.size()) {
+			for (int i=0; i<trueAggregator.size(); i++) {
+				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
+			}
+			trueAggregator.clear();
+			empAggregator.clear();
+		}
+
 	}
 
 	@Override
 	public void flatMap2(GaussianDistribution value, Collector<Double> out) throws Exception {
-		currentDist = value;
-	}
 
-	public double bhattacharyyaDistance(GaussianDistribution greal, GaussianDistribution gsampled) {
+		trueAggregator.add(value);
 
-		//Bhattacharyya distance
-		double m1 = greal.getMean();
-		double m2 = gsampled.getMean();
-		double s1 = greal.getStandardDeviation();
-		double s2 = gsampled.getStandardDeviation();
-
-		double factor1 = Math.pow(s1, 2) / Math.pow(s2, 2) + Math.pow(s2, 2) / Math.pow(s1, 2) + 2;
-		double factor2 = Math.pow((m1 - m2),2) / (Math.pow(s1,2) + Math.pow(s2,2));
-		double distance = (0.25) * Math.log((0.25) * factor1) + (0.25) * factor2;
-		return distance;
-
+		if (trueAggregator.size() == empAggregator.size()) {
+			for (int i=0; i<trueAggregator.size(); i++) {
+				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
+			}
+			trueAggregator.clear();
+			empAggregator.clear();
+		}
 	}
 
 	public void printIndexedString(String str, int subtaskIndex) {
@@ -66,5 +73,10 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 			System.out.println(str);
 		}
 	}
+
+
+
+
+
 
 }

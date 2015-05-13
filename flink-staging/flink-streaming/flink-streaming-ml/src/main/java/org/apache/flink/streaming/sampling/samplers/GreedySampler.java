@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.samplers;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,12 +15,16 @@ package org.apache.flink.streaming.sampling.samplers;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.streaming.incrementalML.inspector.ChangeDetector;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 import java.util.ArrayList;
+import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-11.
@@ -32,20 +36,40 @@ import java.util.ArrayList;
 public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
 	Reservoir reservoirSample;
-	ChangeDetector detector = new ChangeDetector();
+	PageHinkleyTest detector;
+	double lambda, delta;
+
 	private boolean hasDrift =false;
-	double bias;
 	int count=0;
 
 	public GreedySampler(int size) {
 		reservoirSample = new Reservoir(size);
+		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
+		lambda = Double.parseDouble(props.getProperty("lambda"));
+		delta = Double.parseDouble(props.getProperty("delta"));
+		detector = new PageHinkleyTest(lambda, delta,30);
 	}
-
 	@Override
 	public Sample<IN> map(IN value) throws Exception {
 		count++;
-		detector.input((Double)value);
+		sample(value);
+		return reservoirSample;
+	}
+
+
+	@Override
+	public ArrayList<IN> getElements() {
+		return reservoirSample.getSample();
+	}
+
+	@Override
+	public void sample(IN element) {
+		Tuple3 inValue = (Tuple3) element;
+		detector.input(((Double) inValue.f0));
 		hasDrift = detector.isChangedDetected();
+		StreamTimestamp changeTimeStamp = new StreamTimestamp();
+		System.out.println(changeTimeStamp.getTimestamp());
+
 		if (hasDrift) {
 			reservoirSample.discard(0.5);
 			hasDrift = false;
@@ -54,35 +78,22 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 
 		double proportion = reservoirSample.getSize()/reservoirSample.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
-			reservoirSample.replaceSample(value);
+			reservoirSample.replaceSample(element);
 		}
 		else {
-			reservoirSample.addSample(value);
+			reservoirSample.addSample(element);
 		}
-		return null;
-	}
-
-	@Override
-	public ArrayList<IN> getElements() {
-		return null;
-	}
-
-	@Override
-	public void sample(IN element) {
-
-	}
-
-	public void insertBias(double bias) {
-
 	}
 
 	@Override
 	public int size() {
-		return 0;
+		return reservoirSample.getSize();
 	}
 
 	@Override
 	public int maxSize() {
-		return 0;
+		return reservoirSample.getMaxSize();
 	}
+
+
 }
