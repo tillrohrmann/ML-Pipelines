@@ -49,7 +49,7 @@ public class OutputHandler<OUT> {
 	private ClassLoader cl;
 	private Collector<OUT> outerCollector;
 
-	public List<ChainableStreamOperator<?, ?>> chainedOperators;
+	private List<ChainableStreamOperator<?, ?>> chainedOperators;
 
 	private Map<StreamEdge, StreamOutput<?>> outputMap;
 
@@ -88,8 +88,8 @@ public class OutputHandler<OUT> {
 		this.outerCollector = createChainedCollector(configuration);
 	}
 
-	public void broadcastBarrier(long id) throws IOException, InterruptedException {
-		StreamingSuperstep barrier = new StreamingSuperstep(id);
+	public void broadcastBarrier(long id, long timestamp) throws IOException, InterruptedException {
+		StreamingSuperstep barrier = new StreamingSuperstep(id, timestamp);
 		for (StreamOutput<?> streamOutput : outputMap.values()) {
 			streamOutput.broadcastEvent(barrier);
 		}
@@ -97,6 +97,10 @@ public class OutputHandler<OUT> {
 
 	public Collection<StreamOutput<?>> getOutputs() {
 		return outputMap.values();
+	}
+	
+	public List<ChainableStreamOperator<?, ?>> getChainedOperators(){
+		return chainedOperators;
 	}
 
 	/**

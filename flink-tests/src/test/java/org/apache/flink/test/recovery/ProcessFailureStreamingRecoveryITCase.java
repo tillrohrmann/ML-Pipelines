@@ -19,10 +19,11 @@
 package org.apache.flink.test.recovery;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.runtime.state.OperatorState;
+import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
@@ -77,25 +78,15 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 		env.enableCheckpointing(200);
 
 		DataStream<Long> result = env.addSource(new SleepyDurableGenerateSequence(coordinateDir, DATA_COUNT))
-
-				// make sure every mapper is involved
-//				.shuffle()
-
-				// populate the coordinate directory so we can proceed to TaskManager failure
-				.map(new RichMapFunction<Long, Long>() {
-
-					private boolean markerCreated = false;
-
+				// add a non-chained no-op map to test the chain state restore logic
+				.distribute().map(new MapFunction<Long, Long>() {
 					@Override
 					public Long map(Long value) throws Exception {
-						if (!markerCreated) {
-							int taskIndex = getRuntimeContext().getIndexOfThisSubtask();
-							touchFile(new File(coordinateDir, READY_MARKER_FILE_PREFIX + taskIndex));
-							markerCreated = true;
-						}
 						return value;
 					}
-				});
+				})
+				// populate the coordinate directory so we can proceed to TaskManager failure
+				.map(new StatefulMapper(coordinateDir));				
 
 		//write result to temporary file
 		result.addSink(new RichSinkFunction<Long>() {
@@ -145,12 +136,15 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 		}
 	}
 
-	public static class SleepyDurableGenerateSequence extends RichParallelSourceFunction<Long> {
+	public static class SleepyDurableGenerateSequence extends RichParallelSourceFunction<Long>
+			implements Checkpointed<Long> {
 
 		private static final long SLEEP_TIME = 50;
 
 		private final File coordinateDir;
 		private final long end;
+		
+		private long collected;
 
 		public SleepyDurableGenerateSequence(File coordinateDir, long end) {
 			this.coordinateDir = coordinateDir;
@@ -158,27 +152,13 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 		}
 
 		@Override
-		@SuppressWarnings("unchecked")
 		public void run(Collector<Long> collector) throws Exception {
 
 			StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-			OperatorState<Long> collectedState;
-			if (context.containsState("collected")) {
-				collectedState = (OperatorState<Long>) context.getState("collected");
-
-//				if (collected == 0) {
-//					throw new RuntimeException("The state did not capture a completed checkpoint");
-//				}
-			}
-			else {
-				collectedState = new OperatorState<Long>(0L);
-				context.registerState("collected", collectedState);
-			}
 
 			final long stepSize = context.getNumberOfParallelSubtasks();
 			final long congruence = context.getIndexOfThisSubtask();
 			final long toCollect = (end % stepSize > congruence) ? (end / stepSize + 1) : (end / stepSize);
-			long collected = collectedState.getState();
 
 			final File proceedFile = new File(coordinateDir, PROCEED_MARKER_FILE);
 			boolean checkForProceedFile = true;
@@ -196,13 +176,60 @@ public class ProcessFailureStreamingRecoveryITCase extends AbstractProcessFailur
 				}
 
 				collector.collect(collected * stepSize + congruence);
-				collectedState.update(collected);
 				collected++;
 			}
 		}
 
 		@Override
 		public void cancel() {}
+
+		@Override
+		public Long snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
+			return collected;
+		}
+
+		@Override
+		public void restoreState(Long state) {
+			collected = state;
+		}
+	}
+	
+	public static class StatefulMapper extends RichMapFunction<Long, Long> implements
+			Checkpointed<Integer> {
+		private boolean markerCreated = false;
+		private File coordinateDir;
+		private boolean restored = false;
+
+		public StatefulMapper(File coordinateDir) {
+			this.coordinateDir = coordinateDir;
+		}
+
+		@Override
+		public Long map(Long value) throws Exception {
+			if (!markerCreated) {
+				int taskIndex = getRuntimeContext().getIndexOfThisSubtask();
+				touchFile(new File(coordinateDir, READY_MARKER_FILE_PREFIX + taskIndex));
+				markerCreated = true;
+			}
+			return value;
+		}
+
+		@Override
+		public void close() {
+			if (!restored) {
+				fail();
+			}
+		}
+
+		@Override
+		public Integer snapshotState(long checkpointId, long checkpointTimestamp) throws Exception {
+			return 1;
+		}
+
+		@Override
+		public void restoreState(Integer state) {
+			restored = true;
+		}
 	}
 
 

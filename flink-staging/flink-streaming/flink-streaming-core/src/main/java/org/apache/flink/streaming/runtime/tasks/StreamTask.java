@@ -18,18 +18,19 @@
 package org.apache.flink.streaming.runtime.tasks;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.functors.NotNullPredicate;
 import org.apache.flink.runtime.event.task.TaskEvent;
 import org.apache.flink.runtime.execution.Environment;
 import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
-import org.apache.flink.runtime.jobgraph.tasks.BarrierTransceiver;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointCommittingOperator;
+import org.apache.flink.runtime.jobgraph.tasks.CheckpointedOperator;
 import org.apache.flink.runtime.jobgraph.tasks.OperatorStateCarrier;
-import org.apache.flink.runtime.messages.CheckpointingMessages;
 import org.apache.flink.runtime.state.LocalStateHandle;
-import org.apache.flink.runtime.state.OperatorState;
-import org.apache.flink.runtime.state.StateHandle;
 import org.apache.flink.runtime.util.event.EventListener;
 import org.apache.flink.streaming.api.graph.StreamConfig;
 import org.apache.flink.streaming.api.operators.ChainableStreamOperator;
@@ -43,13 +44,14 @@ import org.apache.flink.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import akka.actor.ActorRef;
 
 public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTaskContext<OUT>,
-		BarrierTransceiver, OperatorStateCarrier {
+		OperatorStateCarrier<LocalStateHandle>, CheckpointedOperator, CheckpointCommittingOperator {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StreamTask.class);
 
+	private final Object checkpointLock = new Object();
+	
 	private static int numTasks;
 
 	protected StreamConfig configuration;
@@ -59,10 +61,10 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	private InputHandler<IN> inputHandler;
 	protected OutputHandler<OUT> outputHandler;
 	private StreamOperator<IN, OUT> streamOperator;
+	private boolean chained;
 	protected volatile boolean isRunning = false;
 
 	private StreamingRuntimeContext context;
-	private Map<String, OperatorState<?>> states;
 
 	protected ClassLoader userClassLoader;
 
@@ -90,43 +92,13 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void initialize() {
 		this.userClassLoader = getUserCodeClassLoader();
 		this.configuration = new StreamConfig(getTaskConfiguration());
-		this.states = new HashMap<String, OperatorState<?>>();
-		this.context = createRuntimeContext(getEnvironment().getTaskName(), this.states);
-	}
-
-	@Override
-	public void broadcastBarrierFromSource(long id) {
-		// Only called at input vertices
-		if (LOG.isDebugEnabled()) {
-			LOG.debug("Received barrier from jobmanager: " + id);
-		}
-		actOnBarrier(id);
-	}
-
-	/**
-	 * This method is called to confirm that a barrier has been fully processed.
-	 * It sends an acknowledgment to the jobmanager. In the current version if
-	 * there is user state it also checkpoints the state to the jobmanager.
-	 */
-	@Override
-	public void confirmBarrier(long barrierID) throws IOException {
-
-		if (configuration.getStateMonitoring() && !states.isEmpty()) {
-			getEnvironment().getJobManager().tell(
-					new CheckpointingMessages.StateBarrierAck(getEnvironment().getJobID(), getEnvironment()
-							.getJobVertexId(), context.getIndexOfThisSubtask(), barrierID,
-							new LocalStateHandle(states)), ActorRef.noSender());
-		} else {
-			getEnvironment().getJobManager().tell(
-					new CheckpointingMessages.BarrierAck(getEnvironment().getJobID(), getEnvironment().getJobVertexId(),
-							context.getIndexOfThisSubtask(), barrierID), ActorRef.noSender());
-		}
-
+		this.context = createRuntimeContext(getEnvironment().getTaskName());
 	}
 
 	public void setInputsOutputs() {
 		inputHandler = new InputHandler<IN>(this);
 		outputHandler = new OutputHandler<OUT>(this);
+		chained = !outputHandler.getChainedOperators().isEmpty();
 	}
 
 	protected void setOperator() {
@@ -142,11 +114,10 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 		return instanceID;
 	}
 
-	public StreamingRuntimeContext createRuntimeContext(String taskName,
-			Map<String, OperatorState<?>> states) {
+	public StreamingRuntimeContext createRuntimeContext(String taskName) {
 		Environment env = getEnvironment();
 		return new StreamingRuntimeContext(taskName, env, getUserCodeClassLoader(),
-				getExecutionConfig(), states);
+				getExecutionConfig());
 	}
 
 	@Override
@@ -199,7 +170,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void openOperator() throws Exception {
 		streamOperator.open(getTaskConfiguration());
 
-		for (ChainableStreamOperator<?, ?> operator : outputHandler.chainedOperators) {
+		for (ChainableStreamOperator<?, ?> operator : outputHandler.getChainedOperators()) {
 			operator.setRuntimeContext(context);
 			operator.open(getTaskConfiguration());
 		}
@@ -208,7 +179,7 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 	protected void closeOperator() throws Exception {
 		streamOperator.close();
 
-		for (ChainableStreamOperator<?, ?> operator : outputHandler.chainedOperators) {
+		for (ChainableStreamOperator<?, ?> operator : outputHandler.getChainedOperators()) {
 			operator.close();
 		}
 	}
@@ -278,49 +249,139 @@ public class StreamTask<IN, OUT> extends AbstractInvokable implements StreamTask
 		return this.superstepListener;
 	}
 
+	// ------------------------------------------------------------------------
+	//  Checkpoint and Restore
+	// ------------------------------------------------------------------------
+
 	/**
-	 * Method to be called when a barrier is received from all the input
-	 * channels. It should broadcast the barrier to the output operators,
-	 * checkpoint the state and send an ack.
-	 * 
-	 * @param id
+	 * Re-injects the user states into the map. Also set the state on the functions.
 	 */
-	private synchronized void actOnBarrier(long id) {
-		if (isRunning) {
-			try {
-				outputHandler.broadcastBarrier(id);
-				confirmBarrier(id);
-				if (LOG.isDebugEnabled()) {
-					LOG.debug("Superstep " + id + " processed: " + StreamTask.this);
+	@Override
+	public void setInitialState(LocalStateHandle stateHandle) throws Exception {
+		// here, we later resolve the state handle into the actual state by
+		// loading the state described by the handle from the backup store
+		Serializable state = stateHandle.getState();
+
+		if (chained) {
+			@SuppressWarnings("unchecked")
+			List<Serializable> chainedStates = (List<Serializable>) state;
+
+			Serializable headState = chainedStates.get(0);
+			if (headState != null) {
+				streamOperator.restoreInitialState(headState);
+			}
+
+			for (int i = 1; i < chainedStates.size(); i++) {
+				Serializable chainedState = chainedStates.get(i);
+				if (chainedState != null) {
+					outputHandler.getChainedOperators().get(i - 1).restoreInitialState(chainedState);
 				}
-			} catch (Exception e) {
-				// Only throw any exception if the vertex is still running
-				if (isRunning) {
-					throw new RuntimeException(e);
+			}
+
+		} else {
+			streamOperator.restoreInitialState(state);
+		}
+	}
+
+	/**
+	 * This method is either called directly by the checkpoint coordinator, or called
+	 * when all incoming channels have reported a barrier
+	 * 
+	 * @param checkpointId
+	 * @param timestamp
+	 * @throws Exception
+	 */
+	@Override
+	public void triggerCheckpoint(long checkpointId, long timestamp) throws Exception {
+		
+		synchronized (checkpointLock) {
+			if (isRunning) {
+				try {
+					LOG.info("Starting checkpoint {} on task {}", checkpointId, getName());
+					
+					// first draw the state that should go into checkpoint
+					LocalStateHandle state;
+					try {
+						Serializable userState = streamOperator.getStateSnapshotFromFunction(
+								checkpointId, timestamp);
+						
+						if (chained) {
+							// We construct a list of states for chained tasks
+							List<Serializable> chainedStates = new ArrayList<Serializable>();
+
+							chainedStates.add(userState);
+
+							for (StreamOperator<?, ?> chainedOperator : outputHandler.getChainedOperators()) {
+								chainedStates.add(chainedOperator.getStateSnapshotFromFunction(
+										checkpointId, timestamp));
+							}
+
+							userState = CollectionUtils.exists(chainedStates,
+									NotNullPredicate.INSTANCE) ? (Serializable) chainedStates
+									: null;
+						}
+						
+						state = userState == null ? null : new LocalStateHandle(userState);
+					}
+					catch (Exception e) {
+						throw new Exception("Error while drawing snapshot of the user state.", e);
+					}
+			
+					// now emit the checkpoint barriers
+					outputHandler.broadcastBarrier(checkpointId, timestamp);
+					
+					// now confirm the checkpoint
+					if (state == null) {
+						getEnvironment().acknowledgeCheckpoint(checkpointId);
+					} else {
+						getEnvironment().acknowledgeCheckpoint(checkpointId, state);
+					}
+				}
+				catch (Exception e) {
+					if (isRunning) {
+						throw e;
+					}
 				}
 			}
 		}
 	}
 
 	@Override
+	public void confirmCheckpoint(long checkpointId, long timestamp) throws Exception {
+		// we do nothing here so far. this should call commit on the source function, for example
+		synchronized (checkpointLock) {
+			streamOperator.confirmCheckpointCompleted(checkpointId, timestamp);
+			if (chained) {
+				for (StreamOperator<?, ?> op : outputHandler.getChainedOperators()) {
+					op.confirmCheckpointCompleted(checkpointId, timestamp);
+				}
+			}
+		}
+	}
+	
+	
+	// ------------------------------------------------------------------------
+	//  Utilities
+	// ------------------------------------------------------------------------
+
+	@Override
 	public String toString() {
-		return configuration.getOperatorName() + " (" + context.getIndexOfThisSubtask() + ")";
+		return getEnvironment().getTaskNameWithSubtasks();
 	}
 
-	/**
-	 * Re-injects the user states into the map
-	 */
-	@Override
-	public void injectState(StateHandle stateHandle) {
-		this.states.putAll(stateHandle.getState(userClassLoader));
-	}
+	// ------------------------------------------------------------------------
 
 	private class SuperstepEventListener implements EventListener<TaskEvent> {
 
 		@Override
 		public void onEvent(TaskEvent event) {
-			actOnBarrier(((StreamingSuperstep) event).getId());
+			try {
+				StreamingSuperstep sStep = (StreamingSuperstep) event;
+				triggerCheckpoint(sStep.getId(), sStep.getTimestamp());
+			}
+			catch (Exception e) {
+				throw new RuntimeException("Error triggering a checkpoint as the result of receiving checkpoint barrier", e);
+			}
 		}
-
 	}
 }
