@@ -19,7 +19,6 @@ package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
-
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -42,7 +41,7 @@ public class DriftDetectionExample<T> {
 	// *************************************************************************
 	// PROGRAM
 	// *************************************************************************
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 
 		/*read properties file and set static variables*/
 		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
@@ -66,6 +65,7 @@ public class DriftDetectionExample<T> {
 	/**
 	 * Evaluates the sampling method. Compares final sample distribution parameters
 	 * with source.
+	 *
 	 * @param env
 	 * @param initProps
 	 */
@@ -77,7 +77,7 @@ public class DriftDetectionExample<T> {
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> shuffledSource = source.shuffle();
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSource = source.shuffle();
 
 		shuffledSource.map(new MapFunction<GaussianDistribution, Tuple2<GaussianDistribution, Double>>() {
 			@Override

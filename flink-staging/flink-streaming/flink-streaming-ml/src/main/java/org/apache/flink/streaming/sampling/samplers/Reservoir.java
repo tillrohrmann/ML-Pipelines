@@ -26,7 +26,7 @@ import java.util.Random;
 /**
  * Created by marthavk on 2015-03-05.
  */
-public class Reservoir<T> extends Sample<T> implements Serializable, Iterable{
+public class Reservoir<T> extends Sample<T> implements Serializable, Iterable {
 
 	public Reservoir(int size) {
 		super(size);
@@ -35,8 +35,12 @@ public class Reservoir<T> extends Sample<T> implements Serializable, Iterable{
 
 	@Override
 	public void addSample(T item) {
-		if (!isFull()) this.sample.add(item);
-		else replaceSample(item);
+		if (!isFull()) {
+			this.sample.add(item);
+		}
+		else {
+			replaceSample(item);
+		}
 	}
 
 
@@ -53,8 +57,6 @@ public class Reservoir<T> extends Sample<T> implements Serializable, Iterable{
 		this.replaceSample(pos, item);
 
 	}
-
-
 
 
 	/**

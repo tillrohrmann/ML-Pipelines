@@ -17,12 +17,13 @@
  */
 
 package org.apache.flink.streaming.sampling.samplers;
+
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,7 +33,7 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-21.
  */
 public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, Long>,
-		ChainSample<Tuple3<T, StreamTimestamp, Long>>> implements Sampler<Tuple3<T,StreamTimestamp,Long>>{
+		ChainSample<Tuple3<T, StreamTimestamp, Long>>> implements Sampler<Tuple3<T, StreamTimestamp, Long>> {
 
 	ChainSample<Tuple3<T, StreamTimestamp, Long>> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
@@ -45,7 +46,9 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		initializeLists();
 	}
 
-	/**  METHODS EXTENDING RichMapFunction ABSTRACT CLASS **/
+	/**
+	 * METHODS EXTENDING RichMapFunction ABSTRACT CLASS *
+	 */
 	@Override
 	public ChainSample<Tuple3<T, StreamTimestamp, Long>> map(Tuple3<T, StreamTimestamp, Long> value) throws Exception {
 
@@ -53,9 +56,11 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		return this.chainSample;
 	}
 
-	/** METHODS IMPLEMENTING Sampler INTERFACE **/
+	/**
+	 * METHODS IMPLEMENTING Sampler INTERFACE *
+	 */
 	@Override
-	public ArrayList<Tuple3<T,StreamTimestamp,Long>> getElements() {
+	public ArrayList<Tuple3<T, StreamTimestamp, Long>> getElements() {
 		return null;
 	}
 
@@ -95,10 +100,12 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		return this.chainSample.getMaxSize();
 	}
 
-	/** PRIORITY SAMPLER METHODS **/
-	public ArrayList<Double> assignPriorities (){
+	/**
+	 * PRIORITY SAMPLER METHODS *
+	 */
+	public ArrayList<Double> assignPriorities() {
 		ArrayList<Double> priorities = new ArrayList<Double>();
-		for (int i=0; i<maxSize(); i++) {
+		for (int i = 0; i < maxSize(); i++) {
 			priorities.add(SamplingUtils.randomPriority());
 		}
 		return priorities;
@@ -110,7 +117,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 	public void initializeLists() {
 
 		//initialize priority list
-		for (int i=0; i<maxSize(); i++) {
+		for (int i = 0; i < maxSize(); i++) {
 			LinkedList<Double> priorityInitList = new LinkedList<Double>();
 			priorityInitList.add(-1.0);
 			priorityList.add(priorityInitList);
@@ -125,24 +132,25 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 	 * the list. If so, deletes all elements with lower priority and
 	 * chains the current element in the chainSample and its priority
 	 * in the priorityList
+	 *
 	 * @param item
 	 * @param priorities
 	 */
 	public void placeInList(Tuple3<T, StreamTimestamp, Long> item, ArrayList<Double> priorities) {
 
 		//printIndexedString("\t***placeInList",0);
-		for (int pos=0; pos<maxSize(); pos++) {
+		for (int pos = 0; pos < maxSize(); pos++) {
 
 			Double p = priorities.get(pos);
-			int lastElement = priorityList.get(pos).size()-1;
+			int lastElement = priorityList.get(pos).size() - 1;
 
-			for (int i=0; i<priorityList.get(pos).size(); i++) {
+			for (int i = 0; i < priorityList.get(pos).size(); i++) {
 				double currentP = priorityList.get(pos).get(i);
 				//printIndexedString("\tpos ="+pos+"  last element = " + lastElement + "  currentP = " + currentP
 				//		+ "  i = " + i,0);
-				if (p>currentP) {
+				if (p > currentP) {
 
-				//	printIndexedString("\tp>currentP",0);
+					//	printIndexedString("\tp>currentP",0);
 					//delete all priorities in the queue and the sample
 					priorityList.get(pos).subList(i, priorityList.get(pos).size()).clear();
 					chainSample.get(pos).subList(i, chainSample.get(pos).size()).clear();
@@ -150,18 +158,16 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 					//add this item to the queue and its priority to the sample
 					priorityList.get(pos).add(p);
 					chainSample.get(pos).add(item);
-				//	printIndexedString("\tpriorityList: " + prioritiesToString(),0);
-				//	printIndexedString("\tchainSample: " + chainSampletoString(chainSample),0);
+					//	printIndexedString("\tpriorityList: " + prioritiesToString(),0);
+					//	printIndexedString("\tchainSample: " + chainSampletoString(chainSample),0);
 					break;
-				}
-				else if (i == lastElement) {
-				//	printIndexedString("\ti==lastElement",0);
+				} else if (i == lastElement) {
+					//	printIndexedString("\ti==lastElement",0);
 					priorityList.get(pos).add(p);
 					chainSample.get(pos).add(item);
-				//	printIndexedString("\tpriorityList: " + prioritiesToString(),0);
-				//	printIndexedString("\tchainSample: " + chainSampletoString(chainSample),0);
-				}
-				else {
+					//	printIndexedString("\tpriorityList: " + prioritiesToString(),0);
+					//	printIndexedString("\tchainSample: " + chainSampletoString(chainSample),0);
+				} else {
 					//do nothing
 				}
 			}
@@ -178,7 +184,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		//printIndexedString("\tenters update, timestamp = " + timestamp.getTimestamp(),0);
 
 		//TODO : FIX
-		for (int i=0; i<chainSample.getMaxSize(); i++) {
+		for (int i = 0; i < chainSample.getMaxSize(); i++) {
 			//printIndexedString("\t***i=" + i, 0);
 			LinkedList<Tuple3<T, StreamTimestamp, Long>> listInPos = chainSample.get(i);
 
@@ -188,14 +194,14 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 				//printIndexedString("\tcounter="+counter,0);
 				Iterator<Tuple3<T, StreamTimestamp, Long>> iter = listInPos.iterator();
 				while (iter.hasNext()) {
-					Tuple3<T,StreamTimestamp,Long> nextItem = iter.next();
+					Tuple3<T, StreamTimestamp, Long> nextItem = iter.next();
 					//printIndexedString("\tnextItem = " + nextItem.toString(),0);
 					//printIndexedString("\twindow = " + windowSize,0);
 					//printIndexedString("\ttimestamp.getTimestamp(null) = "+timestamp.getTimestamp(null),0);
 					//printIndexedString("\tnextItem.f1.getTimestamp(null) = "+nextItem.f1.getTimestamp(null),0);
 					//printIndexedString("\tdiafora = " +(timestamp.getTimestamp() - nextItem.f1.getTimestamp()),0);
 					if (timestamp.getTimestamp() - nextItem.f1.getTimestamp() > windowSize) {
-						counter ++;
+						counter++;
 						//printIndexedString("\tcounter = "+counter,0);
 					}
 				}
@@ -217,12 +223,15 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		}
 	}
 
-	/*** DEBUG MESSAGES
-	 * @param chain***/
+	/**
+	 * DEBUG MESSAGES
+	 *
+	 * @param chain**
+	 */
 	public String chainSampletoString(ChainSample<Tuple3<T, StreamTimestamp, Long>> chain) {
 		String chainSampleStr;
 		chainSampleStr = "[";
-		Iterator<LinkedList> iter= chain.iterator();
+		Iterator<LinkedList> iter = chain.iterator();
 		while (iter.hasNext()) {
 			LinkedList<Tuple3<Object, Timestamp, Long>> list = iter.next();
 			chainSampleStr += "(";
@@ -231,7 +240,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 					chainSampleStr += list.get(i).f2 + "->";
 				}
 			}
-			chainSampleStr +=")";
+			chainSampleStr += ")";
 		}
 		chainSampleStr += "]";
 		return chainSampleStr;
@@ -250,7 +259,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 					prStr += list.get(i).floatValue() + "->";
 				}
 			}
-			prStr +=")";
+			prStr += ")";
 		}
 		prStr += "]";
 		return prStr;
@@ -258,7 +267,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 
 	String assignedPriorsToString(ArrayList<Double> p) {
 		String pStr = "[";
-		for (int i=0; i<p.size(); i++) {
+		for (int i = 0; i < p.size(); i++) {
 			pStr += " " + p.get(i).floatValue() + " ";
 		}
 		pStr += "]";

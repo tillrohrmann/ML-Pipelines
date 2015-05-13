@@ -16,7 +16,6 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.helpers;
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
 
 /**
  * Created by marthavk on 2015-04-24.
@@ -28,7 +27,6 @@ public class StreamTimestamp {
 	public StreamTimestamp() {
 		timestamp = System.currentTimeMillis();
 	}
-
 
 
 	public long getTimestamp() {

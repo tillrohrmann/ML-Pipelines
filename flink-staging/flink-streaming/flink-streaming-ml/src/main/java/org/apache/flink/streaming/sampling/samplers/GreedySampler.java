@@ -39,16 +39,17 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 	PageHinkleyTest detector;
 	double lambda, delta;
 
-	private boolean hasDrift =false;
-	int count=0;
+	private boolean hasDrift = false;
+	int count = 0;
 
 	public GreedySampler(int size) {
 		reservoirSample = new Reservoir(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
-		detector = new PageHinkleyTest(lambda, delta,30);
+		detector = new PageHinkleyTest(lambda, delta, 30);
 	}
+
 	@Override
 	public Sample<IN> map(IN value) throws Exception {
 		count++;
@@ -76,11 +77,10 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 			detector.reset();
 		}
 
-		double proportion = reservoirSample.getSize()/reservoirSample.getMaxSize();
+		double proportion = reservoirSample.getSize() / reservoirSample.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
 			reservoirSample.replaceSample(element);
-		}
-		else {
+		} else {
 			reservoirSample.addSample(element);
 		}
 	}

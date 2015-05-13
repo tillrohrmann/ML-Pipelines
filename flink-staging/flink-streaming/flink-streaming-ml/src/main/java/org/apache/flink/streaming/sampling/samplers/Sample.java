@@ -42,7 +42,7 @@ public class Sample<T> implements Serializable {
 	}
 
 	void setMaxSize(int s) {
-			this.maxSize = s;
+		this.maxSize = s;
 	}
 
 	int getMaxSize() {
@@ -67,7 +67,7 @@ public class Sample<T> implements Serializable {
 	}
 
 	void removeSample() {
-		if ( !sample.isEmpty()) {
+		if (!sample.isEmpty()) {
 			sample.remove(0);
 		}
 	}
@@ -81,7 +81,7 @@ public class Sample<T> implements Serializable {
 	}
 
 	boolean isFull() {
-		return sample.size()==maxSize;
+		return sample.size() == maxSize;
 	}
 
 	@Override
@@ -90,8 +90,8 @@ public class Sample<T> implements Serializable {
 	}
 
 	public void discard(double proportion) {
-		int tuplesToEvict = (int) Math.floor(this.getSize()*proportion);
-		for (int i=0; i<tuplesToEvict; i++) {
+		int tuplesToEvict = (int) Math.floor(this.getSize() * proportion);
+		for (int i = 0; i < tuplesToEvict; i++) {
 			int pos = SamplingUtils.nextRandInt(this.getSize());
 			this.removeSample(pos);
 		}

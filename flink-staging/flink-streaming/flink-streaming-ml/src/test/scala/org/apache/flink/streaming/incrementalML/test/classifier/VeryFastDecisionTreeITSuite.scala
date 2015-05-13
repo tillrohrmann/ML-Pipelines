@@ -17,15 +17,12 @@
  */
 package org.apache.flink.streaming.incrementalML.test.classifier
 
-import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
-import org.apache.flink.ml.math.DenseVector
+import org.apache.flink.ml.common.ParameterMap
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
 import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
-
-import scala.util.hashing.MurmurHash3
 
 class VeryFastDecisionTreeITSuite
   extends FlatSpec
@@ -34,7 +31,7 @@ class VeryFastDecisionTreeITSuite
 
   behavior of "Flink's Very Fast Decision Tree algorithm"
 
-//  import VeryFastDecisionTreeData._
+  //  import VeryFastDecisionTreeData._
 
   it should "Create the classification HT of the given data set" in {
 
@@ -42,30 +39,31 @@ class VeryFastDecisionTreeITSuite
     val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
-//    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
+    //    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
-//    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+    //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-//    val dataPoints = data.map(point => {
-//      val featuresVector = DenseVector.zeros(point._2.size)
-//      for (i <- 0 until point._2.size) {
-//        val value = point._2.apply(i)
-//        value match {
-//          case a: Double =>
-//            featuresVector.update(i, a)
-//          case a: String =>
-//            featuresVector(i) = MurmurHash3.stringHash(a)
-//          case _ =>
-//        }
-//      }
-//      LabeledVector(point._1, featuresVector)
-//    })
+    //    val dataPoints = data.map(point => {
+    //      val featuresVector = DenseVector.zeros(point._2.size)
+    //      for (i <- 0 until point._2.size) {
+    //        val value = point._2.apply(i)
+    //        value match {
+    //          case a: Double =>
+    //            featuresVector.update(i, a)
+    //          case a: String =>
+    //            featuresVector(i) = MurmurHash3.stringHash(a)
+    //          case _ =>
+    //        }
+    //      }
+    //      LabeledVector(point._1, featuresVector)
+    //    })
 
-    val dataPoints = StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/Downloads/decisionTreeTestData.t",123)
+    val dataPoints = StreamingMLUtils.readLibSVM(env,
+      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
 
-    vfdt.fit(dataPoints,parameters)
+    vfdt.fit(dataPoints, parameters)
     env.execute()
   }
 }

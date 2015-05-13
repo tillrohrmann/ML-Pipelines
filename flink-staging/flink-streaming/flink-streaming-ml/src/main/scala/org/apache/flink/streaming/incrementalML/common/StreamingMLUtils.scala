@@ -17,8 +17,7 @@
  */
 package org.apache.flink.streaming.incrementalML.common
 
-import org.apache.flink.api.common.functions.{MapFunction, RichMapFunction}
-import org.apache.flink.configuration.Configuration
+import org.apache.flink.api.common.functions.MapFunction
 import org.apache.flink.ml.common.LabeledVector
 import org.apache.flink.ml.math.SparseVector
 import org.apache.flink.streaming.api.scala._

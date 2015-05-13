@@ -24,9 +24,9 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
   * @param secondBestValue (attributeId,(entropy,listOfSplittingValues))
   */
 class EvaluationMetric(
-  val bestValue: (Int, (Double, List[Double])),
-  val secondBestValue: (Int, (Double, List[Double])),
-  val leafId: Int)
+                        val bestValue: (Int, (Double, List[Double])),
+                        val secondBestValue: (Int, (Double, List[Double])),
+                        val leafId: Int)
   extends Metrics
   with Serializable {
 
@@ -44,7 +44,7 @@ object EvaluationMetric {
 }
 
 class EvaluationMetricFunction(
-  evalMetric: EvaluationMetricFunction)
+                                evalMetric: EvaluationMetricFunction)
   extends Serializable {
 
   //  import EvaluationMetricFunction._

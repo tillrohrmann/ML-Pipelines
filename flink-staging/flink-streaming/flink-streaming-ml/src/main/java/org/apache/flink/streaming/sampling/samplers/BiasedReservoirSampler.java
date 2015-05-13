@@ -27,13 +27,13 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-04-01.
  */
-public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN>{
+public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
 	Reservoir reservoirSample;
 	int count = 0;
 
 	public BiasedReservoirSampler(int size) {
-		reservoirSample = new Reservoir(size) ;
+		reservoirSample = new Reservoir(size);
 	}
 
 	@Override
@@ -51,11 +51,10 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 
 	@Override
 	public void sample(IN element) {
-		double proportion = reservoirSample.getSize()/reservoirSample.getMaxSize();
+		double proportion = reservoirSample.getSize() / reservoirSample.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
 			reservoirSample.replaceSample(element);
-		}
-		else {
+		} else {
 			reservoirSample.addSample(element);
 		}
 	}

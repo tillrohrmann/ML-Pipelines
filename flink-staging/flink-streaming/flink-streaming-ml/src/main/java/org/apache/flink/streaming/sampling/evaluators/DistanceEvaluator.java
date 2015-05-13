@@ -18,14 +18,11 @@
 package org.apache.flink.streaming.sampling.evaluators;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -33,7 +30,7 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-03-18.
  */
-public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double>  {
+public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
 	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
 	ArrayList<GaussianDistribution> empAggregator = new ArrayList<GaussianDistribution>();
 
@@ -44,7 +41,7 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 		empAggregator.add(sampledDist);
 
 		if (trueAggregator.size() == empAggregator.size()) {
-			for (int i=0; i<trueAggregator.size(); i++) {
+			for (int i = 0; i < trueAggregator.size(); i++) {
 				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
 			}
 			trueAggregator.clear();
@@ -59,7 +56,7 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 		trueAggregator.add(value);
 
 		if (trueAggregator.size() == empAggregator.size()) {
-			for (int i=0; i<trueAggregator.size(); i++) {
+			for (int i = 0; i < trueAggregator.size(); i++) {
 				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
 			}
 			trueAggregator.clear();
@@ -73,10 +70,6 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 			System.out.println(str);
 		}
 	}
-
-
-
-
 
 
 }

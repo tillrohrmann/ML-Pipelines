@@ -24,9 +24,9 @@ import java.util.Iterator;
 /**
  * Created by marthavk on 2015-03-31.
  */
-public class Fifo<T> extends Sample<T> implements Serializable, Iterable{
+public class Fifo<T> extends Sample<T> implements Serializable, Iterable {
 
-	public Fifo (int size) {
+	public Fifo(int size) {
 		super(size);
 	}
 
@@ -34,14 +34,14 @@ public class Fifo<T> extends Sample<T> implements Serializable, Iterable{
 	 * Adds a sample to the queue.
 	 * If the queue is full evict the oldest (first) element
 	 * then add the sample.
+	 *
 	 * @param item the sample to be added to the queue
 	 */
 	@Override
 	public void addSample(T item) {
-		if (getSize()<getMaxSize()) {
+		if (getSize() < getMaxSize()) {
 			sample.add(item);
-		}
-		else {
+		} else {
 			sample.remove(0);
 			sample.add(item);
 		}

@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.samplers;
+
 import java.util.ArrayList;
 
 /**
@@ -31,18 +32,17 @@ public interface Sampler<T> {
 	/**
 	 * In a streaming fashion a sampler receives individual elements and puts them in its sample.
 	 * The sample method should include the core sample creation logic of a stream sampler.
+	 *
 	 * @param element
 	 */
 	public void sample(T element);
 
 	/**
-	 *
 	 * @return The current size of the sample
 	 */
 	public int size();
 
 	/**
-	 *
 	 * @return The max size of the sample
 	 */
 	public int maxSize();

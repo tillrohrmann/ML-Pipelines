@@ -16,22 +16,17 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.helpers;
-import org.apache.flink.api.common.functions.MapFunction;
+
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.sampling.samplers.ChainSample;
-import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
-import org.apache.flink.streaming.sampling.samplers.Sample;
-import org.apache.flink.streaming.sampling.samplers.Sampler;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-
-import java.util.ArrayList;
+import org.apache.flink.streaming.sampling.samplers.ChainSample;
+import org.apache.flink.streaming.sampling.samplers.Sample;
 
 /**
  * Created by marthavk on 2015-04-23.
  */
-public class SampleExtractor<T> extends RichMapFunction<ChainSample<Tuple3<T,StreamTimestamp,Long>>, Sample<T>> {
+public class SampleExtractor<T> extends RichMapFunction<ChainSample<Tuple3<T, StreamTimestamp, Long>>, Sample<T>> {
 
 	public SampleExtractor() {
 		super();
@@ -41,8 +36,8 @@ public class SampleExtractor<T> extends RichMapFunction<ChainSample<Tuple3<T,Str
 	public Sample<T> map(ChainSample<Tuple3<T, StreamTimestamp, Long>> chain) throws Exception {
 		//ArrayList<Long> utilList = new ArrayList<Long>();
 		Sample<T> sample = new Sample<T>();
-		for (int i=0; i<chain.getSize(); i++) {
-			if(chain.get(i).peekFirst()!=null) {
+		for (int i = 0; i < chain.getSize(); i++) {
+			if (chain.get(i).peekFirst() != null) {
 				//utilList.add(chain.get(i).peekFirst().f2);
 				sample.addSample(chain.get(i).peekFirst().f0);
 			}

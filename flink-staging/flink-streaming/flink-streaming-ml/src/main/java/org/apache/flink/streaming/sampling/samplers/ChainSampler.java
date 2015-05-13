@@ -18,12 +18,11 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.common.operators.Order;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.windowing.helper.Timestamp;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -34,7 +33,7 @@ import java.util.LinkedList;
  */
 
 public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, Long>,
-		ChainSample<Tuple3<T, StreamTimestamp, Long>>> implements Sampler<Tuple3<T, StreamTimestamp, Long>>{
+		ChainSample<Tuple3<T, StreamTimestamp, Long>>> implements Sampler<Tuple3<T, StreamTimestamp, Long>> {
 
 	ChainSample<Tuple3<T, StreamTimestamp, Long>> chainSample;
 
@@ -77,14 +76,14 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 
 			long futureReplacement = selectReplacement(item);
 			Tuple3<T, StreamTimestamp, Long> futureItem
-					= new Tuple3<T, StreamTimestamp, Long>(null, null,	futureReplacement);
+					= new Tuple3<T, StreamTimestamp, Long>(null, null, futureReplacement);
 			chainSample.chainItem(futureItem, pos);
 
 		} else {
-			double prob = (double) chainSample.getMaxSize()/ SamplingUtils.max(chainSample.getMaxSize(), item.f2);
+			double prob = (double) chainSample.getMaxSize() / SamplingUtils.max(chainSample.getMaxSize(), item.f2);
 			if (SamplingUtils.flip(prob)) {
 
-				int pos = SamplingUtils.randomBoundedInteger(0, chainSample.getSize()-1);
+				int pos = SamplingUtils.randomBoundedInteger(0, chainSample.getSize() - 1);
 				chainSample.replaceChain(pos, item);
 
 				long futureReplacement = selectReplacement(item);
@@ -110,7 +109,6 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	/** CHAIN SAMPLING METHODS **/
 
 	/**
-	 *
 	 * @return the index for replacement when current item expires
 	 */
 	public long selectReplacement(Tuple3<T, StreamTimestamp, Long> item) {
@@ -120,10 +118,11 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	/**
 	 * Checks if the index of the current item has been selected in the past
 	 * if so, it chains the item and updates all structures accordingly
+	 *
 	 * @param item
 	 */
-	void storeChainedItems(Tuple3<T,StreamTimestamp,Long> item) {
-		for (int i = 0; i<chainSample.getSize(); i++) {
+	void storeChainedItems(Tuple3<T, StreamTimestamp, Long> item) {
+		for (int i = 0; i < chainSample.getSize(); i++) {
 			LinkedList<Tuple3<T, StreamTimestamp, Long>> currentList = chainSample.get(i);
 			if (currentList.getLast().f2.equals(item.f2)) {
 				//System.out.print(" " + item.f2);
@@ -131,7 +130,7 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 				chainSample.chainItem(item, i);
 
 				long replacement = selectReplacement(item);
-				Tuple3<T,StreamTimestamp,Long> indicator = new Tuple3<T,StreamTimestamp,Long>(null, null, replacement);
+				Tuple3<T, StreamTimestamp, Long> indicator = new Tuple3<T, StreamTimestamp, Long>(null, null, replacement);
 				chainSample.chainItem(indicator, i);
 			}
 		}
@@ -143,8 +142,8 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	 */
 	void updateExpiredItems(Tuple3<T, StreamTimestamp, Long> item) {
 
-		int threshold = (int)(item.f2 - windowSize);
-		for (int pos=0; pos<chainSample.getSize(); pos++) {
+		int threshold = (int) (item.f2 - windowSize);
+		for (int pos = 0; pos < chainSample.getSize(); pos++) {
 			if (chainSample.get(pos).peek().f2 <= threshold) {
 				chainSample.get(pos).pollFirst();
 			}
@@ -164,7 +163,7 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	public void initializeList() {
 
 		//initialize chainSample with null elements
-		for (int i=0; i<maxSize(); i++) {
+		for (int i = 0; i < maxSize(); i++) {
 			chainSample.addSample(null);
 		}
 
@@ -173,7 +172,7 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	public String chainSampletoString(ChainSample<Tuple3<T, StreamTimestamp, Long>> chain) {
 		String chainSampleStr;
 		chainSampleStr = "[";
-		Iterator<LinkedList> iter= chain.iterator();
+		Iterator<LinkedList> iter = chain.iterator();
 		while (iter.hasNext()) {
 			LinkedList<Tuple3<Object, Timestamp, Long>> list = iter.next();
 			chainSampleStr += "(";
@@ -182,7 +181,7 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 					chainSampleStr += list.get(i).f2 + "->";
 				}
 			}
-			chainSampleStr +=")";
+			chainSampleStr += ")";
 		}
 		chainSampleStr += "]";
 		return chainSampleStr;

@@ -24,8 +24,8 @@ import org.apache.commons.math3.stat.descriptive.rank.Percentile;
  */
 public class Test {
 
-	public static void main(String args[]) {
-		double[] a = {2,5,6,9,12};
+	public static void main(String[] args) {
+		double[] a = {2, 5, 6, 9, 12};
 		Percentile p = new Percentile();
 		p.setData(a);
 
@@ -36,9 +36,9 @@ public class Test {
 		System.out.println("Third quartile: " + p.evaluate(75));
 		System.out.println("Maximum: " + p.evaluate(100));*/
 
-		double quartile1 =  p.evaluate(25);
+		double quartile1 = p.evaluate(25);
 		double quartile3 = p.evaluate(75);
-		double iqr = quartile3-quartile1;
+		double iqr = quartile3 - quartile1;
 
 //		System.out.println("\nIQR = 3rd quartile - 1st quartile = " + iqr);
 
@@ -46,8 +46,6 @@ public class Test {
 
 //		System.out.println("\nfirst quartile – 1.5·IQR = " + quartile1 + "-" + (1.5*iqr) + " = " + (quartile1-1.5*iqr));
 //		System.out.println("third quartile + 1.5·IQR = "  + quartile3 + "+" + (1.5*iqr) + " = " + (quartile3+1.5*iqr));
-
-
 
 
 		double iq = p.evaluate(75) - p.evaluate(25);

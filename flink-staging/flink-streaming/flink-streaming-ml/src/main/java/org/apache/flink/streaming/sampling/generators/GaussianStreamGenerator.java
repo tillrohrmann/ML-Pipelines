@@ -32,7 +32,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	Properties props;
 	long numberOfEvents, steps;
 	long stablePoints;
-	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget,  stDevTarget, outlierRate;
+	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget, stDevTarget, outlierRate;
 
 
 	public GaussianStreamGenerator(Properties lProps) {
@@ -47,22 +47,21 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 
 
 		/*create initial normal distribution*/
-		mean=meanInit;
-		stDev=stDevInit;
-		gaussD = new GaussianDistribution(mean, stDev, outlierRate) ;
+		mean = meanInit;
+		stDev = stDevInit;
+		gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
 
-		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth"))&& steps<=(numberOfEvents/2);
+		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth")) && steps <= (numberOfEvents / 2);
 
 		if (!isSmooth) {
 			steps = Long.parseLong(props.getProperty("numberOfSteps"));
 			stablePoints = 0;
-			meanStep = (meanTarget - mean) / (steps-1);
-			stDevStep = (stDevTarget - stDev) / (steps-1);
-		}
-		else {
-			steps = numberOfEvents-2*stablePoints;
+			meanStep = (meanTarget - mean) / (steps - 1);
+			stDevStep = (stDevTarget - stDev) / (steps - 1);
+		} else {
+			steps = numberOfEvents - 2 * stablePoints;
 			stablePoints = Long.parseLong(props.getProperty("stablePoints"));
 			meanStep = (meanTarget - mean) / (steps);
 			stDevStep = (stDevTarget - stDev) / (steps);
@@ -73,14 +72,14 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 	@Override
 	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
-		for (count=0; count<stablePoints; count++) {
+		for (count = 0; count < stablePoints; count++) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
 		}
 
-		for (count=stablePoints; count<numberOfEvents-stablePoints; count++) {
-			long interval = numberOfEvents-2*stablePoints;
-			long countc = count-stablePoints;
+		for (count = stablePoints; count < numberOfEvents - stablePoints; count++) {
+			long interval = numberOfEvents - 2 * stablePoints;
+			long countc = count - stablePoints;
 			double multiplier = Math.floor(countc * steps / interval);
 			mean = meanInit + meanStep * multiplier;
 			stDev = stDevInit + stDevStep * multiplier;
@@ -88,7 +87,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 			collector.collect(gaussD);
 		}
 
-		for (count=numberOfEvents-stablePoints; count<numberOfEvents; count++) {
+		for (count = numberOfEvents - stablePoints; count < numberOfEvents; count++) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
 		}

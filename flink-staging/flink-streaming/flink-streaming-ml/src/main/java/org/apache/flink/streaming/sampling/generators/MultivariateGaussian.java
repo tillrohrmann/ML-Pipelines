@@ -23,13 +23,12 @@ import org.apache.commons.math3.linear.NonPositiveDefiniteMatrixException;
 import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.random.RandomGenerator;
 
-import java.util.ArrayList;
 import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-27.
  */
-public class MultivariateGaussian extends MultivariateNormalDistribution{
+public class MultivariateGaussian extends MultivariateNormalDistribution {
 
 
 	public MultivariateGaussian(double[] means, double[][] covariances) throws SingularMatrixException, DimensionMismatchException, NonPositiveDefiniteMatrixException {
@@ -38,14 +37,13 @@ public class MultivariateGaussian extends MultivariateNormalDistribution{
 
 	public MultivariateGaussian(Integer d) {
 		//TODO
-		super(new double[]{0},new double[][]{{0}});
+		super(new double[]{0}, new double[][]{{0}});
 		// randomly initialize means between [0,1)
 		double[] means = new double[d];
-		for (int i=1; i<d; i++) {
+		for (int i = 1; i < d; i++) {
 			means[i] = new Random().nextDouble();
 		}
 		// initialize diagonal covariances
-
 
 
 	}

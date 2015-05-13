@@ -20,12 +20,12 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
 
 class VFDTAttributes(
-  val id: Int,
-  val value: Double,
-  val clazz: Double,
-  val nOfDifferentValues: Int,
-  val leaf: Int,
-  val attributeType: AttributeType)
+                      val id: Int,
+                      val value: Double,
+                      val clazz: Double,
+                      val nOfDifferentValues: Int,
+                      val leaf: Int,
+                      val attributeType: AttributeType)
   extends Metrics
   with Serializable {
 
