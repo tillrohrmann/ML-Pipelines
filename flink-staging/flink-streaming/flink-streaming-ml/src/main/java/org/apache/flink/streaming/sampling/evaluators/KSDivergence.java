@@ -23,38 +23,58 @@
 package org.apache.flink.streaming.sampling.evaluators;
 
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 
+import java.util.ArrayList;
+
+/** not tested! **/
 public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
-	GaussianDistribution currentDist = new GaussianDistribution();
+	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
+	ArrayList<Sample<Double>> empAggregator = new ArrayList<Sample<Double>>();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
-		SummaryStatistics stats = SamplingUtils.getStats(value);
-		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
-		//out.collect(klDivergence(currentDist, sampledDist));
+		empAggregator.add(value);
+
+		if (trueAggregator.size() == empAggregator.size()) {
+			for (int i = 0; i < trueAggregator.size(); i++) {
+				double distance = ksDistance(trueAggregator.get(i), empAggregator.get(i));
+				out.collect(distance);
+				//out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
+			}
+			trueAggregator.clear();
+			empAggregator.clear();
+		}
+
 	}
 
 	@Override
 	public void flatMap2(GaussianDistribution value, Collector<Double> out) throws Exception {
-		currentDist = value;
+
+		trueAggregator.add(value);
+		if (trueAggregator.size() == empAggregator.size()) {
+			for (int i = 0; i < trueAggregator.size(); i++) {
+				double distance = ksDistance(trueAggregator.get(i), empAggregator.get(i));
+				out.collect(distance);
+			}
+			trueAggregator.clear();
+			empAggregator.clear();
+		}
 	}
 
-	public double klDivergence(GaussianDistribution greal, Sample<Double> gsampled) {
+	public double ksDistance(GaussianDistribution greal, Sample<Double> gsampled) {
 		KolmogorovSmirnovTest ksTest = new KolmogorovSmirnovTest();
-
-		return 0;
-
+		NormalDistribution real = new NormalDistribution(greal.getMean(), greal.getStandardDeviation());
+		double[] sample = gsampled.getSampleAsArray();
+		double test = ksTest.kolmogorovSmirnovTest(real, sample);
+		return test;
 	}
 
-	/*private double additive(GaussianDistribution p, GaussianDistribution q, int x) {
-		return p.density(x) * Math.log(q.density(x));
-	}*/
 
 }

@@ -80,6 +80,14 @@ public class Sample<T> implements Serializable {
 		return sample;
 	}
 
+	public double[] getSampleAsArray() {
+		double[] array = new double[sample.size()];
+		for (int i=0; i<sample.size(); i++) {
+			array[i] = (Double)sample.get(i);
+		}
+		return array;
+	}
+
 	boolean isFull() {
 		return sample.size() == maxSize;
 	}
