@@ -24,20 +24,21 @@ package org.apache.flink.streaming.sampling.evaluators;
 
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
+import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 
-public class KLDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
+public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
 	GaussianDistribution currentDist = new GaussianDistribution();
 
 	@Override
 	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
 		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
-		out.collect(klDivergence(currentDist, sampledDist));
+		//out.collect(klDivergence(currentDist, sampledDist));
 	}
 
 	@Override
@@ -45,8 +46,9 @@ public class KLDivergence extends RichCoFlatMapFunction<Sample<Double>, Gaussian
 		currentDist = value;
 	}
 
-	public double klDivergence(GaussianDistribution greal, GaussianDistribution gsampled) {
-		//TODO
+	public double klDivergence(GaussianDistribution greal, Sample<Double> gsampled) {
+		KolmogorovSmirnovTest ksTest = new KolmogorovSmirnovTest();
+
 		return 0;
 
 	}
