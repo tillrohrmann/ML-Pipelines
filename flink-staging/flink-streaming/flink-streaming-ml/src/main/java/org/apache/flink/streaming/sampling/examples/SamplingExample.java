@@ -20,12 +20,13 @@ package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.java.tuple.*;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.WindowedDataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.WindowMapFunction;
 import org.apache.flink.streaming.api.windowing.helper.Count;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Reservoir;
 import org.apache.flink.util.Collector;
@@ -196,8 +197,7 @@ public class SamplingExample {
 				});
 	}
 
-	public static void mdSampling(DataStream<Tuple3<Integer, Long, Long>> dataStream, StreamExecutionEnvironment env,
-								  final int rSize) {
+	public static void mdSampling(DataStream<Tuple3<Integer, Long, Long>> dataStream, StreamExecutionEnvironment env, final int rSize) {
 		env.setDegreeOfParallelism(Runtime.getRuntime().availableProcessors());
 		//env.setDegreeOfParallelism(env.getDegreeOfParallelism());
 	}

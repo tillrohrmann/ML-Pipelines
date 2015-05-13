@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.examples;
+
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -42,7 +43,7 @@ public class BiasedReservoirSamplingExample {
 	// *************************************************************************
 	// PROGRAM
 	// *************************************************************************
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 
 		/*read properties file and set static variables*/
 		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
@@ -66,6 +67,7 @@ public class BiasedReservoirSamplingExample {
 	/**
 	 * Evaluates the sampling method. Compares final sample distribution parameters
 	 * with source.
+	 *
 	 * @param env
 	 * @param initProps
 	 */
@@ -77,7 +79,7 @@ public class BiasedReservoirSamplingExample {
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle();
+		SingleOutputStreamOperator<GaussianDistribution, ?> operator = source.shuffle();
 
 		operator.map(new DataGenerator())
 
@@ -91,7 +93,7 @@ public class BiasedReservoirSamplingExample {
 				.connect(operator)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				//.flatMap(new DistanceEvaluator())
+						//.flatMap(new DistanceEvaluator())
 				.flatMap(new DistanceEvaluator())
 
 				/*sink*/

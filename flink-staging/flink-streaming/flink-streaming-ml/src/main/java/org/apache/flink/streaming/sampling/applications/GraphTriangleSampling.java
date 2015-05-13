@@ -44,7 +44,7 @@ public class GraphTriangleSampling implements Serializable {
 		//create edges from file
 
 		DataStream<Edge<Long>> edges = env.readTextFile("flink-staging/flink-streaming/flink-streaming-examples/src" +
-                "/main/resources/random_graph.txt")
+				"/main/resources/random_graph.txt")
 				.map(new MapFunction<String, Edge<Long>>() {
 					@Override
 					public Edge<Long> map(String s) throws Exception {
@@ -186,7 +186,7 @@ public class GraphTriangleSampling implements Serializable {
 		}
 	}
 
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 		new GraphTriangleSampling();
 	}
 }

@@ -24,12 +24,10 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.Learner
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
-import org.apache.flink.streaming.incrementalML.common.Utils
+import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
@@ -39,7 +37,7 @@ import scala.collection.mutable
  * @param context
  */
 class VeryFastDecisionTree(
-  context: StreamExecutionEnvironment)
+                            context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, Metrics]
   with Serializable {
 
@@ -80,7 +78,8 @@ class VeryFastDecisionTree(
   }
 
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
-    resultingParameters: ParameterMap): (DataStream[Metrics], DataStream[Metrics]) = {
+                                resultingParameters: ParameterMap): (DataStream[Metrics],
+    DataStream[Metrics]) = {
 
     val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
       .setParallelism(1)
@@ -178,7 +177,7 @@ object VeryFastDecisionTree {
   *
   */
 class GlobalModelMapper(
-  resultingParameters: ParameterMap)
+                         resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //counterPerLeaf -> (leafId,(#Yes,#No))
@@ -210,10 +209,14 @@ class GlobalModelMapper(
         newDataPoint.getLabel match {
           case 1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2))
-//            println(s"-------------counterPerLeaf----------------------------------------------------$counterPerLeaf")
+          //            println
+          // (s"-------------counterPerLeaf
+          // ----------------------------------------------------$counterPerLeaf")
           case -1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
-//            println(s"-------------counterPerLeaf----------------------------------------------------$counterPerLeaf")
+          //            println
+          // (s"-------------counterPerLeaf
+          // ----------------------------------------------------$counterPerLeaf")
 
           case _ =>
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
@@ -278,15 +281,17 @@ class GlobalModelMapper(
           s" bestInfoGain-secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
           s"---nonSplitEntro: $nonSplitEntro")
 
-        val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId).get._1 + counterPerLeaf.get
+        val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId)
+          .get._1 + counterPerLeaf.get
           (evaluationMetric.leafId).get._2)
 
-        if ( ((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
+        if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
           bestInfoGain >= nonSplitEntro) || (
           (bestInfoGain - secondBestInfoGain < hoeffdingBoundVariable) && (
-            hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get) ) ) {
+            hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get))) {
 
-          println("---------------**********************Should grow************************---------------------")
+          println("---------------**********************Should " +
+            "grow************************---------------------")
           val nominal = resultingParameters.get(NominalAttributes)
           nominal match {
             case None => {
@@ -314,21 +319,21 @@ class GlobalModelMapper(
           }
 
 
-//          resultingParameters.get(NominalAttributes).get
-//            .getOrElse(evaluationMetric.bestValue._1, None) match {
-//
-//            case None => {
-//              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-//                AttributeType.Numerical, evaluationMetric.bestValue._2._2,
-//                evaluationMetric.bestValue._2._1)
-//            }
-//
-//            case Int => {
-//              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-//                AttributeType.Nominal, evaluationMetric.bestValue._2._2,
-//                evaluationMetric.bestValue._2._1)
-//            }
-//          }
+          //          resultingParameters.get(NominalAttributes).get
+          //            .getOrElse(evaluationMetric.bestValue._1, None) match {
+          //
+          //            case None => {
+          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
+          //                AttributeType.Numerical, evaluationMetric.bestValue._2._2,
+          //                evaluationMetric.bestValue._2._1)
+          //            }
+          //
+          //            case Int => {
+          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
+          //                AttributeType.Nominal, evaluationMetric.bestValue._2._2,
+          //                evaluationMetric.bestValue._2._1)
+          //            }
+          //          }
         }
         println(s"---VFDT:$VFDT")
         println(s"---counterPerLeaf: $counterPerLeaf")
@@ -389,8 +394,8 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
     value._2 match {
       case attribute: VFDTAttributes => {
-//        counter = counter+1
-//        System.err.println(counter)
+        //        counter = counter+1
+        //        System.err.println(counter)
         //take the class observer, else if there is no observer for that leaf
         leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
@@ -413,9 +418,11 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
       case calcMetricsSignal: CalculateMetricsSignal => {
 
-//        println("------------------------------------------------------------------------------\n" +
-//          s"leafsObserver: ${leafsObserver.size}\n" +
-//          "------------------------------------------------------------------------------")
+        //        println
+        // ("------------------------------------------------------------------------------\n" +
+        //          s"leafsObserver: ${leafsObserver.size}\n" +
+        //
+        // "------------------------------------------------------------------------------")
         leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
 
           case leafToSplit: mutable.HashMap[Int, AttributeObserver[Metrics]] => {
@@ -439,7 +446,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
           }
           case None =>
-            throw new RuntimeException(s"-There is no AttributeObserver for that leaf:${calcMetricsSignal.leaf}-")
+          //            throw new RuntimeException(s"-There is no AttributeObserver for that leaf:${calcMetricsSignal.leaf}-")
         }
       }
       case _ =>

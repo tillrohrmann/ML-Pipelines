@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.samplers;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -45,7 +46,7 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 	@Override
 	public void addSample(Object item) {
 		LinkedList<T> newList = new LinkedList<T>();
-		newList.add((T)item);
+		newList.add((T) item);
 		sample.add(newList);
 	}
 
@@ -64,7 +65,7 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 	public ArrayList<T> extractSample() {
 		ArrayList<T> output = new ArrayList<T>();
 		Iterator<LinkedList<T>> it = sample.iterator();
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			output.add(it.next().peekFirst());
 		}
 		return output;
@@ -76,7 +77,7 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 
 	@Override
 	boolean isFull() {
-		return sample.size()==maxSize;
+		return sample.size() == maxSize;
 	}
 
 	@Override
@@ -94,9 +95,9 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 		String str = "";
 
 		Iterator<LinkedList<Long>> it = sample.iterator();
-		while(it.hasNext()) {
+		while (it.hasNext()) {
 			LinkedList<Long> crList = it.next();
-			str +="\n" + crList.toString();
+			str += "\n" + crList.toString();
 		}
 		return str;
 	}
@@ -109,6 +110,7 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 
 	/**
 	 * Appends item in the LinkedList of chainSample located in position pos
+	 *
 	 * @param item
 	 * @param pos
 	 */

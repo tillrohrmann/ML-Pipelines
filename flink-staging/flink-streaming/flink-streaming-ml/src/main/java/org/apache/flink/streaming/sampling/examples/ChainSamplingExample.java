@@ -16,18 +16,19 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.examples;
+
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
 import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.ChainSampler;
+
 import java.util.Properties;
 
 /**
@@ -43,7 +44,7 @@ public class ChainSamplingExample {
 	// *************************************************************************
 	// PROGRAM
 	// *************************************************************************
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 
 		/*read properties file and set static variables*/
 		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
@@ -68,6 +69,7 @@ public class ChainSamplingExample {
 	/**
 	 * Evaluates the sampling method. Compares final sample distribution parameters
 	 * with source.
+	 *
 	 * @param env
 	 * @param initProps
 	 */
@@ -79,7 +81,7 @@ public class ChainSamplingExample {
 		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution,?> operator = source.shuffle()
+		SingleOutputStreamOperator<GaussianDistribution, ?> operator = source.shuffle()
 
 				/*generate double value from GaussianDistribution and wrap around
 				Tuple3<Double, Timestamp, Long> */

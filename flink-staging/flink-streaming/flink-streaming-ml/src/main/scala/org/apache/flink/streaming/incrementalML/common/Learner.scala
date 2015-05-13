@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML
+package org.apache.flink.streaming.incrementalML.common
 
 import org.apache.flink.ml.common.{ParameterMap, WithParameters}
 import org.apache.flink.streaming.api.scala.DataStream

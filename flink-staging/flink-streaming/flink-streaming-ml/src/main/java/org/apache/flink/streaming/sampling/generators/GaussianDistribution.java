@@ -36,7 +36,7 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 		super();
 	}
 
-	public GaussianDistribution (double mean, double sigma) {
+	public GaussianDistribution(double mean, double sigma) {
 		this.mean = mean;
 		this.sigma = sigma;
 		this.outlierRate = 0;
@@ -62,15 +62,14 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 		boolean success = SamplingUtils.flip(outlierRate);
 		if (success) {
 			return generateOutlier();
-		}
-		else {
+		} else {
 			return n.nextGaussian() * sigma + mean;
 		}
 	}
 
 	@Override
 	public String toString() {
-		return "[" + mean + "," + sigma +"]";
+		return "[" + mean + "," + sigma + "]";
 	}
 
 
@@ -84,13 +83,12 @@ public class GaussianDistribution implements Serializable, NumberGenerator {
 		NormalDistribution dist = new NormalDistribution(mean, sigma);
 		double q1 = dist.inverseCumulativeProbability(0.25);
 		double q3 = dist.inverseCumulativeProbability(0.75);
-		double iqr =  q3 - q1;
+		double iqr = q3 - q1;
 		double outlier;
-		if(SamplingUtils.flip(0.5)) {
-			outlier = q3 + 1.5*iqr + Math.random()*sigma;
-		}
-		else {
-			outlier = q1 - 1.5*iqr - Math.random()*sigma;
+		if (SamplingUtils.flip(0.5)) {
+			outlier = q3 + 1.5 * iqr + Math.random() * sigma;
+		} else {
+			outlier = q1 - 1.5 * iqr - Math.random() * sigma;
 		}
 		return outlier;
 	}

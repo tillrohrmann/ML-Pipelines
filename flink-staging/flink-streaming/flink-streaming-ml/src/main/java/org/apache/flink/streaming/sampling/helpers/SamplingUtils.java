@@ -46,24 +46,23 @@ public final class SamplingUtils {
 
 
 	public static boolean flip(double probability) {
-		return (rand.nextDouble()  < probability);
+		return (rand.nextDouble() < probability);
 	}
 
 	/**
-	 *
 	 * @param min
 	 * @param max
 	 * @return a random int between min and max (both inclusive)
 	 */
 	public static int randomBoundedInteger(int min, int max) {
-		int length = max-min+1;
-		return (rand.nextInt(length)+min);
+		int length = max - min + 1;
+		return (rand.nextInt(length) + min);
 	}
 
 	public static long randomBoundedLong(Long min, Long max) {
-		int length = (int)(max - min + 1);
+		int length = (int) (max - min + 1);
 		int offset = rand.nextInt(length);
-		return min+offset;
+		return min + offset;
 	}
 
 	public static int nextRandInt(int n) {
@@ -72,6 +71,7 @@ public final class SamplingUtils {
 
 	/**
 	 * Reads properties file
+	 *
 	 * @param filename the path of the file
 	 * @return the file as Properties Object
 	 */
@@ -92,15 +92,15 @@ public final class SamplingUtils {
 	}
 
 	public static int min(int o1, int o2) {
-		return o1<o2 ? o1 : o2;
+		return o1 < o2 ? o1 : o2;
 	}
 
 	public static long min(long l1, long l2) {
-		return l1<l2 ? l1 :l2;
+		return l1 < l2 ? l1 : l2;
 	}
 
 	public static long max(long l1, long l2) {
-		return l1>l2 ? l1 : l2;
+		return l1 > l2 ? l1 : l2;
 	}
 
 	public static double randomPriority() {
@@ -124,7 +124,7 @@ public final class SamplingUtils {
 		double s2 = gsampled.getStandardDeviation();
 
 		double factor1 = Math.pow(s1, 2) / Math.pow(s2, 2) + Math.pow(s2, 2) / Math.pow(s1, 2) + 2;
-		double factor2 = Math.pow((m1 - m2),2) / (Math.pow(s1,2) + Math.pow(s2,2));
+		double factor2 = Math.pow((m1 - m2), 2) / (Math.pow(s1, 2) + Math.pow(s2, 2));
 		double distance = (0.25) * Math.log((0.25) * factor1) + (0.25) * factor2;
 		return distance;
 
