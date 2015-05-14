@@ -24,7 +24,8 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -37,7 +38,7 @@ import scala.collection.mutable
  * @param context
  */
 class VeryFastDecisionTree(
-                            context: StreamExecutionEnvironment)
+  context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, Metrics]
   with Serializable {
 
@@ -78,7 +79,7 @@ class VeryFastDecisionTree(
   }
 
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
-                                resultingParameters: ParameterMap): (DataStream[Metrics],
+    resultingParameters: ParameterMap): (DataStream[Metrics],
     DataStream[Metrics]) = {
 
     val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
@@ -89,13 +90,13 @@ class VeryFastDecisionTree(
       override def filter(value: (Int, Metrics)): Boolean = {
         return value._1 >= 0
       }
-    })
+    }).setParallelism(1)
 
     val modelAndSignal = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
         return (value._1 == -2) //metric or Signal
       }
-    })
+    }).setParallelism(1)
 
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper).setParallelism(1).split(new OutputSelector[Metrics] {
@@ -176,8 +177,7 @@ object VeryFastDecisionTree {
   * outType2: (-2,CalculateMetricsSignal) -> When a signal for splitting a leaf is sent
   *
   */
-class GlobalModelMapper(
-                         resultingParameters: ParameterMap)
+class GlobalModelMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //counterPerLeaf -> (leafId,(#Yes,#No))
@@ -254,6 +254,8 @@ class GlobalModelMapper(
 
         counterPerLeaf.getOrElse(leafId, None) match {
           case leafMetrics: (Int, Int) => {
+//            println(s"-----------------Before Signal----------------------------$counterPerLeaf")
+
             //if we have seen at least MinNumberOfInstances and are not all of the same class
             if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
               (MinNumberOfInstances).get == 0) &&
@@ -300,16 +302,13 @@ class GlobalModelMapper(
                 evaluationMetric.bestValue._2._1)
             }
             case _ => {
-              nominal.get
-                .getOrElse(evaluationMetric.bestValue._1, None) match {
-
+              nominal.get.getOrElse(evaluationMetric.bestValue._1, None) match {
                 case None => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
                 }
-
-                case Int => {
+                case x: Int => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Nominal, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
@@ -317,23 +316,6 @@ class GlobalModelMapper(
               }
             }
           }
-
-
-          //          resultingParameters.get(NominalAttributes).get
-          //            .getOrElse(evaluationMetric.bestValue._1, None) match {
-          //
-          //            case None => {
-          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-          //                AttributeType.Numerical, evaluationMetric.bestValue._2._2,
-          //                evaluationMetric.bestValue._2._1)
-          //            }
-          //
-          //            case Int => {
-          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-          //                AttributeType.Nominal, evaluationMetric.bestValue._2._2,
-          //                evaluationMetric.bestValue._2._1)
-          //            }
-          //          }
         }
         println(s"---VFDT:$VFDT")
         println(s"---counterPerLeaf: $counterPerLeaf")
@@ -397,6 +379,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
         //        counter = counter+1
         //        System.err.println(counter)
         //take the class observer, else if there is no observer for that leaf
+//        println("--------------------Attribute received-------------------------------")
         leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
@@ -417,6 +400,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
       }
 
       case calcMetricsSignal: CalculateMetricsSignal => {
+        println("--------------------Signal received-------------------------------")
 
         //        println
         // ("------------------------------------------------------------------------------\n" +
@@ -446,7 +430,8 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
           }
           case None =>
-          //            throw new RuntimeException(s"-There is no AttributeObserver for that leaf:${calcMetricsSignal.leaf}-")
+          //            throw new RuntimeException(s"-There is no AttributeObserver for that
+          // leaf:${calcMetricsSignal.leaf}-")
         }
       }
       case _ =>
