@@ -20,7 +20,9 @@ package org.apache.flink.streaming.incrementalML.test.classifier
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.incrementalML.classification.Metrics.Metrics
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
+import org.apache.flink.streaming.incrementalML.common.ChainedLearner
 import org.apache.flink.streaming.incrementalML.preprocessing.Imputer
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
@@ -39,10 +41,10 @@ class VeryFastDecisionTreeITSuite
   it should "Create the classification HT of the given data set" in {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
-    val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
-    val nominalAttributes = Map(1 -> 3, 3 -> 3, 5 -> 2,6 ->0, 7->0, 8->0,9->0,13->0,14->0)
+    val nominalAttributes = Map(1 -> 3, 3 -> 3, 5 -> 2, 6 -> 0, 7 -> 0, 8 -> 0, 9 -> 0, 13 -> 0,
+      14 -> 0)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
@@ -53,32 +55,31 @@ class VeryFastDecisionTreeITSuite
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
-        for (i <- 0 until features.size-1) {
+        for (i <- 0 until features.size - 1) {
           features(i).trim match {
             case "?" =>
               featureList = featureList :+ Double.NaN
             case _ => {
-              if (nominalAttributes.contains(i)){
+              if (nominalAttributes.contains(i)) {
                 featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
               }
-              else{
+              else {
                 featureList = featureList :+ features(i).toDouble
               }
             }
           }
         }
-        val vector = if (features(features.size-1) equals ">50K" ){
-          LabeledVector(1,DenseVector(featureList.toArray))
+        val vector = if (features(features.size - 1).trim equals ">50K") {
+          LabeledVector(1, DenseVector(featureList.toArray))
         }
-        else{
-          LabeledVector(-1,DenseVector(featureList.toArray))
+        else {
+          LabeledVector(-1, DenseVector(featureList.toArray))
         }
         vector
       }
     }
 
-    val transformer = Imputer()
-    val transformedDataPoints = transformer.transform(datapoints)
+    //    val transformedDataPoints = transformer.transform(datapoints)
 
     //    val dataPoints = data.map(point => {
     //      val featuresVector = DenseVector.zeros(point._2.size)
@@ -98,7 +99,12 @@ class VeryFastDecisionTreeITSuite
     //    val dataPoints = StreamingMLUtils.readLibSVM(env,
     //      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
 
-    vfdt.fit(transformedDataPoints, parameters)
+    val transformer = Imputer()
+    val vfdtLearner = VeryFastDecisionTree(env)
+    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, Metrics] (transformer,
+      vfdtLearner)
+
+    vfdtChainedLearner.fit(datapoints, parameters)
     env.execute()
   }
 }
