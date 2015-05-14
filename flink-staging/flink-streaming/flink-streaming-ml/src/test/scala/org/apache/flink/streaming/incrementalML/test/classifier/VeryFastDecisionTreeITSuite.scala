@@ -17,12 +17,15 @@
  */
 package org.apache.flink.streaming.incrementalML.test.classifier
 
-import org.apache.flink.ml.common.ParameterMap
+import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
+import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
-import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
+import org.apache.flink.streaming.incrementalML.preprocessing.Imputer
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
+
+import scala.util.hashing.MurmurHash3
 
 class VeryFastDecisionTreeITSuite
   extends FlatSpec
@@ -39,11 +42,43 @@ class VeryFastDecisionTreeITSuite
     val vfdt = VeryFastDecisionTree(env)
 
     val parameters = ParameterMap()
-    //    val nominalAttributes = Map(0 -> 3, 1 -> 3, 2 -> 2)
+    val nominalAttributes = Map(1 -> 3, 3 -> 3, 5 -> 2,6 ->0, 7->0, 8->0,9->0,13->0,14->0)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
-    //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+
+    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/adultsTrainDataSet.csv").
+      map {
+      line => {
+        var featureList = Vector[Double]()
+        val features = line.split(',')
+        for (i <- 0 until features.size-1) {
+          features(i).trim match {
+            case "?" =>
+              featureList = featureList :+ Double.NaN
+            case _ => {
+              if (nominalAttributes.contains(i)){
+                featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
+              }
+              else{
+                featureList = featureList :+ features(i).toDouble
+              }
+            }
+          }
+        }
+        val vector = if (features(features.size-1) equals ">50K" ){
+          LabeledVector(1,DenseVector(featureList.toArray))
+        }
+        else{
+          LabeledVector(-1,DenseVector(featureList.toArray))
+        }
+        vector
+      }
+    }
+
+    val transformer = Imputer()
+    val transformedDataPoints = transformer.transform(datapoints)
 
     //    val dataPoints = data.map(point => {
     //      val featuresVector = DenseVector.zeros(point._2.size)
@@ -60,30 +95,10 @@ class VeryFastDecisionTreeITSuite
     //      LabeledVector(point._1, featuresVector)
     //    })
 
-    val dataPoints = StreamingMLUtils.readLibSVM(env,
-      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
+    //    val dataPoints = StreamingMLUtils.readLibSVM(env,
+    //      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
 
-    vfdt.fit(dataPoints, parameters)
+    vfdt.fit(transformedDataPoints, parameters)
     env.execute()
   }
-}
-
-object VeryFastDecisionTreeData {
-
-  val data: Seq[(Double, List[Any])] = List(
-    (-1.0, List("Rainy", "Hot", "High", 4.00, -7.0, 0.0)),
-    (-1.0, List("Rainy", "Hot", "High", 4.00, -12.0, 0.0)),
-    (1.0, List("Overcast", "Hot", "High", -4.00, -3.0, 0.0)),
-    (1.0, List("Sunny", "Mild", "High", -3.00, -2.0, 0.0)),
-    (1.0, List("Sunny", "Cool", "Normal", -4.00, -1.0, 0.0)),
-    (-1.0, List("Sunny", "Cool", "Normal", 4.00, -7.0, 0.0)),
-    (1.0, List("Overcast", "Cool", "Normal", -2.00, -3.0, 0.0)),
-    (-1.0, List("Rainy", "Mild", "High", 4.00, -11.0, 0.0)),
-    (1.0, List("Rainy", "Cool", "Normal", -4.00, -3.0, 0.0)),
-    (1.0, List("Sunny", "Mild", "Normal", -3.00, -6.0, 0.0)),
-    (1.0, List("Rainy", "Mild", "Normal", -4.00, -4.0, 0.0)),
-    (1.0, List("Overcast", "Mild", "High", -2.00, -3.0, 0.0)),
-    (1.0, List("Overcast", "Hot", "Normal", -4.00, -2.0, 0.0)),
-    (-1.0, List("Sunny", "Mild", "High", 4.00, -13.0, 0.0))
-  )
 }
