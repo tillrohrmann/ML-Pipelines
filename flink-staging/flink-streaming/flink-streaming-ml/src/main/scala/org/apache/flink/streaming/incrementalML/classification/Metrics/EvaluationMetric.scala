@@ -24,9 +24,9 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
   * @param secondBestValue (attributeId,(entropy,listOfSplittingValues))
   */
 class EvaluationMetric(
-                        val bestValue: (Int, (Double, List[Double])),
-                        val secondBestValue: (Int, (Double, List[Double])),
-                        val leafId: Int)
+  val bestValue: (Int, (Double, List[Double])),
+  val secondBestValue: (Int, (Double, List[Double])),
+  val leafId: Int)
   extends Metrics
   with Serializable {
 
@@ -37,35 +37,9 @@ class EvaluationMetric(
 
 object EvaluationMetric {
 
-  def apply(firstSplitAttr: (Int, (Double, List[Double])), secondSplitAttr: (Int,
-    (Double, List[Double])), leafId: Int): EvaluationMetric = {
+  def apply(firstSplitAttr: (Int, (Double, List[Double])),
+    secondSplitAttr: (Int, (Double, List[Double])), leafId: Int): EvaluationMetric = {
     new EvaluationMetric(firstSplitAttr, secondSplitAttr, leafId)
   }
+
 }
-
-class EvaluationMetricFunction(
-                                evalMetric: EvaluationMetricFunction)
-  extends Serializable {
-
-  //  import EvaluationMetricFunction._
-
-  //  def calculateMetrics(): Double = evalMetric match {
-  //    case InformationGain => calculateInformationGain
-  //    case GiniImpurity => calculateGiniImpurity
-  //  }
-
-  def calculateInformationGain: Double = {
-
-    0.0
-  }
-
-  //  def calculateGiniImpurity: Double ={
-  //
-  //    0.0
-  //  }
-}
-
-//object EvaluationMetricFunction extends Enumeration {
-//  type EvaluationMetricFunction = Value
-//  val GiniImpurity, InformationGain = Value
-//}

@@ -102,7 +102,7 @@ object DecisionTreeModel
     * @param infoGain The information gain of this splitting
     */
   def growTree(leafToSplit: Int, splitAttribute: Int, attrType: AttributeType,
-               splitValue: List[Double], infoGain: Double): Unit = {
+    splitValue: List[Double], infoGain: Double): Unit = {
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is no" +
       " leaf to split with that Id"))
     val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
@@ -126,9 +126,9 @@ object DecisionTreeModel
  *
  */
 case class DTNode(
-                   isRoot: Boolean,
-                   var isLeaf: Boolean,
-                   nodeId: Int)
+  isRoot: Boolean,
+  var isLeaf: Boolean,
+  nodeId: Int)
   extends Serializable {
 
   /**
@@ -167,7 +167,7 @@ case class DTNode(
     * @param infoGain The information gain of this splitting
     */
   def splitNode(splitAttr: Int, splitAttrType: AttributeType, attrSplitValues: List[Double],
-                infoGain: Double): Option[mutable.Map[Int, DTNode]] = {
+    infoGain: Double): Option[mutable.Map[Int, DTNode]] = {
 
     val tempNodes = mutable.HashMap[Int, DTNode]()
     val tempChildren = mutable.HashMap[Double, Int]()

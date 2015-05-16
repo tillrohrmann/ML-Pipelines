@@ -38,7 +38,9 @@ class DataPoints(dataPoint: LabeledVector)
 }
 
 object DataPoints {
+
   def apply(vector: LabeledVector): DataPoints = {
     new DataPoints(vector)
   }
+
 }

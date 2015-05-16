@@ -20,7 +20,8 @@ package org.apache.flink.streaming.incrementalML.common
 import org.apache.flink.ml.common.{ParameterMap, WithParameters}
 import org.apache.flink.streaming.api.scala.DataStream
 
-/** Base trait for an algorithm which transforms the input data to some output data.
+/** Imported from Batch flink-ml library
+  * Base trait for an algorithm which transforms the input data to some output data.
   *
   * A [[Transformer]] is used to transform input data to some output data. Transformations might
   * be feature extractors, feature mappings, whitening or centralization just to name a few.

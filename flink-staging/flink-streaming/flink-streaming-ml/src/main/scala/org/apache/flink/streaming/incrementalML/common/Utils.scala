@@ -27,9 +27,8 @@ object Utils {
     math.log10(num) / math.log10(2)
   }
 
-  def getSplitPointsWithUniformApproximation(
-                                              splitPoints: Int, minValue: Double, maxValue:
-  Double): mutable.MutableList[Double] = {
+  def getSplitPointsWithUniformApproximation(splitPoints: Int, minValue: Double, maxValue: Double):
+  mutable.MutableList[Double] = {
     val result = mutable.MutableList[Double]()
 
     //    println(s"-----#instances:$instancesSeen, mean:$attrMean, std: $attrStd")
@@ -46,10 +45,8 @@ object Utils {
     result
   }
 
-  def getSplitPointsWithGaussianApproximation(
-                                               splitPoints: Int, minValue: Double, maxValue:
-  Double, attrMean: Double, attrStd: Double):
-  mutable.MutableList[Double] = {
+  def getSplitPointsWithGaussianApproximation(splitPoints: Int, minValue: Double, maxValue: Double,
+    attrMean: Double, attrStd: Double): mutable.MutableList[Double] = {
     val result = mutable.MutableList[Double]()
 
     //    println(s"-----#instances:$instancesSeen, mean:$attrMean, std: $attrStd")

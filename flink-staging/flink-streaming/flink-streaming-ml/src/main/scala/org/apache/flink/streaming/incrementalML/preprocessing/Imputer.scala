@@ -26,7 +26,7 @@ import org.apache.flink.streaming.incrementalML.preprocessing.ImputationStrategy
 import org.apache.flink.streaming.incrementalML.preprocessing.Imputer.Strategy
 
 /** Cleans the observations that have missing values in any of the features.
-  * By default for [[Imputer]] observations with missing values are deleted form the data set
+  * By default for [[Imputer]] observations with missing values are deleted form the data set.
   *
   * This transformer takes a [[LabeledVector]] of values and maps it to a [[LabeledVector]].
   *
@@ -36,10 +36,10 @@ import org.apache.flink.streaming.incrementalML.preprocessing.Imputer.Strategy
   *
   * @example
   * {{{
-  *              val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
-  *              val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
+  *               val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
+  *               val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
   *
-  *              transformer.transform(trainingDS)
+  *               transformer.transform(trainingDS)
   * }}}
   *
   * - [[Imputer.Strategy]]: The Imputation Strategy to be followed; by default equal to
@@ -72,7 +72,7 @@ class Imputer
     }
   }
 
-  def imputationWithDeletion(inputStream: DataStream[LabeledVector]) : DataStream[LabeledVector] = {
+  def imputationWithDeletion(inputStream: DataStream[LabeledVector]): DataStream[LabeledVector] = {
     inputStream.filter(new FilterFunction[LabeledVector] {
       override def filter(value: LabeledVector): Boolean = {
         return value.vector.asBreeze.forall(elem => (!elem.isNaN))
