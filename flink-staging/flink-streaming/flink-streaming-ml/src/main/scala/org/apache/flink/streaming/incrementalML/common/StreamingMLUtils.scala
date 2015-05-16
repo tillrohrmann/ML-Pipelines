@@ -22,7 +22,7 @@ import org.apache.flink.ml.common.LabeledVector
 import org.apache.flink.ml.math.SparseVector
 import org.apache.flink.streaming.api.scala._
 
-/** Imported from Batch Flink-ML
+/** Imported from batch flink-ml library
   *
   * Convenience functions for machine learning tasks.
   *
@@ -73,7 +73,6 @@ object StreamingMLUtils {
 
               (index, value)
           }
-
           Some((label, coos))
         } else {
           None

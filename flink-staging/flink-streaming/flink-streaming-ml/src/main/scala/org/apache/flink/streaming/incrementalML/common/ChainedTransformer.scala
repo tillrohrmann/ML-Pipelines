@@ -20,7 +20,8 @@ package org.apache.flink.streaming.incrementalML.common
 import org.apache.flink.ml.common.ParameterMap
 import org.apache.flink.streaming.api.scala.DataStream
 
-/** This class represents a chain of multiple 
+/** Imported from batch flink-ml library
+  * This class represents a chain of multiple
   * [[org.apache.flink.streaming.incrementalML.common.Transformer]].
   *
   * Calling the method `transform` on this object will first apply the preceding [[Transformer]] to
@@ -33,8 +34,9 @@ import org.apache.flink.streaming.api.scala.DataStream
   *              succeeding [[Transformer]]
   * @tparam OUT Type of outgoing elements
   */
-class ChainedTransformer[IN, TEMP, OUT](val head: Transformer[IN, TEMP],
-                                        val tail: Transformer[TEMP, OUT])
+class ChainedTransformer[IN, TEMP, OUT](
+  val head: Transformer[IN, TEMP],
+  val tail: Transformer[TEMP, OUT])
   extends Transformer[IN, OUT] {
 
   override def transform(input: DataStream[IN], transformParameters: ParameterMap):

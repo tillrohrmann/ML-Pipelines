@@ -20,7 +20,8 @@ package org.apache.flink.streaming.incrementalML.common
 import org.apache.flink.ml.common.ParameterMap
 import org.apache.flink.streaming.api.scala.DataStream
 
-/** This class represents a [[org.apache.flink.streaming.incrementalML.common.Learner]]
+/** Imported from batch flink-ml library
+  * This class represents a [[org.apache.flink.streaming.incrementalML.common.Learner]]
   * which is chained to a [[org.apache.flink.streaming.incrementalML.common.Transformer]].
   *
   * Calling the method `fit` on this object will pipe the input data through the given
@@ -33,8 +34,9 @@ import org.apache.flink.streaming.api.scala.DataStream
   *              [[Learner]]
   * @tparam OUT Type of the trained model
   */
-class ChainedLearner[IN, TEMP, OUT](val head: Transformer[IN, TEMP],
-                                    val tail: Learner[TEMP, OUT])
+class ChainedLearner[IN, TEMP, OUT](
+  val head: Transformer[IN, TEMP],
+  val tail: Learner[TEMP, OUT])
   extends Learner[IN, OUT] {
 
   override def fit(input: DataStream[IN], fitParameters: ParameterMap): DataStream[OUT] = {

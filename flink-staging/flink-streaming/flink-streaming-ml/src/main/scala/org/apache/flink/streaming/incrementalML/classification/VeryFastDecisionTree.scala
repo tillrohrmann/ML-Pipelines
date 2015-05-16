@@ -254,7 +254,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         counterPerLeaf.getOrElse(leafId, None) match {
           case leafMetrics: (Int, Int) => {
-//            println(s"-----------------Before Signal----------------------------$counterPerLeaf")
+            //            println(s"-----------------Before
+            // Signal----------------------------$counterPerLeaf")
 
             //if we have seen at least MinNumberOfInstances and are not all of the same class
             if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
@@ -379,7 +380,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
         //        counter = counter+1
         //        System.err.println(counter)
         //take the class observer, else if there is no observer for that leaf
-//        println("--------------------Attribute received-------------------------------")
+        //        println("--------------------Attribute received-------------------------------")
         leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
