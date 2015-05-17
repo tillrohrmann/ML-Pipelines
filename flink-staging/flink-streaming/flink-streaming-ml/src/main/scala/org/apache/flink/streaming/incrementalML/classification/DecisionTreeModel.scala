@@ -106,14 +106,31 @@ object DecisionTreeModel
     */
   def growTree(leafToSplit: Int, splitAttribute: Int, attrType: AttributeType,
     splitValue: List[Double], infoGain: Double): Unit = {
-    val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is no" +
-      " leaf to split with that Id"))
+    val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is " +
+      " no leaf to split with that Id"))
     val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
     newNodes match {
       case None =>
       case _ =>
         decisionTree = decisionTree ++ newNodes.get
     }
+  }
+
+  def setNodeLabel(node: Int, label: Double): Unit = {
+    decisionTree.get(node).get match {
+      case node: DTNode =>
+        node.setLabel(label)
+
+    }
+  }
+
+  def getNodeLabel(node: Int): Double = {
+    var label = Double.NaN
+    decisionTree.get(node).get match {
+      case node: DTNode =>
+        label = node.getLabel
+    }
+    label
   }
 
   override def toString(): String = {
@@ -181,8 +198,8 @@ case class DTNode(
       attributeSplitValue = Some(attrSplitValues)
       informationGain = infoGain
 
-//      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
-//        s"attrSplitValues:$attrSplitValues")
+      //      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
+      //        s"attrSplitValues:$attrSplitValues")
 
       isLeaf = false
       if (splitAttributeType.get == AttributeType.Numerical) {
@@ -202,6 +219,14 @@ case class DTNode(
       return Some(tempNodes)
     }
     None
+  }
+
+  def setLabel(nodeLabel: Double): Unit = {
+    this.label = nodeLabel
+  }
+
+  def getLabel: Double = {
+    this.label
   }
 
   override def toString(): String = {

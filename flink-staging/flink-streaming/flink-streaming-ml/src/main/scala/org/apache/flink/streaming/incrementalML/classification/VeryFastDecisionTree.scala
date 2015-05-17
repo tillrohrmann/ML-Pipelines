@@ -98,6 +98,13 @@ class VeryFastDecisionTree(
       }
     }).setParallelism(1)
 
+    val classifcationPerInstance = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+      override def filter(value: (Int, Metrics)): Boolean = {
+        return (value._1 == -3) //InstanceClassification
+      }
+    }).setParallelism(1)
+    classifcationPerInstance.print()
+
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper).setParallelism(1).split(new OutputSelector[Metrics] {
       override def select(value: Metrics): Iterable[String] = {
@@ -117,7 +124,6 @@ class VeryFastDecisionTree(
     val output: DataStream[Metrics] = splitDs.select("output")
     (feedback, output)
   }
-
 }
 
 object VeryFastDecisionTree {
@@ -198,6 +204,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
+        val label = VFDT.getNodeLabel(leafId)
+        if (!label.isNaN){
+          out.collect((-3,InstanceClassification(label.toInt)))
+        }
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
@@ -213,6 +223,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
         }
+        //#Yes > #No
+        var leafLabel = 1.0
+        if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._2 ) {
+          leafLabel = -1.0
+        }
+        VFDT.setNodeLabel(leafId,leafLabel) //majority vote for leaf label
 
         //TODO:: change this piece of code
         val nominal = resultingParameters.get(NominalAttributes)
