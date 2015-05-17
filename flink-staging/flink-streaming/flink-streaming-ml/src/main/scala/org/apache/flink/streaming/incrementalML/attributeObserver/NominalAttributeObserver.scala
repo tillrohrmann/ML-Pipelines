@@ -32,30 +32,27 @@ class NominalAttributeObserver(
   var instancesSeen: Double = 0.0 // instancesSeen
 
   override def getSplitEvaluationMetric: (Double, List[Double]) = {
+    //TODO :: Handle the case that no instancesSeen==0.0
     var entropy = 0.0
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
-      val valueCounter: Double = attrValue._2._1 + attrValue._2._2
-      val valueProb: Double = valueCounter / instancesSeen
+      val valueCounter = attrValue._2._1 + attrValue._2._2
+      val valueProb = valueCounter / instancesSeen
       var valueEntropy = 0.0
 
       if (attrValue._2._1 != 0.0) {
-        valueEntropy += (attrValue._2._1 / valueCounter) * Utils.logBase2((attrValue._2._1 /
+        valueEntropy -= (attrValue._2._1 / valueCounter) * Utils.logBase2((attrValue._2._1 /
           valueCounter))
       }
       if (attrValue._2._2 != 0.0) {
-        valueEntropy += (attrValue._2._2 / valueCounter) * Utils.logBase2((attrValue._2._2 /
+        valueEntropy -= (attrValue._2._2 / valueCounter) * Utils.logBase2((attrValue._2._2 /
           valueCounter))
       }
-      entropy += (-valueEntropy) * valueProb
+      entropy += valueEntropy * valueProb
     }
     (entropy, attributeValues.keySet.toList)
   }
 
-  /**
-   *
-   * @param inputAttribute
-   */
   override def updateMetricsWithAttribute(inputAttribute: Metrics): Unit = {
 
     val VFDTAttribute = inputAttribute.asInstanceOf[VFDTAttributes]
@@ -64,7 +61,7 @@ class NominalAttributeObserver(
     instancesSeen += 1.0
     if (attributeValues.contains(VFDTAttribute.value)) {
       var temp = attributeValues.apply(VFDTAttribute.value)
-      if (VFDTAttribute.label == -1.0) {
+      if (VFDTAttribute.label == -1.0) { // (#yes,#no)
         temp = (temp._1, temp._2 + 1.0)
       }
       else {
@@ -73,7 +70,7 @@ class NominalAttributeObserver(
       attributeValues.put(VFDTAttribute.value, temp)
     }
     else {
-      if (VFDTAttribute.label == -1.0) {
+      if (VFDTAttribute.label == -1.0) { // (#yes,#no)
         attributeValues.put(VFDTAttribute.value, (0.0, 1.0))
       }
       else {

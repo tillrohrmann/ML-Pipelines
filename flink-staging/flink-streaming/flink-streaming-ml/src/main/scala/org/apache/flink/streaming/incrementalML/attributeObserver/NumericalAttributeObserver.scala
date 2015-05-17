@@ -98,52 +98,6 @@ class NumericalAttributeObserver
       if (entropy < bestValueToSplit._1) {
         bestValueToSplit = (entropy, List[Double](splitPoint))
       }
-
-      //      var leftSide = (0.0, 0.0) //(#Yes,#No)
-      //      var rightSide = (0.0, 0.0)
-
-      //      for (instance <- instances) {
-      //        if (instance._1 < point) {
-      //          if (instance._2 == 0.0) {
-      //            //check class
-      //            leftSide = (leftSide._1, leftSide._2 + 1.0)
-      //          }
-      //          else {
-      //            leftSide = (leftSide._1 + 1.0, leftSide._2)
-      //          }
-      //        }
-      //        else {
-      //          if (instance._2 == 0.0) {
-      //            //check class
-      //            rightSide = (rightSide._1, rightSide._2 + 1.0)
-      //          }
-      //          else {
-      //            rightSide = (rightSide._1 + 1.0, rightSide._2)
-      //          }
-      //        }
-      //      }
-      //--------------------------------------------------
-      //      for (metrics <- List(leftSide, rightSide)) {
-      //        //E(attribute) = Sum { P(attrValue)*E(attrValue) }
-      //        val valueCounter: Double = metrics._1 + metrics._2
-      //        val valueProb: Double = valueCounter / instancesSeen
-      //        var valueEntropy = 0.0
-      //
-      //        if (metrics._1 != 0.0) {
-      //          valueEntropy += (metrics._1 / valueCounter) * Utils.logBase2((metrics._1 /
-      //            valueCounter))
-      //        }
-      //        if (metrics._2 != 0.0) {
-      //          valueEntropy += (metrics._2 / valueCounter) * Utils.logBase2((metrics._2 /
-      //            valueCounter))
-      //        }
-      //        entropy += (-valueEntropy) * valueProb
-      //      }
-      //--------------------------------------------------
-      //      metricsForSplitPoints += entropy
-      //      if (entropy < bestValueToSplit._1) {
-      //        bestValueToSplit = (entropy, bestValueToSplit._2.::(point))
-      //      }
     }
     bestValueToSplit
   }
@@ -211,15 +165,6 @@ class NumericalAttributeObserver
       attrSoSTemp += (1.0 / (instancesTemp * (instancesTemp - 1))) * (Math.pow(temp, 2))
     }
     meanStdPerClass.update(label.asInstanceOf[Int], (instancesTemp, attrSumTemp, attrSoSTemp))
-
-    //    instancesSeen += 1
-    //    attributeSum += value
-    //    if (instancesSeen != 1) {
-    //      val temp = instancesSeen * value - attributeSum
-    //      attributeSoS += (1.0 / (instancesSeen * (instancesSeen - 1))) * (Math.pow(temp, 2))
-    //    }
-    //    attrMean = attributeSum / instancesSeen //update attribute mean
-    //    attrStd = Math.sqrt(attributeSoS / instancesSeen) //update attribute std
   }
 
   def getMeanStdPerClass(clazz: Double): (Double, Double) = {

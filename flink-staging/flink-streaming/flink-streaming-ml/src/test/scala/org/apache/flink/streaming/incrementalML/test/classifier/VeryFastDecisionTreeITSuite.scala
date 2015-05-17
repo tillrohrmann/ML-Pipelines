@@ -58,9 +58,9 @@ class VeryFastDecisionTreeITSuite
               featureList = featureList :+ Double.NaN
             case _ => {
               if (nominalAttributes.contains(i)) {
-                val temp =  MurmurHash3.stringHash(features(i)).toDouble
+//                val temp =  MurmurHash3.stringHash(features(i)).toDouble
 //                System.err.println(features(i) + "->" +temp)
-                featureList = featureList :+ temp
+                featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
               }
               else {
                 featureList = featureList :+ features(i).toDouble
