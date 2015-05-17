@@ -36,8 +36,6 @@ class VeryFastDecisionTreeITSuite
 
   behavior of "Flink's Very Fast Decision Tree algorithm"
 
-  //  import VeryFastDecisionTreeData._
-
   it should "Create the classification HT of the given data set" in {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
@@ -78,23 +76,6 @@ class VeryFastDecisionTreeITSuite
         vector
       }
     }
-
-    //    val transformedDataPoints = transformer.transform(datapoints)
-
-    //    val dataPoints = data.map(point => {
-    //      val featuresVector = DenseVector.zeros(point._2.size)
-    //      for (i <- 0 until point._2.size) {
-    //        val value = point._2.apply(i)
-    //        value match {
-    //          case a: Double =>
-    //            featuresVector.update(i, a)
-    //          case a: String =>
-    //            featuresVector(i) = MurmurHash3.stringHash(a)
-    //          case _ =>
-    //        }
-    //      }
-    //      LabeledVector(point._1, featuresVector)
-    //    })
 
     //    val dataPoints = StreamingMLUtils.readLibSVM(env,
     //      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
