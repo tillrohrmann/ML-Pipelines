@@ -41,8 +41,7 @@ class VeryFastDecisionTreeITSuite
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     val parameters = ParameterMap()
-    val nominalAttributes = Map(1 -> 3, 3 -> 3, 5 -> 2, 6 -> 0, 7 -> 0, 8 -> 0, 9 -> 0, 13 -> 0,
-      14 -> 0)
+    val nominalAttributes = Map(1 -> 8, 3 -> 16, 5 -> 7, 6 -> 14, 7 -> 6, 8 -> 5, 9 -> 2, 13 -> 41)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
@@ -59,7 +58,9 @@ class VeryFastDecisionTreeITSuite
               featureList = featureList :+ Double.NaN
             case _ => {
               if (nominalAttributes.contains(i)) {
-                featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
+                val temp =  MurmurHash3.stringHash(features(i)).toDouble
+//                System.err.println(features(i) + "->" +temp)
+                featureList = featureList :+ temp
               }
               else {
                 featureList = featureList :+ features(i).toDouble

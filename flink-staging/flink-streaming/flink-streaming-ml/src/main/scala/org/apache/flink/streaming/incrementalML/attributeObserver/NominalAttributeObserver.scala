@@ -64,7 +64,7 @@ class NominalAttributeObserver(
     instancesSeen += 1.0
     if (attributeValues.contains(VFDTAttribute.value)) {
       var temp = attributeValues.apply(VFDTAttribute.value)
-      if (VFDTAttribute.clazz == 0.0) {
+      if (VFDTAttribute.label == -1.0) {
         temp = (temp._1, temp._2 + 1.0)
       }
       else {
@@ -73,7 +73,7 @@ class NominalAttributeObserver(
       attributeValues.put(VFDTAttribute.value, temp)
     }
     else {
-      if (VFDTAttribute.clazz == 0.0) {
+      if (VFDTAttribute.label == -1.0) {
         attributeValues.put(VFDTAttribute.value, (0.0, 1.0))
       }
       else {

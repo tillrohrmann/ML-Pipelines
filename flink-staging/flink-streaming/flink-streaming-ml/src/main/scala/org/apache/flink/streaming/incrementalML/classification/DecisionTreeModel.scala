@@ -76,7 +76,10 @@ object DecisionTreeModel
         }
         case Some(AttributeType.Nominal) => {
           val temp = tempChildrenList.getOrElse(dataPointFeatures(currentNode.splitAttribute.get),
-            throw new RuntimeException("I ve got the powerrrrrrrr--------------------------0!!"))
+            throw new RuntimeException(s"--dataPointFeatures: $dataPointFeatures------:\n" +
+              s"and ${dataPointFeatures(currentNode.splitAttribute.get)} \n" +
+              s"-$tempChildrenList--- " +
+              s"currentNode split attribute: ${currentNode.splitAttribute}!!"))
 
           currentNode = decisionTree.getOrElse(temp, throw new RuntimeException
           ("I ve got the powerrrrrrrr!!---------------------------1"))
@@ -172,14 +175,15 @@ case class DTNode(
     val tempNodes = mutable.HashMap[Int, DTNode]()
     val tempChildren = mutable.HashMap[Double, Int]()
 
-    splitAttribute = Some(splitAttr)
-    splitAttributeType = Some(splitAttrType)
-    attributeSplitValue = Some(attrSplitValues)
-    informationGain = infoGain
-
-    println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
-      s"attrSplitValues:$attrSplitValues")
     if (isLeaf) {
+      splitAttribute = Some(splitAttr)
+      splitAttributeType = Some(splitAttrType)
+      attributeSplitValue = Some(attrSplitValues)
+      informationGain = infoGain
+
+      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
+        s"attrSplitValues:$attrSplitValues")
+
       isLeaf = false
       if (splitAttributeType.get == AttributeType.Numerical) {
         tempNodes.put(nodeId + 1, DTNode(false, true, nodeId + 1))
@@ -194,10 +198,10 @@ case class DTNode(
           tempChildren.put(attrSplitValues(i), nodeId + i + 1)
         }
       }
-      println(s"--------node:$nodeId, Temp---------children:$tempChildren")
+//      println(s"--------node:$nodeId, Temp---------children:$tempChildren")
 
       children = Some(tempChildren)
-      println(s"--------node:$nodeId, children:$children")
+//      println(s"--------node:$nodeId, children:$children")
       return Some(tempNodes)
     }
     None
@@ -205,7 +209,8 @@ case class DTNode(
 
   override def toString(): String = {
     val s = new StringBuilder()
-    s.append(s"NodeId:$nodeId -> children:$children, splitting value:$attributeSplitValue")
+    s.append(s"NodeId:$nodeId -> children:$children, splitting attribute: $splitAttribute, " +
+      s"splitting value:$attributeSplitValue")
     s.toString()
   }
 }

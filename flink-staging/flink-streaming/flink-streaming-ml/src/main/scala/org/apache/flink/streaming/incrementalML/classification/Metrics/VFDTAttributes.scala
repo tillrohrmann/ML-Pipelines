@@ -22,7 +22,7 @@ import org.apache.flink.streaming.incrementalML.classification.Metrics.Attribute
 class VFDTAttributes(
   val id: Int,
   val value: Double,
-  val clazz: Double,
+  val label: Double,
   val nOfDifferentValues: Int,
   val leaf: Int,
   val attributeType: AttributeType)
