@@ -254,14 +254,11 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         counterPerLeaf.getOrElse(leafId, None) match {
           case leafMetrics: (Int, Int) => {
-            //            println(s"-----------------Before
-            // Signal----------------------------$counterPerLeaf")
-
             //if we have seen at least MinNumberOfInstances and are not all of the same class
             if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
               (MinNumberOfInstances).get == 0) &&
               leafMetrics._1 != 0 && leafMetrics._2 != 0) {
-              println(s"-----------------Signal----------------------------$counterPerLeaf")
+//              println(s"-----------------Signal----------------------------$counterPerLeaf")
               out.collect((-2, CalculateMetricsSignal(leafId)))
             }
           }
@@ -273,10 +270,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
       case evaluationMetric: EvaluationMetric => {
         //metrics are received, then update global model
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
-        println("------------------------------Metric-------------------------------------" + value)
+//        println("------------------------------Metric-------------------------------------" + value)
 
-        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get
-          ._1, counterPerLeaf.get(evaluationMetric.leafId).get._2)
+        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get._1,
+          counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
         val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
@@ -293,8 +290,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           (bestInfoGain - secondBestInfoGain < hoeffdingBoundVariable) && (
             hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get))) {
 
-          println("---------------**********************Should " +
-            "grow************************---------------------")
+//          println("---------------***********Should grow**************---------------------")
           val nominal = resultingParameters.get(NominalAttributes)
           nominal match {
             case None => {
@@ -364,9 +360,6 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
     [Int, AttributeObserver[Metrics]]]()
 
-  //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
-  //          AttributeObserver[Metrics]]] = null
-
   var attributesObserverTemp = mutable.HashMap[Int, AttributeObserver[Metrics]]()
 
   //[attributeId,(entropy,ListOfSplittingValues)]
@@ -401,7 +394,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
       }
 
       case calcMetricsSignal: CalculateMetricsSignal => {
-        println("--------------------Signal received-------------------------------")
+//        println("--------------------Signal received-------------------------------")
 
         //        println
         // ("------------------------------------------------------------------------------\n" +
@@ -416,9 +409,10 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
             for (attr <- leafToSplit) {
               val temp = attr._2.getSplitEvaluationMetric
               bestAttributesToSplit += ((attr._1, temp))
+//              println(s"-!-!-!-!---------------(${attr._1}, $temp)------------------!-!-!-!-")
             }
+
             bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
-            println("------best Attributes: " + bestAttributesToSplit)
             var bestAttr: (Int, (Double, List[Double])) = null
             var secondBestAttr: (Int, (Double, List[Double])) = null
             if (bestAttributesToSplit.size > 0) {
