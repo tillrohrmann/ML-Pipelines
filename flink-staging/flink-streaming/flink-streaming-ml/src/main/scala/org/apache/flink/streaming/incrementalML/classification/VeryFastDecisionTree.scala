@@ -188,8 +188,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   val VFDT = DecisionTreeModel
   VFDT.createRootOfTheTree
 
-  //  println(s"-----------$VFDT-------------------------")
-
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
     var leafId = 0
     value match {
@@ -209,15 +207,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         newDataPoint.getLabel match {
           case 1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2))
-          //            println
-          // (s"-------------counterPerLeaf
-          // ----------------------------------------------------$counterPerLeaf")
           case -1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
-          //            println
-          // (s"-------------counterPerLeaf
-          // ----------------------------------------------------$counterPerLeaf")
-
           case _ =>
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
@@ -258,8 +249,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
               (MinNumberOfInstances).get == 0) &&
               leafMetrics._1 != 0 && leafMetrics._2 != 0) {
-              //              println
-              // (s"-----------------Signal----------------------------$counterPerLeaf")
+
               out.collect((-2, CalculateMetricsSignal(leafId)))
             }
           }
@@ -271,29 +261,26 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
       case evaluationMetric: EvaluationMetric => {
         //metrics are received, then update global model
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
-        //        println("------------------------------Metric
-        // -------------------------------------" + value)
 
         val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get._1,
           counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
         val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
-        println(s"---bestValue: $bestInfoGain, ---secondBestInfoGain: $secondBestInfoGain, ---" +
+        println(s"bestValue: ${evaluationMetric.bestValue._2._1}, 2ndBest: " +
+          s"${evaluationMetric.secondBestValue._2._1},  bestInfoGain: $bestInfoGain,  " +
+          s"secondBestInfoGain: $secondBestInfoGain, " +
           s" bestInfoGain-secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
           s"---nonSplitEntro: $nonSplitEntro")
 
         val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId)
-          .get._1 + counterPerLeaf.get
-          (evaluationMetric.leafId).get._2)
+          .get._1 + counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
           bestInfoGain >= nonSplitEntro) || (
           (bestInfoGain - secondBestInfoGain < hoeffdingBoundVariable) && (
             hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get))) {
 
-          //          println("---------------***********Should
-          // grow**************---------------------")
           val nominal = resultingParameters.get(NominalAttributes)
           nominal match {
             case None => {
@@ -337,9 +324,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
   private def nonSplittingEntropy(nOfYes: Int, nOfNo: Int): Double = {
     //P(Yes)Entropy(Yes) + P(No)Entropy(No)
-    val total = (nOfYes + nOfNo).asInstanceOf[Double]
+    val total = (nOfYes + nOfNo).toDouble
     val entropy = -(nOfYes / total) * Utils.logBase2(nOfYes / total) -
       (nOfNo / total) * Utils.logBase2(nOfNo / total)
+
     entropy
   }
 
@@ -358,7 +346,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   */
 class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] {
 
-  var counter = 0
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
     [Int, AttributeObserver[Metrics]]]()
@@ -370,10 +357,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
     value._2 match {
       case attribute: VFDTAttributes => {
-        counter += 1
-        //        System.err.println(counter)
         //take the class observer, else if there is no observer for that leaf
-        //        println("--------------------Attribute received-------------------------------")
         leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
@@ -432,4 +416,3 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
     }
   }
 }
-

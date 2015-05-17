@@ -181,8 +181,8 @@ case class DTNode(
       attributeSplitValue = Some(attrSplitValues)
       informationGain = infoGain
 
-      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
-        s"attrSplitValues:$attrSplitValues")
+//      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
+//        s"attrSplitValues:$attrSplitValues")
 
       isLeaf = false
       if (splitAttributeType.get == AttributeType.Numerical) {
@@ -198,10 +198,7 @@ case class DTNode(
           tempChildren.put(attrSplitValues(i), nodeId + i + 1)
         }
       }
-//      println(s"--------node:$nodeId, Temp---------children:$tempChildren")
-
       children = Some(tempChildren)
-//      println(s"--------node:$nodeId, children:$children")
       return Some(tempNodes)
     }
     None
