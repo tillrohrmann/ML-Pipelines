@@ -39,7 +39,7 @@ import scala.collection.mutable
  */
 class VeryFastDecisionTree(
   context: StreamExecutionEnvironment)
-  extends Learner[LabeledVector, Metrics]
+  extends Learner[LabeledVector, (Int,Metrics)]
   with Serializable {
 
   //TODO:: Check what other parameters need to be set
@@ -68,19 +68,9 @@ class VeryFastDecisionTree(
     this
   }
 
-  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
-  DataStream[Metrics] = {
-    val resultingParameters = this.parameters ++ fitParameters
-
-    val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
-    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => iterationFunction
-      (dataPointsStream, resultingParameters))
-    out
-  }
-
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
     resultingParameters: ParameterMap): (DataStream[Metrics],
-    DataStream[Metrics]) = {
+    DataStream[Metrics], DataStream[(Int,Metrics)]) = {
 
     val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
       .setParallelism(1)
@@ -98,12 +88,12 @@ class VeryFastDecisionTree(
       }
     }).setParallelism(1)
 
-    val classifcationPerInstance = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+    val classificationPerInstance = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
         return (value._1 == -3) //InstanceClassification
       }
     }).setParallelism(1)
-    classifcationPerInstance.print()
+    //    classificationPerInstance.print()
 
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper).setParallelism(1).split(new OutputSelector[Metrics] {
@@ -122,7 +112,25 @@ class VeryFastDecisionTree(
 
     val feedback: DataStream[Metrics] = splitDs.select("feedback")
     val output: DataStream[Metrics] = splitDs.select("output")
-    (feedback, output)
+    (feedback, output,classificationPerInstance)
+  }
+
+  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
+  DataStream[(Int,Metrics)] = {
+    val resultingParameters = this.parameters ++ fitParameters
+
+    val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
+
+//    val (feedback, output) = iterationFunction(dataPointsStream, resultingParameters)
+
+    var prequentialEvaluation: DataStream[(Int,Metrics)] = null
+
+    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => {
+      val (feedback,output,preqEvalStream) = iterationFunction(dataPointsStream, resultingParameters)
+      prequentialEvaluation = preqEvalStream
+      (feedback,output)
+    })
+    prequentialEvaluation
   }
 }
 
@@ -205,8 +213,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
         val label = VFDT.getNodeLabel(leafId)
-        if (!label.isNaN){
-          out.collect((-3,InstanceClassification(label.toInt)))
+        if (!label.isNaN) {
+          out.collect((-3, InstanceClassification(label, newDataPoint.getLabel)))
         }
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
@@ -225,10 +233,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         }
         //#Yes > #No
         var leafLabel = 1.0
-        if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._2 ) {
+        if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._2) {
           leafLabel = -1.0
         }
-        VFDT.setNodeLabel(leafId,leafLabel) //majority vote for leaf label
+        VFDT.setNodeLabel(leafId, leafLabel) //majority vote for leaf label
 
         //TODO:: change this piece of code
         val nominal = resultingParameters.get(NominalAttributes)
@@ -321,7 +329,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           }
         }
         println(s"---VFDT:$VFDT")
-        println(s"---counterPerLeaf: $counterPerLeaf")
+        println(s"---counterPerLeaf: $counterPerLeaf\n")
       }
       case _ =>
         throw new RuntimeException("- WTF is that, that you're " +
@@ -330,7 +338,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   }
 
   private def hoeffdingBound(n: Int): Double = {
-    val R_square = math.pow(math.log10(resultingParameters.get(NumberOfClasses).get), 2.0)
+    val R_square = math.pow(Utils.logBase2(resultingParameters.get(NumberOfClasses).get), 2.0)
     val delta = resultingParameters.get(VfdtDelta).get
 
     val hoeffdingBound = math.sqrt((R_square * math.log(1.0 / delta)) / (2.0 * n))
@@ -401,7 +409,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
         leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
 
           case leafToSplit: mutable.HashMap[Int, AttributeObserver[Metrics]] => {
-//            println(s"signal received when $counter attributes have been received")
+            //            println(s"signal received when $counter attributes have been received")
 
             //[Long,HasMap[String,(#Yes,#No)]]
             for (attr <- leafToSplit) {
@@ -410,7 +418,7 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
             }
 
             bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
-//            System.err.println(bestAttributesToSplit)
+            //            System.err.println(bestAttributesToSplit)
             var bestAttr: (Int, (Double, List[Double])) = null
             var secondBestAttr: (Int, (Double, List[Double])) = null
             if (bestAttributesToSplit.size > 0) {

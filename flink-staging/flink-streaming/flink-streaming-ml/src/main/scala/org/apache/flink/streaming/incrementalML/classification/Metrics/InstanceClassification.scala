@@ -18,18 +18,13 @@
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
 
-class InstanceClassification(
-  val clazz: Int)
+case class InstanceClassification(
+  label: Double,
+  clazz: Double)
   extends Metrics
   with Serializable {
 
   override def toString: String = {
-    s"Instance was classified as of: $clazz class"
-  }
-}
-
-object InstanceClassification {
-  def apply(instanceClazz: Int): InstanceClassification = {
-    new InstanceClassification(instanceClazz)
+    s"Classified as: $label, is of:$clazz class"
   }
 }
