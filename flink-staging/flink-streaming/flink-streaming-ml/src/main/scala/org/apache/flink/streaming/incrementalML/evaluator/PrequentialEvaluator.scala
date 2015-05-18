@@ -17,26 +17,39 @@
  */
 package org.apache.flink.streaming.incrementalML.evaluator
 
-import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.streaming.incrementalML.classification.Metrics.EvaluationMetric
+import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
+Metrics}
 
+class PrequentialEvaluator
+  extends Evaluator[(Int, Metrics), Double]
+  with Serializable {
 
-/** Base trait for algorithm which evaluates the current model for the input data points
-  *
-  * A [[Evaluator]] implementation has to implement the method `evaluate`, which defines how
-  * well the current model performs with the incoming data set.
-  *
-  * @tparam IN Type of incoming elements
-  * @tparam OUT Type of outgoing elements
-  */
-trait Evaluator[IN, OUT] {
+  var instancesClassified = 0.0
+  var sumLossFunction = 0.0
 
   /** Evaluating model's accuracy with the input observations
     *
-    * @param input The points to be used for the evaluation.
+    * @param inputDataStream The points to be used for the evaluation.
     *
     * @return The Prediction error for each data point
     */
-  def evaluate(input: DataStream[IN]): DataStream[OUT]
+  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[Double] = {
+    inputDataStream.map {
+      input => {
+        val temp = input._2.asInstanceOf[InstanceClassification]
+        instancesClassified += 1.0
+        if (temp.label != temp.clazz) {
+          sumLossFunction += 1.0
+        }
+        sumLossFunction / instancesClassified
+      }
+    }.setParallelism(1)
+  }
+}
 
+object PrequentialEvaluator {
+  def apply(): PrequentialEvaluator = {
+    new PrequentialEvaluator()
+  }
 }

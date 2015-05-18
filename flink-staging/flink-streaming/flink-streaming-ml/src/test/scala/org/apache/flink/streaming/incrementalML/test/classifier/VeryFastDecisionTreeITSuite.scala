@@ -23,6 +23,7 @@ import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.Metrics.Metrics
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
 import org.apache.flink.streaming.incrementalML.common.ChainedLearner
+import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.incrementalML.preprocessing.Imputer
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
@@ -83,10 +84,13 @@ class VeryFastDecisionTreeITSuite
 
     val transformer = Imputer()
     val vfdtLearner = VeryFastDecisionTree(env)
-    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, Metrics] (transformer,
-      vfdtLearner)
+    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int,Metrics)] (
+      transformer, vfdtLearner)
 
-    vfdtChainedLearner.fit(datapoints, parameters)
+    val evaluator = PrequentialEvaluator()
+
+    val streamToEvaluate = vfdtChainedLearner.fit(datapoints, parameters)
+    evaluator.evaluate(streamToEvaluate).print().setParallelism(1)
     env.execute()
   }
 }
