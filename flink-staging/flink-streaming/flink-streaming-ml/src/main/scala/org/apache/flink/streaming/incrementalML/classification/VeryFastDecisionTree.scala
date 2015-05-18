@@ -24,7 +24,8 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -37,7 +38,7 @@ import scala.collection.mutable
  * @param context
  */
 class VeryFastDecisionTree(
-                            context: StreamExecutionEnvironment)
+  context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, Metrics]
   with Serializable {
 
@@ -78,7 +79,7 @@ class VeryFastDecisionTree(
   }
 
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
-                                resultingParameters: ParameterMap): (DataStream[Metrics],
+    resultingParameters: ParameterMap): (DataStream[Metrics],
     DataStream[Metrics]) = {
 
     val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
@@ -89,13 +90,20 @@ class VeryFastDecisionTree(
       override def filter(value: (Int, Metrics)): Boolean = {
         return value._1 >= 0
       }
-    })
+    }).setParallelism(1)
 
     val modelAndSignal = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
         return (value._1 == -2) //metric or Signal
       }
-    })
+    }).setParallelism(1)
+
+    val classifcationPerInstance = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+      override def filter(value: (Int, Metrics)): Boolean = {
+        return (value._1 == -3) //InstanceClassification
+      }
+    }).setParallelism(1)
+    classifcationPerInstance.print()
 
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper).setParallelism(1).split(new OutputSelector[Metrics] {
@@ -116,7 +124,6 @@ class VeryFastDecisionTree(
     val output: DataStream[Metrics] = splitDs.select("output")
     (feedback, output)
   }
-
 }
 
 object VeryFastDecisionTree {
@@ -176,8 +183,7 @@ object VeryFastDecisionTree {
   * outType2: (-2,CalculateMetricsSignal) -> When a signal for splitting a leaf is sent
   *
   */
-class GlobalModelMapper(
-                         resultingParameters: ParameterMap)
+class GlobalModelMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //counterPerLeaf -> (leafId,(#Yes,#No))
@@ -187,8 +193,6 @@ class GlobalModelMapper(
   //Create the root of the DecisionTreeModel
   val VFDT = DecisionTreeModel
   VFDT.createRootOfTheTree
-
-  //  println(s"-----------$VFDT-------------------------")
 
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
     var leafId = 0
@@ -200,6 +204,10 @@ class GlobalModelMapper(
 
         //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
+        val label = VFDT.getNodeLabel(leafId)
+        if (!label.isNaN){
+          out.collect((-3,InstanceClassification(label.toInt)))
+        }
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
@@ -209,19 +217,18 @@ class GlobalModelMapper(
         newDataPoint.getLabel match {
           case 1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2))
-          //            println
-          // (s"-------------counterPerLeaf
-          // ----------------------------------------------------$counterPerLeaf")
           case -1.0 =>
             counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1))
-          //            println
-          // (s"-------------counterPerLeaf
-          // ----------------------------------------------------$counterPerLeaf")
-
           case _ =>
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
         }
+        //#Yes > #No
+        var leafLabel = 1.0
+        if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._2 ) {
+          leafLabel = -1.0
+        }
+        VFDT.setNodeLabel(leafId,leafLabel) //majority vote for leaf label
 
         //TODO:: change this piece of code
         val nominal = resultingParameters.get(NominalAttributes)
@@ -258,7 +265,7 @@ class GlobalModelMapper(
             if (((leafMetrics._1 + leafMetrics._2) % resultingParameters.get
               (MinNumberOfInstances).get == 0) &&
               leafMetrics._1 != 0 && leafMetrics._2 != 0) {
-              println(s"-----------------Signal----------------------------$counterPerLeaf")
+
               out.collect((-2, CalculateMetricsSignal(leafId)))
             }
           }
@@ -270,28 +277,26 @@ class GlobalModelMapper(
       case evaluationMetric: EvaluationMetric => {
         //metrics are received, then update global model
         //TODO:: Aggregate metrics and update global model. Do NOT broadcast global model
-        println("------------------------------Metric-------------------------------------" + value)
 
-        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get
-          ._1, counterPerLeaf.get(evaluationMetric.leafId).get._2)
+        val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric.leafId).get._1,
+          counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
         val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
-        println(s"---bestValue: $bestInfoGain, ---secondBestInfoGain: $secondBestInfoGain, ---" +
+        println(s"bestValue: ${evaluationMetric.bestValue._2._1}, 2ndBest: " +
+          s"${evaluationMetric.secondBestValue._2._1},  bestInfoGain: $bestInfoGain,  " +
+          s"secondBestInfoGain: $secondBestInfoGain, " +
           s" bestInfoGain-secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
           s"---nonSplitEntro: $nonSplitEntro")
 
         val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId)
-          .get._1 + counterPerLeaf.get
-          (evaluationMetric.leafId).get._2)
+          .get._1 + counterPerLeaf.get(evaluationMetric.leafId).get._2)
 
         if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
           bestInfoGain >= nonSplitEntro) || (
           (bestInfoGain - secondBestInfoGain < hoeffdingBoundVariable) && (
             hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get))) {
 
-          println("---------------**********************Should " +
-            "grow************************---------------------")
           val nominal = resultingParameters.get(NominalAttributes)
           nominal match {
             case None => {
@@ -300,16 +305,13 @@ class GlobalModelMapper(
                 evaluationMetric.bestValue._2._1)
             }
             case _ => {
-              nominal.get
-                .getOrElse(evaluationMetric.bestValue._1, None) match {
-
+              nominal.get.getOrElse(evaluationMetric.bestValue._1, None) match {
                 case None => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
                 }
-
-                case Int => {
+                case x: Int => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Nominal, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
@@ -317,23 +319,6 @@ class GlobalModelMapper(
               }
             }
           }
-
-
-          //          resultingParameters.get(NominalAttributes).get
-          //            .getOrElse(evaluationMetric.bestValue._1, None) match {
-          //
-          //            case None => {
-          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-          //                AttributeType.Numerical, evaluationMetric.bestValue._2._2,
-          //                evaluationMetric.bestValue._2._1)
-          //            }
-          //
-          //            case Int => {
-          //              VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
-          //                AttributeType.Nominal, evaluationMetric.bestValue._2._2,
-          //                evaluationMetric.bestValue._2._1)
-          //            }
-          //          }
         }
         println(s"---VFDT:$VFDT")
         println(s"---counterPerLeaf: $counterPerLeaf")
@@ -355,9 +340,10 @@ class GlobalModelMapper(
 
   private def nonSplittingEntropy(nOfYes: Int, nOfNo: Int): Double = {
     //P(Yes)Entropy(Yes) + P(No)Entropy(No)
-    val total = (nOfYes + nOfNo).asInstanceOf[Double]
+    val total = (nOfYes + nOfNo).toDouble
     val entropy = -(nOfYes / total) * Utils.logBase2(nOfYes / total) -
       (nOfNo / total) * Utils.logBase2(nOfNo / total)
+
     entropy
   }
 
@@ -376,26 +362,17 @@ class GlobalModelMapper(
   */
 class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] {
 
-  var counter = 0
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
     [Int, AttributeObserver[Metrics]]]()
 
-  //        var leafClassTemp: mutable.HashMap[String, mutable.HashMap[Long,
-  //          AttributeObserver[Metrics]]] = null
-
   var attributesObserverTemp = mutable.HashMap[Int, AttributeObserver[Metrics]]()
-
-  //[attributeId,(entropy,ListOfSplittingValues)]
-  var bestAttributesToSplit = mutable.MutableList[(Int, (Double, List[Double]))]()
 
   override def flatMap(value: (Int, Metrics), out: Collector[Metrics]): Unit = {
 
 
     value._2 match {
       case attribute: VFDTAttributes => {
-        //        counter = counter+1
-        //        System.err.println(counter)
         //take the class observer, else if there is no observer for that leaf
         leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
@@ -418,22 +395,22 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
 
       case calcMetricsSignal: CalculateMetricsSignal => {
 
-        //        println
-        // ("------------------------------------------------------------------------------\n" +
-        //          s"leafsObserver: ${leafsObserver.size}\n" +
-        //
-        // "------------------------------------------------------------------------------")
+        //[attributeId,(entropy,ListOfSplittingValues)]
+        var bestAttributesToSplit = mutable.MutableList[(Int, (Double, List[Double]))]()
+
         leafsObserver.getOrElse(calcMetricsSignal.leaf, None) match {
 
           case leafToSplit: mutable.HashMap[Int, AttributeObserver[Metrics]] => {
+//            println(s"signal received when $counter attributes have been received")
 
             //[Long,HasMap[String,(#Yes,#No)]]
             for (attr <- leafToSplit) {
               val temp = attr._2.getSplitEvaluationMetric
               bestAttributesToSplit += ((attr._1, temp))
             }
+
             bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
-            println("------best Attributes: " + bestAttributesToSplit)
+//            System.err.println(bestAttributesToSplit)
             var bestAttr: (Int, (Double, List[Double])) = null
             var secondBestAttr: (Int, (Double, List[Double])) = null
             if (bestAttributesToSplit.size > 0) {
@@ -443,10 +420,10 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
               secondBestAttr = bestAttributesToSplit(1)
             }
             out.collect(EvaluationMetric(bestAttr, secondBestAttr, calcMetricsSignal.leaf))
-
           }
           case None =>
-          //            throw new RuntimeException(s"-There is no AttributeObserver for that leaf:${calcMetricsSignal.leaf}-")
+          //            throw new RuntimeException(s"-There is no AttributeObserver for that
+          // leaf:${calcMetricsSignal.leaf}-")
         }
       }
       case _ =>
@@ -455,4 +432,3 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
     }
   }
 }
-

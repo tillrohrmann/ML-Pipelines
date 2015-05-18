@@ -17,30 +17,19 @@
  */
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
-import org.apache.flink.ml.common.LabeledVector
-import org.apache.flink.ml.math.Vector
 
-class DataPoints(dataPoint: LabeledVector)
+class InstanceClassification(
+  val clazz: Int)
   extends Metrics
   with Serializable {
 
-  def getFeatures: Vector = {
-    dataPoint.vector
-  }
-
-  def getLabel: Double = {
-    dataPoint.label
-  }
-
   override def toString: String = {
-    dataPoint.toString
+    s"Instance was classified as of: $clazz class"
   }
 }
 
-object DataPoints {
-
-  def apply(vector: LabeledVector): DataPoints = {
-    new DataPoints(vector)
+object InstanceClassification {
+  def apply(instanceClazz: Int): InstanceClassification = {
+    new InstanceClassification(instanceClazz)
   }
-
 }
