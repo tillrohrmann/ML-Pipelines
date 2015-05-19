@@ -94,6 +94,9 @@ object Imputer {
 }
 
 object ImputationStrategy extends Enumeration with Serializable {
+//  TODO:: Potential additions to imputation strategies:
+//   1. Replace missing value with most frequent occurrence
+//   2. replace missing values with mean of the attribute
   type ImputationStrategy = Value
   val Deletion = Value
 }
