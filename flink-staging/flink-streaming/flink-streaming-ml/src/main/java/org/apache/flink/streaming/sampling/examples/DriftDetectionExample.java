@@ -19,9 +19,13 @@ package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
 import org.apache.flink.streaming.sampling.helpers.DriftDetector;
@@ -86,7 +90,31 @@ public class DriftDetectionExample<T> {
 			}
 		})
 				.map(new DriftDetector())
-				.writeAsText(SamplingUtils.path + "drift");
+				.addSink(new RichSinkFunction<Tuple4<GaussianDistribution, Double, Long, Boolean>>() {
+					@Override
+					public void invoke(Tuple4<GaussianDistribution, Double, Long, Boolean> value) throws Exception {
+						StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+						if (context.getIndexOfThisSubtask()==0 && value.f3) {
+
+							System.out.println( "****** Change detection: " + value.toString());
+						}
+						else {
+							//System.out.println(value.toString());
+						}
+					}
+				});
+				/*
+				.addSink(new RichSinkFunction<Tuple3<GaussianDistribution, Double, Boolean>>() {
+
+					@Override
+					public void invoke(Tuple3<GaussianDistribution, Double, Boolean> value) throws Exception {
+						StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+							if (context.getIndexOfThisSubtask()==0 && value.f2) {
+								System.out.println(value.f0 + " -> " + value.f2);
+							}
+					}
+				});*/
+				/*.writeAsText(SamplingUtils.path + "drift");*/
 	}
 
 

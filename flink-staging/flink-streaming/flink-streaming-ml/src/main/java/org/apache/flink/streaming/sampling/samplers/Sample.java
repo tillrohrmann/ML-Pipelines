@@ -23,6 +23,7 @@ import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-26.
@@ -55,6 +56,13 @@ public class Sample<T> implements Serializable {
 
 	void replaceSample(int pos, T item) {
 		sample.set(pos, item);
+	}
+
+	void replaceAtRandom(T item) {
+		// choose position uniformly at random
+		int pos = SamplingUtils.nextRandInt(sample.size());
+		// replace element at pos
+		this.replaceSample(pos, item);
 	}
 
 	void removeSample(T item) {

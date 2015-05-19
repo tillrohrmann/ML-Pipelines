@@ -35,15 +35,21 @@ import java.util.Properties;
  */
 public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
-	Reservoir reservoirSample;
+	Sample sample;
+
+	/* Properties for Page Hinkley Test */
 	PageHinkleyTest detector;
 	double lambda, delta;
+
+	/* Properties for Sampler */
+	double evictionRate = 0.9;
+	int activeSampler;
 
 	private boolean hasDrift = false;
 	int count = 0;
 
 	public GreedySampler(int size) {
-		reservoirSample = new Reservoir(size);
+		sample = new Sample(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
@@ -54,45 +60,65 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 	public Sample<IN> map(IN value) throws Exception {
 		count++;
 		sample(value);
-		return reservoirSample;
+		return sample;
 	}
 
 
 	@Override
 	public ArrayList<IN> getElements() {
-		return reservoirSample.getSample();
+		return sample.getSample();
 	}
 
 	@Override
 	public void sample(IN element) {
 		Tuple3 inValue = (Tuple3) element;
+
+		//StreamTimestamp changeTimeStamp = new StreamTimestamp();
+		//System.out.println(changeTimeStamp.getTimestamp());
+
+		/* define sampling policy according to drift*/
 		detector.input(((Double) inValue.f0));
 		hasDrift = detector.isChangedDetected();
-		StreamTimestamp changeTimeStamp = new StreamTimestamp();
-		System.out.println(changeTimeStamp.getTimestamp());
-
 		if (hasDrift) {
-			reservoirSample.discard(0.5);
 			hasDrift = false;
 			detector.reset();
+			sample.discard(evictionRate);
 		}
 
-		double proportion = reservoirSample.getSize() / reservoirSample.getMaxSize();
-		if (SamplingUtils.flip(proportion)) {
-			reservoirSample.replaceSample(element);
-		} else {
-			reservoirSample.addSample(element);
-		}
+		reservoirSample(element);
+
+		//TODO
+
 	}
 
 	@Override
 	public int size() {
-		return reservoirSample.getSize();
+		return sample.getSize();
 	}
 
 	@Override
 	public int maxSize() {
-		return reservoirSample.getMaxSize();
+		return sample.getMaxSize();
+	}
+
+	public void reservoirSample(IN element) {
+		if (SamplingUtils.flip(count / sample.getMaxSize())) {
+			if (!sample.isFull()) {
+				sample.addSample(element);
+			}
+			else {
+				sample.replaceAtRandom(element);
+			}
+		}
+	}
+
+	public void fifoSample(IN element) {
+		if (sample.getSize() < sample.getMaxSize()) {
+			sample.addSample(element);
+		} else {
+			sample.removeSample(0);
+			sample.addSample(element);
+		}
 	}
 
 
