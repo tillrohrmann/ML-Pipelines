@@ -19,14 +19,13 @@ package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
 import org.apache.flink.streaming.sampling.helpers.DriftDetector;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;

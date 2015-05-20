@@ -15,11 +15,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.generators;
+
+package org.apache.flink.streaming.sampling.helpers;
+
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 /**
- * Created by marthavk on 2015-04-07.
+ * Created by marthavk on 2015-04-24.
  */
-public interface NumberGenerator<OUT> {
-	public OUT generate();
+public class MetaAppender<T> extends RichMapFunction<T, Tuple3<T, StreamTimestamp, Long>> {
+
+	long index = 0;
+
+	@Override
+	public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
+
+		/*//value
+		Double rand = value.generate();*/
+
+		//timestamp
+		final StreamTimestamp t = new StreamTimestamp();
+
+		//order
+		index++;
+
+		return new Tuple3<T, StreamTimestamp, Long>(value, t, index);
+	}
+
+
 }
