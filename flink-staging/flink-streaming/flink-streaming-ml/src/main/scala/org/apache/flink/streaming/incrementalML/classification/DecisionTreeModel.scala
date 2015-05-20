@@ -115,12 +115,21 @@ object DecisionTreeModel
         case  _ =>
           nodeToSplit.getExcludingAttributes.get :+ (splitAttribute)
       }
-      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
+//      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
       val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain,
         attributesToExclude, decisionTree.size-1)
       decisionTree = decisionTree ++ newNodes
     }
 
+  }
+
+  def getNodeExcludingAttributes (node: Int) : Option[mutable.Seq[Int]] ={
+    decisionTree.getOrElse(node, None) match {
+      case treeNode: DTNode =>
+        treeNode.getExcludingAttributes
+      case None =>
+        None
+    }
   }
 
   def setNodeLabel(node: Int, label: Double): Unit = {
@@ -247,7 +256,7 @@ case class DTNode(
   override def toString(): String = {
     val s = new StringBuilder()
     s.append(s"NodeId:$nodeId -> children:$children, splitting attribute: $splitAttribute, " +
-      s"splitting value:$attributeSplitValue, parent:$parent")
+      s"splitting value:$attributeSplitValue, parent:$parent, excluding attributes:$excludingAttributes")
     s.toString()
   }
 }
