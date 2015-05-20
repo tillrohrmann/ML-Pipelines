@@ -25,10 +25,10 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
-import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.DriftDetector;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
 
@@ -76,54 +76,46 @@ public class DriftDetectionExample<T> {
 
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create source*/
-		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
+		/*create stream of distributions as source (also number generators) and shuffle*/
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSource = source.shuffle();
+		/*generate random number from distribution*/
+		SingleOutputStreamOperator<Tuple2<GaussianDistribution, Double>, ?> generator = shuffledSrc.map(new MapFunction<GaussianDistribution, Tuple2<GaussianDistribution, Double>>() {
 
-		shuffledSource.map(new MapFunction<GaussianDistribution, Tuple2<GaussianDistribution, Double>>() {
 			@Override
 			public Tuple2<GaussianDistribution, Double> map(GaussianDistribution value) throws Exception {
-				return new Tuple2<GaussianDistribution, Double>(value, value.generate());
+				return new Tuple2(value, value.generate());
 			}
-		})
+		});
+
+		generator
 				.map(new DriftDetector())
 				.addSink(new RichSinkFunction<Tuple4<GaussianDistribution, Double, Long, Boolean>>() {
-					@Override
-					public void invoke(Tuple4<GaussianDistribution, Double, Long, Boolean> value) throws Exception {
-						StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-						if (context.getIndexOfThisSubtask()==0 && value.f3) {
+						@Override
+						public void invoke(Tuple4<GaussianDistribution, Double, Long, Boolean> value) throws Exception {
+							StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+							if (context.getIndexOfThisSubtask() == 0 && value.f3) {
 
-							System.out.println( "****** Change detection: " + value.toString());
-						}
-						else {
-							//System.out.println(value.toString());
-						}
-					}
-				});
-				/*
-				.addSink(new RichSinkFunction<Tuple3<GaussianDistribution, Double, Boolean>>() {
-
-					@Override
-					public void invoke(Tuple3<GaussianDistribution, Double, Boolean> value) throws Exception {
-						StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-							if (context.getIndexOfThisSubtask()==0 && value.f2) {
-								System.out.println(value.f0 + " -> " + value.f2);
+								System.out.println("****** Change detection: " + value.toString());
+							} else {
+								//System.out.println(value.toString());
 							}
+						}
 					}
-				});*/
+
+			);
 				/*.writeAsText(SamplingUtils.path + "drift");*/
-	}
+		}
 
 
-	/**
-	 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.
-	 *
-	 * @param env the StreamExecutionEnvironment.
-	 * @return the DataStreamSource
-	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
-		return env.addSource(new GaussianStreamGenerator(props));
+		/**
+		 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.
+		 *
+		 * @param env the StreamExecutionEnvironment.
+		 * @return the DataStreamSource
+		 */
+		public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+			return env.addSource(new NormalStreamSource());
 	}
 }

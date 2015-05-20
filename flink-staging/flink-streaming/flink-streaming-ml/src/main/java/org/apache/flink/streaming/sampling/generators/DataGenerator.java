@@ -1,4 +1,4 @@
-/*
+package org.apache.flink.streaming.sampling.generators;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,44 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.sampling.generators;
-import org.apache.flink.util.Collector;
-
-import java.util.Random;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 /**
  * Created by marthavk on 2015-05-20.
  */
-public class NominalGenerator implements NumberGenerator<Integer>{
-	int classes = 6;
-	double[] distribution = new double[] {0.1, 0.2, 0.3, 0.15, 0.15, 0.1};
-	Random r = new Random();
-
-
-	public void run(Collector<Integer> collector) throws Exception {
-		double n = r.nextDouble();
-		double[] cs = cumsum(distribution);
-		for (int i=0; i<cs.length; i++) {
-			if (n < cs[i]) {
-				collector.collect(i);
-				break;
-			}
-		}
-	}
-
-
-	public double[] cumsum(double[] dist) {
-		double[] cs =new double[classes];
-		int aggregate = 0;
-		for (int i=0; i<dist.length; i++){
-			aggregate += dist[i]*100;
-			cs[i] = aggregate;
-		}
-		return cs;
-	}
+public class DataGenerator<IN extends NumberGenerator<OUT>, OUT> extends RichMapFunction<IN, OUT> {
 
 	@Override
-	public Integer generate() {
-		return 0;
+	public OUT map(IN value) throws Exception {
+		return value.generate();
 	}
 }

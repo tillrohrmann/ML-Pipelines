@@ -18,19 +18,18 @@
 
 package org.apache.flink.streaming.sampling.examples;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.MetaAppender;
+import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
-import org.apache.flink.util.Collector;
 
 import java.util.Properties;
 
@@ -63,7 +62,7 @@ public class StreamApproximationExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 		/*DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
 		source.addSink(new RichSinkFunction<GaussianDistribution>() {
 			@Override
@@ -86,53 +85,39 @@ public class StreamApproximationExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create source*/
-		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
+		/*create stream of distributions as source (also number generators) and shuffle*/
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution, ?> operator = source.shuffle()
+		/*generate random number from distribution*/
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
 
-				/*generate double value from GaussianDistribution and wrap around
-				Tuple3<Double, Timestamp, Long> */
-				.map(new MapFunction<GaussianDistribution, GaussianDistribution>() {
-					@Override
-					public GaussianDistribution map(GaussianDistribution value) throws Exception {
-						return value;
-					}
-				});
-
-		operator.map(new DataGenerator())
+		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 
 				/*sample the stream*/
 				.map(new PrioritySampler<Double>(sampleSize, TIME_WINDOW_SIZE))
-						//.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
-						//.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-						//.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-						//.map(new FifoSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-						//.setParallelism(1)
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SampleExtractor<Double>()) //use that for Chain and Priority Samplers.
+				//TODO
+				.map(new SampleExtractor<Double>()); //use that for Chain and Priority Samplers.
 						//.map(new SimpleUnwrapper<Double>()) //use that for Reservoir, Biased Reservoir, FIFO Samplers
-						//.setParallelism(1)
 
-				/*connect sampled stream to source*/
-				.connect(operator)
+		/*connect sampled stream to source*/
+		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-						//.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistanceEvaluator())
 				.flatMap(new DistributionComparator())
+				//.setParallelism(1)
 
-						//.setParallelism(1)
-
-						//sink
-						//.print();
+				/*sink*/
+				//.print();
+				//TODO
 				.writeAsText(SamplingUtils.path + "evaluation");
 		//.setParallelism(1);
 	}
@@ -144,30 +129,8 @@ public class StreamApproximationExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
-	}
-
-	/**
-	 * ****** debug functions **********
-	 */
-	public static DataStreamSource<Integer> createOrderedSrc(StreamExecutionEnvironment env) {
-		return env.addSource(new RichSourceFunction<Integer>() {
-			int counter = 0;
-
-			@Override
-			public void run(Collector<Integer> collector) throws Exception {
-				while (counter < MAX_COUNT) {
-					counter++;
-					collector.collect(counter);
-				}
-			}
-
-			@Override
-			public void cancel() {
-
-			}
-		});
 	}
 
 
