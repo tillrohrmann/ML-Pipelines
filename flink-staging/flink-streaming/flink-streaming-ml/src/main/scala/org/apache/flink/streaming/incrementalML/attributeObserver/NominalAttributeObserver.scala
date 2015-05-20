@@ -27,8 +27,8 @@ class NominalAttributeObserver(
   extends AttributeObserver[Metrics]
   with Serializable {
 
-  // [AttributeVale,(#Yes,#No)]
-  val attributeValues = mutable.HashMap[Double, (Double, Double)]()
+  // [AttributeVale,(#0,#1,#2)]
+  val attributeValues = mutable.HashMap[Double, (Double, Double, Double)]()
   var instancesSeen: Double = 0.0 // instancesSeen
 
   override def getSplitEvaluationMetric: (Double, List[Double]) = {
@@ -36,8 +36,9 @@ class NominalAttributeObserver(
     var entropy = 0.0
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
-      val valueCounter = attrValue._2._1 + attrValue._2._2
+      val valueCounter = attrValue._2._1 + attrValue._2._2 + attrValue._2._3
       val valueProb = valueCounter / instancesSeen
+      System.err.println(valueProb)
       var valueEntropy = 0.0
 
       if (attrValue._2._1 != 0.0) {
@@ -46,6 +47,10 @@ class NominalAttributeObserver(
       }
       if (attrValue._2._2 != 0.0) {
         valueEntropy -= (attrValue._2._2 / valueCounter) * Utils.logBase2((attrValue._2._2 /
+          valueCounter))
+      }
+      if (attrValue._2._3 != 0.0) {
+        valueEntropy -= (attrValue._2._3 / valueCounter) * Utils.logBase2((attrValue._2._3 /
           valueCounter))
       }
       entropy += valueEntropy * valueProb
@@ -61,20 +66,28 @@ class NominalAttributeObserver(
     instancesSeen += 1.0
     if (attributeValues.contains(VFDTAttribute.value)) {
       var temp = attributeValues.apply(VFDTAttribute.value)
-      if (VFDTAttribute.label == -1.0) { // (#yes,#no)
-        temp = (temp._1, temp._2 + 1.0)
+      if (VFDTAttribute.label == 0.0) {
+        // (#0,#1,#2)
+        temp = (temp._1 + 1.0, temp._2, temp._3)
+      }
+      else if (VFDTAttribute.label == 1.0){
+        temp = (temp._1, temp._2 + 1.0, temp._3)
       }
       else {
-        temp = (temp._1 + 1.0, temp._2)
+        temp = (temp._1, temp._2, temp._3 + 1.0)
       }
       attributeValues.put(VFDTAttribute.value, temp)
     }
     else {
-      if (VFDTAttribute.label == -1.0) { // (#yes,#no)
-        attributeValues.put(VFDTAttribute.value, (0.0, 1.0))
+      if (VFDTAttribute.label == 0.0) {
+        // (#0,#1,#2)
+        attributeValues.put(VFDTAttribute.value, (1.0, 0.0, 0.0))
+      }
+      else if (VFDTAttribute.label == 1.0){
+        attributeValues.put(VFDTAttribute.value, (0.0, 1.0, 0.0))
       }
       else {
-        attributeValues.put(VFDTAttribute.value, (1.0, 0.0))
+        attributeValues.put(VFDTAttribute.value, (0.0, 0.0, 1.0))
       }
     }
   }

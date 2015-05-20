@@ -42,13 +42,13 @@ class VeryFastDecisionTreeITSuite
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     val parameters = ParameterMap()
-    val nominalAttributes = Map(1 -> 8, 3 -> 16, 5 -> 7, 6 -> 14, 7 -> 6, 8 -> 5, 9 -> 2, 13 -> 41)
+//    val nominalAttributes = Map(1 -> 8, 3 -> 16, 5 -> 7, 6 -> 14, 7 -> 6, 8 -> 5, 9 -> 2, 13 -> 41)
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
-    parameters.add(VeryFastDecisionTree.NumberOfClasses, 2)
-    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
+    parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
+//    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/adultsTrainDataSet.csv").
+    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/waveform/waveformTrainData.csv").
       map {
       line => {
         var featureList = Vector[Double]()
@@ -58,24 +58,24 @@ class VeryFastDecisionTreeITSuite
             case "?" =>
               featureList = featureList :+ Double.NaN
             case _ => {
-              if (nominalAttributes.contains(i)) {
-//                val temp =  MurmurHash3.stringHash(features(i)).toDouble
-//                System.err.println(features(i) + "->" +temp)
-                featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
-              }
-              else {
+//              if (nominalAttributes.contains(i)) {
+////                val temp =  MurmurHash3.stringHash(features(i)).toDouble
+////                System.err.println(features(i) + "->" +temp)
+//                featureList = featureList :+ MurmurHash3.stringHash(features(i)).toDouble
+//              }
+//              else {
                 featureList = featureList :+ features(i).toDouble
-              }
+//              }
             }
           }
         }
-        val vector = if (features(features.size - 1).trim equals ">50K") {
-          LabeledVector(1, DenseVector(featureList.toArray))
-        }
-        else {
-          LabeledVector(-1, DenseVector(featureList.toArray))
-        }
-        vector
+//        val vector = if (features(features.size - 1).trim equals ">50K") {
+//          LabeledVector(1, DenseVector(featureList.toArray))
+//        }
+//        else {
+//          LabeledVector(-1, DenseVector(featureList.toArray))
+//        }
+        LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
       }
     }
 
@@ -84,13 +84,15 @@ class VeryFastDecisionTreeITSuite
 
     val transformer = Imputer()
     val vfdtLearner = VeryFastDecisionTree(env)
+    val evaluator = PrequentialEvaluator()
+
     val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int,Metrics)] (
       transformer, vfdtLearner)
 
-    val evaluator = PrequentialEvaluator()
-
     val streamToEvaluate = vfdtChainedLearner.fit(datapoints, parameters)
-    evaluator.evaluate(streamToEvaluate).print().setParallelism(1)
+
+    evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/dataSets/waveform/waveformResults-withoutLatent.txt").setParallelism(1)
+
     env.execute()
   }
 }
