@@ -17,17 +17,16 @@
  */
 package org.apache.flink.streaming.sampling.examples;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
+import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
-import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
-import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.*;
 import org.apache.flink.streaming.sampling.samplers.ChainSampler;
+import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
 
@@ -77,37 +76,29 @@ public class ChainSamplingExample {
 
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create source*/
-		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
+		/*create stream of distributions as source (also number generators) and shuffle*/
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution, ?> operator = source.shuffle()
+		/*generate random number from distribution*/
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
 
-				/*generate double value from GaussianDistribution and wrap around
-				Tuple3<Double, Timestamp, Long> */
-				.map(new MapFunction<GaussianDistribution, GaussianDistribution>() {
-					@Override
-					public GaussianDistribution map(GaussianDistribution value) throws Exception {
-						return value;
-					}
-				});
-
-		operator.map(new DataGenerator())
-
+		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 				/*sample the stream*/
 				.map(new ChainSampler<Double>(sampleSize, COUNT_WINDOW_SIZE))
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SampleExtractor<Double>()) //use that for Chain and Priority Samplers.
+				.map(new SampleExtractor<Double>());
 
-				/*connect sampled stream to source*/
-				.connect(operator)
+		/*connect sampled stream to source*/
+		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-						//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistanceEvaluator())
+				.flatMap(new DistributionComparator())
 
 				/*sink*/
+						//.print();
 				.writeAsText(SamplingUtils.path + "chain");
 	}
 
@@ -118,7 +109,7 @@ public class ChainSamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
-		return env.addSource(new GaussianStreamGenerator(props));
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+		return env.addSource(new NormalStreamSource());
 	}
 }

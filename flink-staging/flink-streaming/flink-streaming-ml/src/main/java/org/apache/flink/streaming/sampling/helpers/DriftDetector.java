@@ -19,8 +19,10 @@ package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 
 import java.util.Properties;
 
