@@ -20,7 +20,7 @@ package org.apache.flink.streaming.sampling.evaluators;
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;

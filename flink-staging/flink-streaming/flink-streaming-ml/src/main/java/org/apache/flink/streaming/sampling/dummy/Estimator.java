@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.sampling.generators;
+package org.apache.flink.streaming.sampling.dummy;
 
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.sampling.applications.Edge;
