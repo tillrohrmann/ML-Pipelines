@@ -17,21 +17,14 @@
  */
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
-class CalculateMetricsSignal(
-  val leaf: Int)
+case class CalculateMetricsSignal(
+  leaf: Int,
+  deleteObserver: Boolean)
   extends Metrics
   with Serializable {
 
   override def toString: String = {
     s"Calculate Metrics in leaf: $leaf"
-  }
-
-}
-
-object CalculateMetricsSignal {
-
-  def apply(leaf: Int): CalculateMetricsSignal = {
-    new CalculateMetricsSignal(leaf)
   }
 
 }

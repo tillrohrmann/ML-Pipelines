@@ -31,10 +31,13 @@ class NumericalAttributeObserver
 
   //(min,max) per class
   var minMaxValuePerClass = mutable.MutableList[(Double, Double)](
-    (Double.MaxValue, Double.MinValue), (Double.MaxValue, Double.MinValue))
+    (Double.MaxValue, Double.MinValue), (Double.MaxValue, Double.MinValue), (Double.MaxValue,
+      Double.MinValue)
+  )
 
-  //(instancesSeen, mean, std) per class
-  var meanStdPerClass = mutable.MutableList[(Double, Double, Double)]((0, 0, 0), (0, 0, 0))
+  //(instancesSeen, mean, std) per class: 0, 1, 2
+  var meanStdPerClass = mutable.MutableList[(Double, Double, Double)]((0, 0, 0), (0, 0, 0), (0,
+    0, 0))
 
   //TODO:: replace below variables with a function that calculates those from the per class metrics
   var minValueObserved = Double.MaxValue
@@ -69,7 +72,7 @@ class NumericalAttributeObserver
 
       for (i <- 0 until meanStdPerClass.size) {
         val distribution = gaussianDistributionPerClass.getOrElse(i, None)
-
+        //        System.err.println(s"class:$i")
         distribution match {
           case distr: Gaussian => {
             //splitPoint is less than min value of this class
@@ -92,8 +95,13 @@ class NumericalAttributeObserver
           case None =>
         }
       }
-      val entropy = calcEntropyOfChildren(leftHandSide, leftHandSideInstances, rightHandSide,
-        rightHandSideInstances, totalInstancesSeen)
+      val entropy = if (leftHandSideInstances + rightHandSideInstances != 0.0) {
+        calcEntropyOfChildren(leftHandSide, leftHandSideInstances, rightHandSide,
+          rightHandSideInstances, totalInstancesSeen)
+      }
+      else{
+        Double.MaxValue
+      }
 
       if (entropy < bestValueToSplit._1) {
         bestValueToSplit = (entropy, List[Double](splitPoint))
