@@ -30,7 +30,7 @@ object DecisionTreeModel
   var decisionTree: mutable.Map[Int, DTNode] = mutable.HashMap[Int, DTNode]()
 
   def createRootOfTheTree: Unit = {
-    decisionTree.+=((0, DTNode(true, true, 0)))
+    decisionTree.+=((0, DTNode(true, true, 0, None)))
   }
 
   /** Sorts the given data point to one of the tree's leaves.
@@ -108,12 +108,19 @@ object DecisionTreeModel
     splitValue: List[Double], infoGain: Double): Unit = {
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is " +
       " no leaf to split with that Id"))
-    val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain)
-    newNodes match {
-      case None =>
-      case _ =>
-        decisionTree = decisionTree ++ newNodes.get
+    if (nodeToSplit.isLeaf) {
+      val attributesToExclude = nodeToSplit.getExcludingAttributes match {
+        case None =>
+          mutable.Seq[Int](splitAttribute)
+        case  _ =>
+          nodeToSplit.getExcludingAttributes.get :+ (splitAttribute)
+      }
+      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
+      val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain,
+        attributesToExclude, decisionTree.size-1)
+      decisionTree = decisionTree ++ newNodes
     }
+
   }
 
   def setNodeLabel(node: Int, label: Double): Unit = {
@@ -148,7 +155,8 @@ object DecisionTreeModel
 case class DTNode(
   isRoot: Boolean,
   var isLeaf: Boolean,
-  nodeId: Int)
+  nodeId: Int,
+  parent: Option[Int])
   extends Serializable {
 
   /**
@@ -176,6 +184,7 @@ case class DTNode(
   var attributeSplitValue: Option[List[Double]] = None
   var informationGain = Double.NaN
   var label = Double.NaN
+  var excludingAttributes: Option[mutable.Seq[Int]] = None
 
   /** The given node is split in two or more branches, by the use of  a Numerical
     * or Nominal attribute
@@ -187,38 +196,40 @@ case class DTNode(
     * @param infoGain The information gain of this splitting
     */
   def splitNode(splitAttr: Int, splitAttrType: AttributeType, attrSplitValues: List[Double],
-    infoGain: Double): Option[mutable.Map[Int, DTNode]] = {
+    infoGain: Double, excludeAttributes: mutable.Seq[Int], size: Int): mutable.Map[Int, DTNode] = {
 
     val tempNodes = mutable.HashMap[Int, DTNode]()
     val tempChildren = mutable.HashMap[Double, Int]()
 
-    if (isLeaf) {
-      splitAttribute = Some(splitAttr)
-      splitAttributeType = Some(splitAttrType)
-      attributeSplitValue = Some(attrSplitValues)
-      informationGain = infoGain
 
-      //      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
-      //        s"attrSplitValues:$attrSplitValues")
+    splitAttribute = Some(splitAttr)
+    splitAttributeType = Some(splitAttrType)
+    attributeSplitValue = Some(attrSplitValues)
+    informationGain = infoGain
 
-      isLeaf = false
-      if (splitAttributeType.get == AttributeType.Numerical) {
-        tempNodes.put(nodeId + 1, DTNode(false, true, nodeId + 1))
-        tempChildren.put(0.0, nodeId + 1)
+    //      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
+    //        s"attrSplitValues:$attrSplitValues")
 
-        tempNodes.put(nodeId + 2, DTNode(false, true, nodeId + 2))
-        tempChildren.put(1.0, nodeId + 2)
-      }
-      else {
-        for (i <- 0 until attrSplitValues.size) {
-          tempNodes.put(nodeId + i + 1, DTNode(false, true, nodeId + i + 1))
-          tempChildren.put(attrSplitValues(i), nodeId + i + 1)
-        }
-      }
-      children = Some(tempChildren)
-      return Some(tempNodes)
+    isLeaf = false
+    if (splitAttributeType.get == AttributeType.Numerical) {
+      var temp = DTNode(false, true, size + 1, Some(nodeId))
+      tempNodes.put(size + 1, temp)
+      tempChildren.put(0.0, size + 1)
+
+      temp = DTNode(false, true, size + 2, Some(nodeId))
+      tempNodes.put(size + 2, temp)
+      tempChildren.put(1.0, size + 2)
     }
-    None
+    else {
+      for (i <- 0 until attrSplitValues.size) {
+        val temp = DTNode(false, true, size + i + 1, Some(nodeId))
+        temp.excludingAttributes = Some(excludeAttributes)
+        tempNodes.put(size + i + 1, temp)
+        tempChildren.put(attrSplitValues(i), size + i + 1)
+      }
+    }
+    children = Some(tempChildren)
+    tempNodes
   }
 
   def setLabel(nodeLabel: Double): Unit = {
@@ -229,10 +240,14 @@ case class DTNode(
     this.label
   }
 
+  def getExcludingAttributes: Option[mutable.Seq[Int]] = {
+    excludingAttributes
+  }
+
   override def toString(): String = {
     val s = new StringBuilder()
     s.append(s"NodeId:$nodeId -> children:$children, splitting attribute: $splitAttribute, " +
-      s"splitting value:$attributeSplitValue")
+      s"splitting value:$attributeSplitValue, parent:$parent")
     s.toString()
   }
 }

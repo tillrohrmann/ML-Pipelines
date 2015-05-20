@@ -300,15 +300,14 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         val bestInfoGain = nonSplitEntro - evaluationMetric.bestValue._2._1
         val secondBestInfoGain = nonSplitEntro - evaluationMetric.secondBestValue._2._1
+
         println(s"bestValue: ${evaluationMetric.bestValue._2._1}, 2ndBest: " +
           s"${evaluationMetric.secondBestValue._2._1},  bestInfoGain: $bestInfoGain,  " +
           s"secondBestInfoGain: $secondBestInfoGain, " +
           s" bestInfoGain-secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
           s"---nonSplitEntro: $nonSplitEntro")
 
-        val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId)
-          .get._1 + counterPerLeaf.get(evaluationMetric.leafId).get._2 + counterPerLeaf.get
-          (evaluationMetric.leafId).get._3)
+        val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get(evaluationMetric.leafId).get)
 
         if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
           bestInfoGain >= nonSplitEntro) || (
@@ -321,6 +320,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
               VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                 AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                 evaluationMetric.bestValue._2._1)
+              counterPerLeaf.-(leafId)
+              out.collect((-2, CalculateMetricsSignal(leafId, true)))
             }
             case _ => {
               nominal.get.getOrElse(evaluationMetric.bestValue._1, None) match {
@@ -328,12 +329,14 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
+                  counterPerLeaf.-(leafId)
                   out.collect((-2, CalculateMetricsSignal(leafId, true)))
                 }
                 case x: Int => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Nominal, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
+                  counterPerLeaf.-(leafId)
                   out.collect((-2, CalculateMetricsSignal(leafId, true)))
                 }
               }
@@ -349,18 +352,26 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
     }
   }
 
-  private def hoeffdingBound(n: Int): Double = {
+  private def hoeffdingBound(counterPerClass: Product): Double = {
     val R_square = math.pow(Utils.logBase2(resultingParameters.get(NumberOfClasses).get), 2.0)
     val delta = resultingParameters.get(VfdtDelta).get
+
+    var n = 0.0
+    counterPerClass.productIterator.foreach(clazz => {
+      n += clazz.asInstanceOf[Int]
+    })
 
     val hoeffdingBound = math.sqrt((R_square * math.log(1.0 / delta)) / (2.0 * n))
     println(s"---hoeffding bound: $hoeffdingBound")
     hoeffdingBound
   }
 
-  private def nonSplittingEntropy(metrics012: (Int, Int, Int)): Double = {
-    //P(Yes)Entropy(Yes) + P(No)Entropy(No)
-    val total = (metrics012._1 + metrics012._2 + metrics012._3).toDouble
+  private def nonSplittingEntropy(metrics012: Product): Double = {
+    //P(class1)Entropy(class1) + P(class2)Entropy(class2) + ...
+    var total = 0.0
+    metrics012.productIterator.foreach(clazz => {
+      total += clazz.asInstanceOf[Int]
+    })
     var entropy = 0.0
 
     metrics012.productIterator.foreach(clazz => {
