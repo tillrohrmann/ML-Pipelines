@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.sampling.sources;
 
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.sampling.generators.NormalGenerator;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.util.Collector;
 
@@ -27,27 +27,70 @@ import java.util.Properties;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class NormalStreamSource implements SourceFunction<Double> {
+public class NormalStreamSource implements SourceFunction<GaussianDistribution> {
 
-	long count = 0;
-	NormalGenerator ng;
+	GaussianDistribution gaussD;
 	Properties props;
-	long numberOfEvents;
+	long steps, numberOfEvents;
+	long stablePoints;
+	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget, stDevTarget, outlierRate;
+
+	long count;
 
 	public NormalStreamSource () {
+
+		//parse properties
 		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
-		ng = new NormalGenerator(props);
+		meanInit = Double.parseDouble(props.getProperty("meanInit"));
+		stDevInit = Double.parseDouble(props.getProperty("stDevInit"));
+		meanTarget = Double.parseDouble(props.getProperty("meanTarget"));
+		stDevTarget = Double.parseDouble(props.getProperty("stDevTarget"));
+		outlierRate = Double.parseDouble(props.getProperty("outlierRate"));
+
+		//create initial normal distribution
+		mean = meanInit;
+		stDev = stDevInit;
+		gaussD = new GaussianDistribution(mean, stDev, outlierRate);
+		count = 0;
+
+		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth")) && steps <= (numberOfEvents / 2);
+
+		if (!isSmooth) {
+			steps = Long.parseLong(props.getProperty("numberOfSteps"));
+			stablePoints = 0;
+			meanStep = (meanTarget - mean) / (steps - 1);
+			stDevStep = (stDevTarget - stDev) / (steps - 1);
+		} else {
+			steps = numberOfEvents - 2 * stablePoints;
+			stablePoints = Long.parseLong(props.getProperty("stablePoints"));
+			meanStep = (meanTarget - mean) / (steps);
+			stDevStep = (stDevTarget - stDev) / (steps);
+		}
 
 	}
 
 	@Override
-	public void run(Collector<Double> collector) throws Exception {
+	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
-		for (count = 0; count < numberOfEvents; count ++) {
-			ng.setCount(count);
-			double generatedDouble = ng.generate();
-			collector.collect(generatedDouble);
+		for (count = 0; count < stablePoints; count ++) {
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
+			collector.collect(gaussD);
+		}
+
+		for (count=stablePoints; count < numberOfEvents - stablePoints; count++) {
+			long interval = numberOfEvents - 2 * stablePoints;
+			long countc = count - stablePoints;
+			double multiplier = Math.floor(countc * steps / interval);
+			mean = meanInit + meanStep * multiplier;
+			stDev = stDevInit + stDevStep * multiplier;
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
+			collector.collect(gaussD);
+		}
+
+		for(count=numberOfEvents - stablePoints; count<numberOfEvents; count ++){
+			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
+			collector.collect(gaussD);
 		}
 
 	}

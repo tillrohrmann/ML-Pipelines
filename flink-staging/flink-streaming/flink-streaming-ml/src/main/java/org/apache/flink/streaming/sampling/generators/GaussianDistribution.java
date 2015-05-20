@@ -15,9 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.helpers;
+package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.flink.streaming.sampling.generators.NumberGenerator;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
@@ -26,7 +27,7 @@ import java.util.Random;
 /**
  * Created by marthavk on 2015-05-07.
  */
-public class GaussianDistribution implements Serializable {
+public class GaussianDistribution implements Serializable, NumberGenerator<Double> {
 	Random n = new Random();
 	double mean;
 	double sigma;
@@ -56,7 +57,8 @@ public class GaussianDistribution implements Serializable {
 		return this.sigma;
 	}
 
-	public double generate() {
+	@Override
+	public Double generate() {
 		boolean success = SamplingUtils.flip(outlierRate);
 		if (success) {
 			return generateOutlier();

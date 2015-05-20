@@ -21,11 +21,12 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-
+import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
+import org.apache.flink.streaming.sampling.generators.DataGenerator;
+import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.*;
-
 import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
+import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
@@ -34,6 +35,7 @@ import java.util.Properties;
  * Created by marthavk on 2015-05-06.
  */
 public class BiasedReservoirSamplingExample {
+
 	public static long MAX_COUNT;  // max count of generated numbers
 	public static int SAMPLE_SIZE;
 	public static Properties initProps = new Properties();
@@ -73,28 +75,30 @@ public class BiasedReservoirSamplingExample {
 
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create source*/
-		DataStreamSource<Double> source = createSource(env);
+		/*create stream of distributions as source (also number generators) and shuffle*/
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<Double, ?> operator = source.shuffle();
+		/*generate random number from distribution*/
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
 
-		operator.map(new MetaAppender<Double>())
-
+		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 				/*sample the stream*/
 				.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				.map(new SimpleUnwrapper<Double>()) //use that for Reservoir, Biased Reservoir, FIFO Samplers
+				.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
 
-				/*connect sampled stream to source*/
-				.connect(operator)
+
+		/*connect sampled stream to source*/
+		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-						//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistanceEvaluator())
+				.flatMap(new DistributionComparator())
 
 				/*sink*/
+				//.print();
 				.writeAsText(SamplingUtils.path + "biased");
 	}
 
@@ -105,7 +109,7 @@ public class BiasedReservoirSamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<Double> createSource(StreamExecutionEnvironment env) {
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
 	}
 
