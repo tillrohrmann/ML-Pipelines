@@ -1,4 +1,4 @@
-/*
+package org.apache.flink.streaming.sampling.generators;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,27 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.generators;
 
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.util.Collector;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
 
 import java.util.Properties;
 
 /**
- * Created by marthavk on 2015-04-07.
+ * Created by marthavk on 2015-05-20.
  */
-public class GaussianStreamGenerator implements SourceFunction<GaussianDistribution> {
+public class NormalGenerator implements NumberGenerator<Double> {
 
-	long count = 0;
 	GaussianDistribution gaussD;
 	Properties props;
-	long numberOfEvents, steps;
+	long numberOfEvents, steps, count;
 	long stablePoints;
 	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget, stDevTarget, outlierRate;
 
-
-	public GaussianStreamGenerator(Properties lProps) {
+	public NormalGenerator(Properties lProps) {
 		props = lProps;
 
 		/*parse properties*/
@@ -51,6 +47,7 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 		stDev = stDevInit;
 		gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 
+		count = 0;
 		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
 
 		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth")) && steps <= (numberOfEvents / 2);
@@ -66,35 +63,30 @@ public class GaussianStreamGenerator implements SourceFunction<GaussianDistribut
 			meanStep = (meanTarget - mean) / (steps);
 			stDevStep = (stDevTarget - stDev) / (steps);
 		}
-
 	}
 
 	@Override
-	public void run(Collector<GaussianDistribution> collector) throws Exception {
-
-		for (count = 0; count < stablePoints; count++) {
+	public Double generate() {
+		if (count < stablePoints) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
+			return gaussD.generate();
 		}
-
-		for (count = stablePoints; count < numberOfEvents - stablePoints; count++) {
+		else if (count < numberOfEvents - stablePoints) {
 			long interval = numberOfEvents - 2 * stablePoints;
 			long countc = count - stablePoints;
 			double multiplier = Math.floor(countc * steps / interval);
 			mean = meanInit + meanStep * multiplier;
 			stDev = stDevInit + stDevStep * multiplier;
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
+			return gaussD.generate();
 		}
-
-		for (count = numberOfEvents - stablePoints; count < numberOfEvents; count++) {
+		else {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
+			return gaussD.generate();
 		}
 	}
 
-	@Override
-	public void cancel() {
-
+	public void setCount(long c) {
+		count = c;
 	}
 }

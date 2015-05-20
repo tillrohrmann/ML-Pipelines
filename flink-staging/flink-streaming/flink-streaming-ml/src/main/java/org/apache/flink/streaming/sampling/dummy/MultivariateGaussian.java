@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.generators;
+package org.apache.flink.streaming.sampling.dummy;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.apache.commons.math3.exception.DimensionMismatchException;

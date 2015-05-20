@@ -25,8 +25,8 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
+import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
@@ -145,7 +145,7 @@ public class StreamApproximationExample {
 	 * @return the DataStreamSource
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
-		return env.addSource(new GaussianStreamGenerator(props));
+		return env.addSource(new NormalStreamSource());
 	}
 
 	/**

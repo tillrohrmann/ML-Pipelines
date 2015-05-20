@@ -22,13 +22,11 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
+
+import org.apache.flink.streaming.sampling.helpers.*;
+
 import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
+import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
 
@@ -76,12 +74,12 @@ public class BiasedReservoirSamplingExample {
 		int sampleSize = SAMPLE_SIZE;
 
 		/*create source*/
-		DataStreamSource<GaussianDistribution> source = createSource(env, initProps);
+		DataStreamSource<Double> source = createSource(env);
 
 		/*generate random numbers according to Distribution parameters*/
-		SingleOutputStreamOperator<GaussianDistribution, ?> operator = source.shuffle();
+		SingleOutputStreamOperator<Double, ?> operator = source.shuffle();
 
-		operator.map(new DataGenerator())
+		operator.map(new MetaAppender<Double>())
 
 				/*sample the stream*/
 				.map(new BiasedReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
@@ -107,8 +105,8 @@ public class BiasedReservoirSamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env, final Properties props) {
-		return env.addSource(new GaussianStreamGenerator(props));
+	public static DataStreamSource<Double> createSource(StreamExecutionEnvironment env) {
+		return env.addSource(new NormalStreamSource());
 	}
 
 }

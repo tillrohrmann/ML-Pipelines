@@ -19,36 +19,38 @@ package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 
 import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-12.
  */
-public class DriftDetector implements MapFunction<Tuple2<GaussianDistribution, Double>, Tuple3<GaussianDistribution, Double, Boolean>> {
+public class DriftDetector implements MapFunction<Tuple2<GaussianDistribution, Double>, Tuple4<GaussianDistribution, Double, Long, Boolean>> {
 
 	PageHinkleyTest detector;
 	double lambda;
 	double delta;
+	long counter;
 
 	public DriftDetector() {
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
 		detector = new PageHinkleyTest(lambda, delta, 30);
+		counter = 0;
 	}
 
 
 	@Override
-	public Tuple3<GaussianDistribution, Double, Boolean> map(Tuple2<GaussianDistribution, Double> value) throws Exception {
+	public Tuple4<GaussianDistribution, Double, Long, Boolean> map(Tuple2<GaussianDistribution, Double> value) throws Exception {
 		detector.input(value.f1);
 		boolean drift = detector.isChangedDetected();
 		if (drift) {
 			detector.reset();
 		}
-		return new Tuple3<GaussianDistribution, Double, Boolean>(value.f0, value.f1, drift);
+		counter ++;
+		return new Tuple4<GaussianDistribution, Double, Long, Boolean>(value.f0, value.f1, counter, drift);
 	}
 }

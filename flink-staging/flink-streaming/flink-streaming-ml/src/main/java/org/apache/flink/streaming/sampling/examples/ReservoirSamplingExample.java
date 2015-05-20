@@ -24,7 +24,7 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.generators.DataGenerator;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
 import org.apache.flink.streaming.sampling.generators.GaussianStreamGenerator;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;

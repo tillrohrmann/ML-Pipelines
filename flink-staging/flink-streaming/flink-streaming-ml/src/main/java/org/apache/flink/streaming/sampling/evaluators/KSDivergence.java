@@ -24,10 +24,10 @@ package org.apache.flink.streaming.sampling.evaluators;
 
 
 import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math.stat.descriptive.SummaryStatistics;
+import org.apache.commons.math3.exception.InsufficientDataException;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.GaussianDistribution;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 
@@ -46,7 +46,6 @@ public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, Gaussian
 			for (int i = 0; i < trueAggregator.size(); i++) {
 				double distance = ksDistance(trueAggregator.get(i), empAggregator.get(i));
 				out.collect(distance);
-				//out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
 			}
 			trueAggregator.clear();
 			empAggregator.clear();
@@ -72,8 +71,12 @@ public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, Gaussian
 		KolmogorovSmirnovTest ksTest = new KolmogorovSmirnovTest();
 		NormalDistribution real = new NormalDistribution(greal.getMean(), greal.getStandardDeviation());
 		double[] sample = gsampled.getSampleAsArray();
-		double test = ksTest.kolmogorovSmirnovTest(real, sample);
-		return test;
+		try {
+			return ksTest.kolmogorovSmirnovTest(real, sample);
+		}
+		catch (InsufficientDataException e) {
+			return Double.POSITIVE_INFINITY;
+		}
 	}
 
 
