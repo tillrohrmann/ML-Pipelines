@@ -209,12 +209,14 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         val featuresVector = newDataPoint.getFeatures
 
+        //-------------------------------Prequential Evaluation-------------------------------
         //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
         val label = VFDT.getNodeLabel(leafId)
         if (!label.isNaN) {
           out.collect((-3, InstanceClassification(label, newDataPoint.getLabel)))
         }
+        //-------------------------------end Prequential Evaluation-------------------------------
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
@@ -253,10 +255,20 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           case None => {
             for (i <- 0 until featuresVector.size) {
               //emit numerical attribute
-              out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
-                leafId, AttributeType.Numerical)))
+              VFDT.getNodeExcludingAttributes(leafId) match {
+                case None => {
+                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
+                    leafId, AttributeType.Numerical)))
+                }
+                case _ => {
+                  if (!VFDT.getNodeExcludingAttributes(leafId).get.contains(i)){
+                    out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
+                      leafId, AttributeType.Numerical)))
+                  }
+                }
+              }
             }
-          }
+          } //TODO:: correct this piece of code -> check if attribute is excluded
           case _ => {
             for (i <- 0 until featuresVector.size) {
               nominal.get.getOrElse(i, None) match {
