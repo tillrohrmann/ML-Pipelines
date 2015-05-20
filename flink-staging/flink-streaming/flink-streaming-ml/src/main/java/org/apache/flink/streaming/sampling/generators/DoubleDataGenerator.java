@@ -16,6 +16,7 @@ package org.apache.flink.streaming.sampling.generators;/*
  * limitations under the License.
  */
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
@@ -23,10 +24,10 @@ import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 /**
  * Created by marthavk on 2015-05-20.
  */
-public class DataGenerator<IN extends NumberGenerator<OUT>, OUT> extends RichMapFunction<IN, OUT> {
+public class DoubleDataGenerator<IN extends GaussianDistribution> extends RichMapFunction<IN, Double> {
 
 	@Override
-	public OUT map(IN value) throws Exception {
+	public Double map(IN value) throws Exception {
 		return value.generate();
 	}
 }
