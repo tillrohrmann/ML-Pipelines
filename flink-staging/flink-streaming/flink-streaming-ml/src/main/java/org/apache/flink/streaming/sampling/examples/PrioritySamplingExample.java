@@ -20,6 +20,7 @@ package org.apache.flink.streaming.sampling.examples;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
@@ -57,7 +58,7 @@ public class PrioritySamplingExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -72,9 +73,8 @@ public class PrioritySamplingExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 
@@ -96,8 +96,8 @@ public class PrioritySamplingExample {
 		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
+				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistributionComparator())
 
 				/*sink*/
 						//.print();

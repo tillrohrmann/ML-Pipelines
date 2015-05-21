@@ -16,11 +16,7 @@ package org.apache.flink.streaming.sampling.generators;/*
  * limitations under the License.
  */
 
-import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-
 /**
  * Created by marthavk on 2015-05-20.
  */

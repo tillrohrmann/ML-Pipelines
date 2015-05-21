@@ -28,6 +28,7 @@ public class NormalAggregator extends RichMapFunction<Double, GaussianDistributi
 
 	@Override
 	public GaussianDistribution map(Double value) throws Exception {
+		aggr.addValue(value);
 		return new GaussianDistribution(aggr.getMean(), aggr.getStandardDeviation());
 	}
 }

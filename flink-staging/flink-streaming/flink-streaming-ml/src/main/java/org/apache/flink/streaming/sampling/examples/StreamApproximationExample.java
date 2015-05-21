@@ -18,11 +18,15 @@
 
 package org.apache.flink.streaming.sampling.examples;
 
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
@@ -114,12 +118,12 @@ public class StreamApproximationExample {
 		sample.connect(aggregator)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
+				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistributionComparator())
 				//.setParallelism(1)
 
 				/*sink*/
-				//.print();
+				.sum(0)
 				.writeAsText(SamplingUtils.path + "evaluation");
 		//.setParallelism(1);
 	}

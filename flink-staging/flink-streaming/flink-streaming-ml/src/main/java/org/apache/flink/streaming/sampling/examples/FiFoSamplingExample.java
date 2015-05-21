@@ -56,7 +56,7 @@ public class FiFoSamplingExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -71,9 +71,8 @@ public class FiFoSamplingExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 

@@ -42,7 +42,9 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 
 		if (trueAggregator.size() == empAggregator.size()) {
 			for (int i = 0; i < trueAggregator.size(); i++) {
-				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
+				//printIndexedString(empAggregator.get(i).getMean() + " " +  trueAggregator.get(i).getMean(), 0);
+				out.collect(SamplingUtils.squaredDistance(empAggregator.get(i).getMean(), trueAggregator.get(i).getMean()));
+				//out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
 			}
 			trueAggregator.clear();
 			empAggregator.clear();
@@ -57,7 +59,9 @@ public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, Gau
 
 		if (trueAggregator.size() == empAggregator.size()) {
 			for (int i = 0; i < trueAggregator.size(); i++) {
-				out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
+				//printIndexedString(empAggregator.get(i).getMean() + " " +  trueAggregator.get(i).getMean(), 0);
+				out.collect(SamplingUtils.squaredDistance(empAggregator.get(i).getMean(), trueAggregator.get(i).getMean()));
+				//out.collect(SamplingUtils.bhattacharyyaDistance(empAggregator.get(i), trueAggregator.get(i)));
 			}
 			trueAggregator.clear();
 			empAggregator.clear();
