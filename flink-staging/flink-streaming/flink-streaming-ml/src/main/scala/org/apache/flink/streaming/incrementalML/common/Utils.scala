@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.incrementalML.common
 
 import breeze.stats.distributions.Gaussian
+import org.apache.flink.streaming.incrementalML.classification.DTNode
 
 import scala.collection.mutable
 
@@ -64,4 +65,53 @@ object Utils {
     }
     result
   }
+
+//  def createJSON_VFDT(intToNode: mutable.Map[Int, DTNode], rootNodeId: Int) = {
+//
+//    val rootNode = intToNode.getOrElse(rootNodeId, None)
+//
+//    rootNode match {
+//      case rn: DTNode => {
+//        var jsonString = new StringBuilder("{ ")
+//
+//        val stack = new mutable.Stack[Int]()
+//        val discovered = new mutable.Stack[Int]()
+//
+//        stack.push(rootNodeId)
+//
+//        while (!stack.isEmpty) {
+//          val node = stack.pop()
+//          if (!discovered.contains(node)) {
+//
+//            jsonString ++= ( s"id: \"node$node\", name: \"$node\", " +
+//              s"data: {splitting attribute: ${intToNode.get(node).get.splitAttribute.get}, " +
+//              s"splitting value:${intToNode.get(node).get.attributeSplitValue.get} }, " +
+//              s"children: [ ")
+//
+//            discovered.push(node)
+//
+//            rn.children.get match {
+//              case None =>
+//              case kids : mutable.Map[Double,Int] => {
+//                kids.foreach(
+//                  child => {
+//                    stack.push(child._2)
+//                    val tempNode = intToNode.get(child._2).get
+//                    jsonString ++= ( s"{ id: \"node${child._2}\", name: \"${child._2}\", " +
+//                      s"data: {splitting attribute: ${tempNode.splitAttribute.get}, " +
+//                      s"splitting value:${tempNode.attributeSplitValue.get} , ")
+//                  })
+//                if (kids.size != 0) {
+//                  jsonString ++= ("}")
+//                }
+//                jsonString ++= ("]")
+//              }
+//            }
+//          }
+//        }
+//      }
+//      case None =>
+//    }
+//  }
+
 }
