@@ -48,7 +48,7 @@ class VeryFastDecisionTreeITSuite
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
 //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/waveform/waveformTrainData_100K.csv").
+    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/waveform/waveformTrainData_1000K.csv").
       map {
       line => {
         var featureList = Vector[Double]()

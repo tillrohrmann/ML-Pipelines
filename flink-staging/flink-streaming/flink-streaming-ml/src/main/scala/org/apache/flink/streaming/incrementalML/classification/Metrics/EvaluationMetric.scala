@@ -20,26 +20,17 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 /** Represents the local results for the best and the second best attributes that could be used
   * to split upon
   *
-  * @param bestValue (attributeId,(entropy,listOfSplittingValues))
-  * @param secondBestValue (attributeId,(entropy,listOfSplittingValues))
   */
-class EvaluationMetric(
-  val bestValue: (Int, (Double, List[Double])),
-  val secondBestValue: (Int, (Double, List[Double])),
-  val leafId: Int)
+case class EvaluationMetric(
+//  bestValue: (Int, (Double, List[Double])),
+//  secondBestValue: (Int, (Double, List[Double])),
+  proposedValues: List[(Int, (Double, List[Double]))],
+  leafId: Int,
+  signalIdNumber: Int)
   extends Metrics
   with Serializable {
 
   override def toString: String = {
-    s"Best attribute to Split: $bestValue, second best attribute to split:$secondBestValue\n"
+    s"Proposed attributes to split: $proposedValues\n"
   }
-}
-
-object EvaluationMetric {
-
-  def apply(firstSplitAttr: (Int, (Double, List[Double])),
-    secondSplitAttr: (Int, (Double, List[Double])), leafId: Int): EvaluationMetric = {
-    new EvaluationMetric(firstSplitAttr, secondSplitAttr, leafId)
-  }
-
 }
