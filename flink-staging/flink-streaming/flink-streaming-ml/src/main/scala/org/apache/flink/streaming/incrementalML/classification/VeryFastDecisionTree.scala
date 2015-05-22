@@ -32,6 +32,7 @@ import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
 import org.apache.flink.util.Collector
 
 import scala.collection.mutable
+import scala.util.parsing.json.JSONObject
 
 /**
  *
@@ -197,6 +198,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   var counterPerLeaf: mutable.Map[Int, (Int, Int, Int)] = mutable.HashMap[Int, (Int, Int, Int)](
     (0, (0, 0, 0)))
 
+//  var metricsFromLocalProcessors:
+
   //Create the root of the DecisionTreeModel
   val VFDT = DecisionTreeModel
   VFDT.createRootOfTheTree
@@ -260,7 +263,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                   out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
                     leafId, AttributeType.Numerical)))
                 }
-                case _ => {
+                case _ => { //emit it only if the attribute is not in the excluded ones for the specific leaf
                   if (!VFDT.getNodeExcludingAttributes(leafId).get.contains(i)){
                     out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
                       leafId, AttributeType.Numerical)))
@@ -300,7 +303,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             }
           }
           case None =>
-            throw new RuntimeException(s"------ 1 -----leaf:$leafId doesn't exist")
+            throw new RuntimeException(s"leaf:$leafId doesn't exist")
         }
 
       }
@@ -332,7 +335,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
               VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                 AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                 evaluationMetric.bestValue._2._1)
-              counterPerLeaf.-(leafId)
+//              counterPerLeaf-=(leafId)
               out.collect((-2, CalculateMetricsSignal(leafId, true)))
             }
             case _ => {
@@ -341,14 +344,16 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Numerical, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
-                  counterPerLeaf.-(leafId)
+                  //garbage collect the counter for the grown leaf and the observers in the local statistics
+//                  counterPerLeaf-=(leafId)
                   out.collect((-2, CalculateMetricsSignal(leafId, true)))
                 }
                 case x: Int => {
                   VFDT.growTree(evaluationMetric.leafId, evaluationMetric.bestValue._1,
                     AttributeType.Nominal, evaluationMetric.bestValue._2._2,
                     evaluationMetric.bestValue._2._1)
-                  counterPerLeaf.-(leafId)
+                  //garbage collect the counter for the grown leaf and the observers in the local statistics
+//                  counterPerLeaf-=(leafId)
                   out.collect((-2, CalculateMetricsSignal(leafId, true)))
                 }
               }
@@ -356,11 +361,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           }
         }
         println(s"---VFDT:$VFDT")
+        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
+        System.err.println(jsonVFDT)
         println(s"---counterPerLeaf: $counterPerLeaf\n")
       }
       case _ =>
-        throw new RuntimeException("- WTF is that, that you're " +
-          "sending in the GlobalModelMapper" + value.getClass.toString)
+        throw new RuntimeException(s"- WTF is that ${value.getClass}")
     }
   }
 
