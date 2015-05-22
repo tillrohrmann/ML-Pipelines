@@ -22,7 +22,7 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DataGenerator;
+import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.*;
 import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
@@ -54,7 +54,7 @@ public class BiasedReservoirSamplingExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -69,9 +69,8 @@ public class BiasedReservoirSamplingExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 
@@ -80,7 +79,7 @@ public class BiasedReservoirSamplingExample {
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
 		/*generate random number from distribution*/
-		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 				/*sample the stream*/
@@ -101,7 +100,6 @@ public class BiasedReservoirSamplingExample {
 				//.print();
 				.writeAsText(SamplingUtils.path + "biased");
 	}
-
 
 	/**
 	 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.

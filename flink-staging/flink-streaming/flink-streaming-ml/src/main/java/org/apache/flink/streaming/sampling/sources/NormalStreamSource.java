@@ -76,7 +76,11 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 		for (count = 0; count < stablePoints; count ++) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
+			if (count % 10000 == 0) { System.out.println(count);}
+
 		}
+
+		System.out.println();
 
 		for (count=stablePoints; count < numberOfEvents - stablePoints; count++) {
 			long interval = numberOfEvents - 2 * stablePoints;
@@ -86,11 +90,14 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 			stDev = stDevInit + stDevStep * multiplier;
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
+			if (count % 10000 == 0) { System.out.println(count);}
 		}
 
+		System.out.println();
 		for(count=numberOfEvents - stablePoints; count<numberOfEvents; count ++){
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
+			if (count % 10000 == 0) { System.out.println(count);}
 		}
 
 	}

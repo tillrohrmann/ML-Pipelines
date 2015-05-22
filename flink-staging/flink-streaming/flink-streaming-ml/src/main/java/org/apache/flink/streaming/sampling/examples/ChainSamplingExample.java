@@ -20,8 +20,9 @@ package org.apache.flink.streaming.sampling.examples;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DataGenerator;
+import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.*;
 import org.apache.flink.streaming.sampling.samplers.ChainSampler;
@@ -55,7 +56,7 @@ public class ChainSamplingExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -70,9 +71,8 @@ public class ChainSamplingExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 
@@ -81,7 +81,7 @@ public class ChainSamplingExample {
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
 		/*generate random number from distribution*/
-		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 				/*sample the stream*/
@@ -94,8 +94,8 @@ public class ChainSamplingExample {
 		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
+				.flatMap(new DistanceEvaluator())
+				//.flatMap(new DistributionComparator())
 
 				/*sink*/
 						//.print();

@@ -21,8 +21,9 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DataGenerator;
+import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.MetaAppender;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
@@ -57,7 +58,7 @@ public class ReservoirSamplingExample {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -72,9 +73,8 @@ public class ReservoirSamplingExample {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
 		int sampleSize = SAMPLE_SIZE;
 
@@ -83,7 +83,7 @@ public class ReservoirSamplingExample {
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
 		/*generate random number from distribution*/
-		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DataGenerator<GaussianDistribution,Double>());
+		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 				/*sample the stream*/
@@ -97,8 +97,9 @@ public class ReservoirSamplingExample {
 		sample.connect(shuffledSrc)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
+				.flatMap(new DistanceEvaluator())
+				//.sum(0)
+				//.flatMap(new DistributionComparator())
 
 				/*sink*/
 						//.print();
