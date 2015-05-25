@@ -22,9 +22,9 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
   *
   */
 case class EvaluationMetric(
-                             proposedValues: List[(Int, (Double, List[Double]))],
-                             leafId: Int,
-                             signalIdNumber: Int)
+  proposedValues: List[(Int, (Double, List[Double]))],
+  leafId: Int,
+  signalIdNumber: Int)
   extends Metrics
   with Serializable {
 

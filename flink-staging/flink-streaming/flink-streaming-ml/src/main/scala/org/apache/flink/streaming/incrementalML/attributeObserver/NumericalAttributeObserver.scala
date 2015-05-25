@@ -111,8 +111,8 @@ class NumericalAttributeObserver
   }
 
   def calcEntropyOfChildren(lhs: mutable.HashMap[Int, Double], leftHSInstances: Double,
-                            rhs: mutable.HashMap[Int, Double], rightHSInstances: Double,
-                            totalInstances: Double):
+    rhs: mutable.HashMap[Int, Double], rightHSInstances: Double,
+    totalInstances: Double):
   Double = {
 
     var leftHSEntropy = 0.0

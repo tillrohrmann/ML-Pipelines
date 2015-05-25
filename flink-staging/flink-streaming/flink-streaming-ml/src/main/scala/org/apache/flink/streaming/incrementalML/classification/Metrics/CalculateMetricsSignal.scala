@@ -18,9 +18,9 @@
 package org.apache.flink.streaming.incrementalML.classification.Metrics
 
 case class CalculateMetricsSignal(
-                                   leaf: Int,
-                                   signalId: Int,
-                                   deleteObserver: Boolean)
+  leaf: Int,
+  signalId: Int,
+  deleteObserver: Boolean)
   extends Metrics
   with Serializable {
 

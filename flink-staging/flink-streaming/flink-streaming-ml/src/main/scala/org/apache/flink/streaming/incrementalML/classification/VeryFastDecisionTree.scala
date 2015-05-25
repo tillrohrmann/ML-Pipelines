@@ -24,7 +24,8 @@ import org.apache.flink.api.common.functions.{FilterFunction, RichFlatMapFunctio
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -37,7 +38,7 @@ import scala.collection.mutable
  * @param context
  */
 class VeryFastDecisionTree(
-                            context: StreamExecutionEnvironment)
+  context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, (Int, Metrics)]
   with Serializable {
 
@@ -90,7 +91,7 @@ class VeryFastDecisionTree(
   }
 
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
-                                resultingParameters: ParameterMap): (DataStream[Metrics],
+    resultingParameters: ParameterMap): (DataStream[Metrics],
     DataStream[Metrics], DataStream[(Int, Metrics)]) = {
 
     val mSAds: DataStream[(Int, Metrics)] = dataPointsStream.flatMap(new GlobalModelMapper(
@@ -332,7 +333,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             case t: mutable.HashMap[Int, (Int, List[(Int, (Double, List[Double]))])] => {
               t.getOrElse(evaluationMetric.signalIdNumber, None) match {
                 case None => {
-                  val tempHashMap = t. + ((evaluationMetric.signalIdNumber, (1, evaluationMetric
+                  val tempHashMap = t.+((evaluationMetric.signalIdNumber, (1, evaluationMetric
                     .proposedValues)))
                   metricsFromLocalProcessors.update(evaluationMetric.leafId, tempHashMap)
                 }

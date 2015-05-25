@@ -35,8 +35,8 @@ import org.apache.flink.streaming.api.scala.DataStream
   * @tparam OUT Type of outgoing elements
   */
 class ChainedTransformer[IN, TEMP, OUT](
-                                         val head: Transformer[IN, TEMP],
-                                         val tail: Transformer[TEMP, OUT])
+  val head: Transformer[IN, TEMP],
+  val tail: Transformer[TEMP, OUT])
   extends Transformer[IN, OUT] {
 
   override def transform(input: DataStream[IN], transformParameters: ParameterMap):

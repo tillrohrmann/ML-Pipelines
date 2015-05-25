@@ -35,8 +35,8 @@ import org.apache.flink.streaming.api.scala.DataStream
   * @tparam OUT Type of the trained model
   */
 class ChainedLearner[IN, TEMP, OUT](
-                                     val head: Transformer[IN, TEMP],
-                                     val tail: Learner[TEMP, OUT])
+  val head: Transformer[IN, TEMP],
+  val tail: Learner[TEMP, OUT])
   extends Learner[IN, OUT] {
 
   override def fit(input: DataStream[IN], fitParameters: ParameterMap): DataStream[OUT] = {
