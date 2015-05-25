@@ -47,7 +47,8 @@ object DecisionTreeModel
 
     while (!currentNode.isLeaf) {
       var tempChildrenList = currentNode.children.getOrElse(throw new RuntimeException(s"" +
-        s"Node:$currentNode is not a leaf but has no children."))
+        s"Node:$currentNode is not a " +
+        s"leaf but has no children."))
 
       currentNode.splitAttributeType match {
         case Some(AttributeType.Numerical) => {
@@ -106,7 +107,7 @@ object DecisionTreeModel
     * @param infoGain The information gain of this splitting
     */
   def growTree(leafToSplit: Int, splitAttribute: Int, attrType: AttributeType,
-    splitValue: List[Double], infoGain: Double): Unit = {
+               splitValue: List[Double], infoGain: Double): Unit = {
     val nodeToSplit = decisionTree.getOrElse(leafToSplit, throw new RuntimeException("There is " +
       " no leaf to split with that Id"))
     if (nodeToSplit.isLeaf) {
@@ -172,10 +173,10 @@ object DecisionTreeModel
  *
  */
 case class DTNode(
-  isRoot: Boolean,
-  var isLeaf: Boolean,
-  nodeId: Int,
-  parent: Option[Int])
+                   isRoot: Boolean,
+                   var isLeaf: Boolean,
+                   nodeId: Int,
+                   parent: Option[Int])
   extends Serializable {
 
   /**
@@ -215,7 +216,8 @@ case class DTNode(
     * @param infoGain The information gain of this splitting
     */
   def splitNode(splitAttr: Int, splitAttrType: AttributeType, attrSplitValues: List[Double],
-    infoGain: Double, excludeAttributes: mutable.Seq[Int], size: Int): mutable.Map[Int, DTNode] = {
+                infoGain: Double, excludeAttributes: mutable.Seq[Int], size: Int): mutable
+  .Map[Int, DTNode] = {
 
     val tempNodes = mutable.HashMap[Int, DTNode]()
     val tempChildren = mutable.HashMap[Double, Int]()
@@ -250,12 +252,12 @@ case class DTNode(
     tempNodes
   }
 
-  def setLabel(nodeLabel: Double): Unit = {
-    this.label = nodeLabel
-  }
-
   def getLabel: Double = {
     this.label
+  }
+
+  def setLabel(nodeLabel: Double): Unit = {
+    this.label = nodeLabel
   }
 
   def getExcludingAttributes: Option[mutable.Seq[Int]] = {

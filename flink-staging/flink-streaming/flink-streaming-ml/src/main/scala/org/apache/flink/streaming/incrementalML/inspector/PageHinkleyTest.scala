@@ -26,9 +26,9 @@ package org.apache.flink.streaming.incrementalML.inspector
  *                     change
  */
 class PageHinkleyTest(
-  val lambda: Double,
-  val delta: Double,
-  val minInstances: Int)
+                       val lambda: Double,
+                       val delta: Double,
+                       val minInstances: Int)
   extends ChangeDetector
   with Serializable {
 

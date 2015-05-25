@@ -111,7 +111,9 @@ class NumericalAttributeObserver
   }
 
   def calcEntropyOfChildren(lhs: mutable.HashMap[Int, Double], leftHSInstances: Double,
-    rhs: mutable.HashMap[Int, Double], rightHSInstances: Double, totalInstances: Double): Double = {
+                            rhs: mutable.HashMap[Int, Double], rightHSInstances: Double,
+                            totalInstances: Double):
+  Double = {
 
     var leftHSEntropy = 0.0
     var rightHSEntropy = 0.0
@@ -128,6 +130,14 @@ class NumericalAttributeObserver
       totalInstances) * rightHSEntropy
 
     entropy
+  }
+
+  def getMeanStdPerClass(clazz: Double): (Double, Double) = {
+    val t = meanStdPerClass(clazz.asInstanceOf[Int])
+    if (t._1 != 0.0) {
+      return (t._2 / t._1, Math.sqrt(t._3 / t._1))
+    }
+    (t._2, t._3)
   }
 
   override def updateMetricsWithAttribute(attr: Metrics): Unit = {
@@ -173,14 +183,6 @@ class NumericalAttributeObserver
       attrSoSTemp += (1.0 / (instancesTemp * (instancesTemp - 1))) * (Math.pow(temp, 2))
     }
     meanStdPerClass.update(label.asInstanceOf[Int], (instancesTemp, attrSumTemp, attrSoSTemp))
-  }
-
-  def getMeanStdPerClass(clazz: Double): (Double, Double) = {
-    val t = meanStdPerClass(clazz.asInstanceOf[Int])
-    if (t._1 != 0.0) {
-      return (t._2 / t._1, Math.sqrt(t._3 / t._1))
-    }
-    (t._2, t._3)
   }
 
   override def toString: String = {
