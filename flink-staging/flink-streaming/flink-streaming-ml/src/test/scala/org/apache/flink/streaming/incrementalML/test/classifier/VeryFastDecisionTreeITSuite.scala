@@ -45,11 +45,11 @@ class VeryFastDecisionTreeITSuite
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
-    //    parameters.add(VeryFastDecisionTree.Parallelism,2)
+        parameters.add(VeryFastDecisionTree.Parallelism,4)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
-      "waveform/waveformTrainData_100K.csv").map {
+      "waveform/waveformTrainData_1000K.csv").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -83,14 +83,14 @@ class VeryFastDecisionTreeITSuite
     //    val dataPoints = StreamingMLUtils.readLibSVM(env,
     //      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
 
-    val transformer = Imputer()
+//    val transformer = Imputer()
     val vfdtLearner = VeryFastDecisionTree(env)
     val evaluator = PrequentialEvaluator()
 
-    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int, Metrics)](
-      transformer, vfdtLearner)
+//    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int, Metrics)](
+//      transformer, vfdtLearner)
 
-    val streamToEvaluate = vfdtChainedLearner.fit(datapoints, parameters)
+    val streamToEvaluate = vfdtLearner.fit(datapoints, parameters)
 
     evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/" +
       "dataSets/waveform/waveformResults.txt").setParallelism(1)
