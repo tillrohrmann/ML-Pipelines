@@ -340,7 +340,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
                   // if all metrics from local processors have been received, then check for
                   // the best attribute to split.
-
                   if (tempPV._1 == resultingParameters.apply(Parallelism)) {
 
                     var bestValuesToSplit = tempPV._2
@@ -360,7 +359,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 //                      s"nonSplitEntro: $nonSplitEntro")
 
                     //todo:: this hoeffding bound should be calculated with the number of
-                    // instances when the signal was send
+                    // instances when the signal was send?
                     val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get
                       (evaluationMetric.leafId).get)
 
@@ -378,7 +377,9 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                             evaluationMetric.proposedValues(0)._2._2,
                             evaluationMetric.proposedValues(0)._2._1)
 
-                          //              counterPerLeaf-=(leafId)
+                          //garbage collection
+                          counterPerLeaf-=(leafId)
+                          metricsFromLocalProcessors -= (evaluationMetric.leafId)
                           out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                         }
                         case _ => {
@@ -390,7 +391,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              //                  counterPerLeaf-=(leafId)
+                              counterPerLeaf-=(leafId)
+                              metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
                             case x: Int => {
@@ -400,7 +402,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              //                  counterPerLeaf-=(leafId)
+                              counterPerLeaf-=(leafId)
+                              metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
                           }
@@ -411,6 +414,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
                       println(s"---counterPerLeaf: $counterPerLeaf\n")
+                    }
+                    //garbage collection
+                    metricsFromLocalProcessors.getOrElse(leafId,None) match {
+                      case None =>
+                      case _ =>
+                        t -= (evaluationMetric.signalIdNumber)
                     }
                   }
                 }
