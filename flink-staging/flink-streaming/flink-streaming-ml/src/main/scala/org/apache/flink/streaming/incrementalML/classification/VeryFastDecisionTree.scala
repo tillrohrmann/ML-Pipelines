@@ -207,8 +207,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //counterPerLeaf -> (leafId,(#0,#1,#2))
-  var counterPerLeaf: mutable.Map[Int, (Int, Int, Int)] = mutable.HashMap[Int, (Int, Int, Int)](
-    (0, (0, 0, 0)))
+  var counterPerLeaf = mutable.HashMap[Int, List[Int]]((0,
+    List.fill(resultingParameters.apply(NumberOfClasses))(0)))
 
   var metricsFromLocalProcessors = mutable.HashMap[Int, mutable.Map[Int, (Int, List[(Int,
     (Double, List[Double]))])]]()
@@ -222,7 +222,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
     value match {
       case newDataPoint: DataPoints => {
-        //data point is received
 
         val featuresVector = newDataPoint.getFeatures
 
@@ -230,23 +229,26 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //classify data point first
         leafId = VFDT.classifyDataPointToLeaf(featuresVector)
         val label = VFDT.getNodeLabel(leafId)
-        //        if (!label.isNaN) {
         out.collect((-3, InstanceClassification(label, newDataPoint.getLabel)))
-        //        }
         //-------------------------------end Prequential Evaluation-------------------------------
 
         //TODO:: 2. update total distribution of each leaf (#Yes, #No) for calculating the
         // information gain -> is not need, we will just select the attribute with the smallest
         // entropy, which as a result will have the highest Information gain
 
-        val temp = counterPerLeaf.getOrElseUpdate(leafId, (0, 0, 0))
+        val temp = counterPerLeaf.getOrElseUpdate(leafId, List.fill(
+          resultingParameters.apply(NumberOfClasses))(0))
+
         newDataPoint.getLabel match {
           case 0.0 =>
-            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1 + 1, temp._2, temp._3))
+            val t = temp(0) + 1
+            counterPerLeaf.update(leafId, temp.updated(0,t))
           case 1.0 =>
-            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2 + 1, temp._3))
+            val t = temp(1) + 1
+            counterPerLeaf.update(leafId, temp.updated(1,t))
           case 2.0 =>
-            counterPerLeaf = counterPerLeaf.updated(leafId, (temp._1, temp._2, temp._3 + 1))
+            val t = temp(2) + 1
+            counterPerLeaf.update(leafId, temp.updated(2,t))
           case _ =>
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
@@ -254,13 +256,13 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //#0 > #1
         //------------------------------------majority vote------------------------------------
         var leafLabel = 0.0
-        if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._2) {
+        if (counterPerLeaf(leafId)(0) < counterPerLeaf(leafId)(1)) {
           leafLabel = 1.0
-          if (counterPerLeaf(leafId)._2 < counterPerLeaf(leafId)._3) {
+          if (counterPerLeaf(leafId)(1) < counterPerLeaf(leafId)(2)) {
             leafLabel = 2.0
           }
-        }
-        else if (counterPerLeaf(leafId)._1 < counterPerLeaf(leafId)._3) {
+        }  //TODO:: think of using apply function in the list, to be more clear
+        else if (counterPerLeaf(leafId)(0) < counterPerLeaf(leafId)(2)) {
           leafLabel = 2.0
         }
         VFDT.setNodeLabel(leafId, leafLabel) //majority vote for leaf label
@@ -307,16 +309,15 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //----------------------till here----------------------------------------------------------
 
         counterPerLeaf.getOrElse(leafId, None) match {
-          case leafMetrics: (Int, Int, Int) => {
+          case leafMetrics: List[Int] => {
             //if we have seen at least MinNumberOfInstances and are not all of the same class
-            if (((leafMetrics._1 + leafMetrics._2 + leafMetrics._3) % resultingParameters.get
-              (MinNumberOfInstances).get == 0) &&
-              (leafMetrics._1 * leafMetrics._2 != 0 || leafMetrics._2 * leafMetrics._3 != 0 ||
-                leafMetrics._1 * leafMetrics._3 != 0)) {
+            
+            if ((leafMetrics.sum % resultingParameters.apply(MinNumberOfInstances) == 0) &&
+              (leafMetrics.count(_ == 0) != leafMetrics.size-1) ) {
+//              (leafMetrics._1 * leafMetrics._2 != 0 || leafMetrics._2 * leafMetrics._3 != 0 ||
+//                leafMetrics._1 * leafMetrics._3 != 0)) {
 
-              val temp = CalculateMetricsSignal(leafId, leafMetrics._1 + leafMetrics._2 +
-                leafMetrics._3, false)
-//              System.err.println(temp)
+              val temp = CalculateMetricsSignal(leafId, leafMetrics.sum , false)
               out.collect((-2, temp))
             }
           }
@@ -375,8 +376,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                     // instances when the
                     // signal was send
                     val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get
-                      (evaluationMetric.leafId)
-                      .get)
+                      (evaluationMetric.leafId).get)
 
                     if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
                       bestInfoGain >= nonSplitEntro) || (
@@ -385,11 +385,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
                       val nominal = resultingParameters.get(NominalAttributes)
                       nominal match {
-                        case None => {
-                          VFDT.growTree(evaluationMetric.leafId, evaluationMetric.proposedValues
-                            (0)._1,
-                            AttributeType.Numerical, evaluationMetric.proposedValues(0)._2._2,
+                        case None => { //if there are no Nominal attributes
+                          VFDT.growTree(evaluationMetric.leafId,
+                            evaluationMetric.proposedValues(0)._1, AttributeType.Numerical,
+                            evaluationMetric.proposedValues(0)._2._2,
                             evaluationMetric.proposedValues(0)._2._1)
+
                           //              counterPerLeaf-=(leafId)
                           out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                         }
@@ -418,6 +419,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           }
                         }
                       }
+                      println(s"--------------------${VFDT.decisionTree.size}--------------------")
                       println(s"---VFDT:$VFDT")
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
@@ -437,38 +439,27 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
   }
 
-
-  private def hoeffdingBound(counterPerClass: Product): Double = {
+  private def hoeffdingBound(counterPerClass: List[Int]): Double = {
     val R_square = math.pow(Utils.logBase2(resultingParameters.get(NumberOfClasses).get), 2.0)
     val delta = resultingParameters.get(VfdtDelta).get
 
-    var n = 0.0
-    counterPerClass.productIterator.foreach(clazz => {
-      n += clazz.asInstanceOf[Int]
-    })
+    val n = counterPerClass.sum
 
     val hoeffdingBound = math.sqrt((R_square * math.log(1.0 / delta)) / (2.0 * n))
-    println(s"---hoeffding bound: $hoeffdingBound")
+//    println(s"---hoeffding bound: $hoeffdingBound")
     hoeffdingBound
   }
 
-  private def nonSplittingEntropy(metrics012: Product): Double = {
+  private def nonSplittingEntropy(leafMetrics: List[Int]): Double = {
     //P(class1)Entropy(class1) + P(class2)Entropy(class2) + ...
-    var total = 0.0
-    metrics012.productIterator.foreach(clazz => {
-      total += clazz.asInstanceOf[Int]
-    })
+    val total = leafMetrics.sum.toDouble
     var entropy = 0.0
 
-    metrics012.productIterator.foreach(clazz => {
-      val label = clazz.asInstanceOf[Int]
-      if (label != 0) {
-        entropy -= (clazz.asInstanceOf[Int] / total) * Utils.logBase2(clazz.asInstanceOf[Int] /
-          total)
+    leafMetrics.foreach(classMetric => {
+      if (classMetric != 0) {
+        entropy -= (classMetric/total) * Utils.logBase2(classMetric/ total)
       }
     })
-    //    val entropy = -(nOfYes / total) * Utils.logBase2(nOfYes / total) -
-    //      (nOfNo / total) * Utils.logBase2(nOfNo / total)
     entropy
   }
 
