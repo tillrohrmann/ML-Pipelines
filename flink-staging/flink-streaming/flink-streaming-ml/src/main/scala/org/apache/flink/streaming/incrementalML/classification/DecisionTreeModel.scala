@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.incrementalML.classification
 
 import org.apache.flink.ml.math.Vector
-import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{Metrics, AttributeType}
 import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
 
 import scala.collection.mutable
@@ -113,19 +113,19 @@ object DecisionTreeModel
       val attributesToExclude = nodeToSplit.getExcludingAttributes match {
         case None =>
           mutable.Seq[Int](splitAttribute)
-        case  _ =>
+        case _ =>
           nodeToSplit.getExcludingAttributes.get :+ (splitAttribute)
       }
-//      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
+      //      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
       val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain,
-        attributesToExclude, decisionTree.size-1)
+        attributesToExclude, decisionTree.size - 1)
       nodeToSplit.isLeaf = false
       decisionTree = decisionTree ++ newNodes
     }
 
   }
 
-  def getNodeExcludingAttributes (node: Int) : Option[mutable.Seq[Int]] ={
+  def getNodeExcludingAttributes(node: Int): Option[mutable.Seq[Int]] = {
     decisionTree.getOrElse(node, None) match {
       case treeNode: DTNode =>
         treeNode.getExcludingAttributes
@@ -153,6 +153,10 @@ object DecisionTreeModel
 
   def nodeIsLeaf(node: Int): Boolean = {
     decisionTree.apply(node).isLeaf
+  }
+
+  def getDecisionTreeSize: Int = {
+    decisionTree.size
   }
 
   override def toString(): String = {
@@ -261,7 +265,8 @@ case class DTNode(
   override def toString(): String = {
     val s = new StringBuilder()
     s.append(s"NodeId:$nodeId -> children:$children, splitting attribute: $splitAttribute, " +
-      s"splitting value:$attributeSplitValue, parent:$parent, excluding attributes:$excludingAttributes")
+      s"splitting value:$attributeSplitValue, parent:$parent, excluding " +
+      s"attributes:$excludingAttributes")
     s.toString()
   }
 }
