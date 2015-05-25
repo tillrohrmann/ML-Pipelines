@@ -24,12 +24,12 @@ class PrequentialEvaluator
   extends Evaluator[(Int, Metrics), (Double, Double, Double)]
   with Serializable {
 
+  val alpha = 0.975
   var instancesClassified = 0.0
   var sumLossFunction = 0.0
   var sumLossFunctionWithoutLatent = 0.0
   var Bdenominator = 0.0
   var preqError = 0.0
-  val alpha = 0.975
 
   /** Evaluating model's accuracy with the input observations
     *

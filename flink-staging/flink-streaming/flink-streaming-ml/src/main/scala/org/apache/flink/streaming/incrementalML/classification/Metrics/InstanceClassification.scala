@@ -19,8 +19,8 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 
 
 case class InstanceClassification(
-  label: Double,
-  clazz: Double)
+                                   label: Double,
+                                   clazz: Double)
   extends Metrics
   with Serializable {
 

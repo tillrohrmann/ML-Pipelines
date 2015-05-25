@@ -37,7 +37,7 @@ import scala.collection.mutable
  * @param context
  */
 class VeryFastDecisionTree(
-  context: StreamExecutionEnvironment)
+                            context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, (Int, Metrics)]
   with Serializable {
 
@@ -72,8 +72,25 @@ class VeryFastDecisionTree(
     this
   }
 
+  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
+  DataStream[(Int, Metrics)] = {
+    val resultingParameters = this.parameters ++ fitParameters
+
+    val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
+
+    var prequentialEvaluation: DataStream[(Int, Metrics)] = null
+
+    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => {
+      val (feedback, output, preqEvalStream) = iterationFunction(dataPointsStream,
+        resultingParameters)
+      prequentialEvaluation = preqEvalStream
+      (feedback, output)
+    })
+    prequentialEvaluation
+  }
+
   private def iterationFunction(dataPointsStream: DataStream[Metrics],
-    resultingParameters: ParameterMap): (DataStream[Metrics],
+                                resultingParameters: ParameterMap): (DataStream[Metrics],
     DataStream[Metrics], DataStream[(Int, Metrics)]) = {
 
     val mSAds: DataStream[(Int, Metrics)] = dataPointsStream.flatMap(new GlobalModelMapper(
@@ -117,26 +134,13 @@ class VeryFastDecisionTree(
     val output: DataStream[Metrics] = splitDs.select("output")
     (feedback, output, prequentialEvaluationStream)
   }
-
-  override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
-  DataStream[(Int, Metrics)] = {
-    val resultingParameters = this.parameters ++ fitParameters
-
-    val dataPointsStream: DataStream[Metrics] = input.map(dp => DataPoints(dp))
-
-    var prequentialEvaluation: DataStream[(Int, Metrics)] = null
-
-    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => {
-      val (feedback, output, preqEvalStream) = iterationFunction(dataPointsStream,
-        resultingParameters)
-      prequentialEvaluation = preqEvalStream
-      (feedback, output)
-    })
-    prequentialEvaluation
-  }
 }
 
 object VeryFastDecisionTree {
+
+  def apply(context: StreamExecutionEnvironment): VeryFastDecisionTree = {
+    new VeryFastDecisionTree(context)
+  }
 
   /** Minimum number of instances seen, before deciding the new splitting feature.
     *
@@ -180,9 +184,6 @@ object VeryFastDecisionTree {
     override val defaultValue: Option[Int] = Some(2)
   }
 
-  def apply(context: StreamExecutionEnvironment): VeryFastDecisionTree = {
-    new VeryFastDecisionTree(context)
-  }
 }
 
 
@@ -204,17 +205,14 @@ object VeryFastDecisionTree {
 class GlobalModelMapper(resultingParameters: ParameterMap)
   extends RichFlatMapFunction[Metrics, (Int, Metrics)] {
 
+  //Create the root of the DecisionTreeModel
+  val VFDT = DecisionTreeModel
   //counterPerLeaf -> (leafId,(#0,#1,#2))
   var counterPerLeaf = mutable.HashMap[Int, List[Int]]((0,
     List.fill(resultingParameters.apply(NumberOfClasses))(0)))
-
   var metricsFromLocalProcessors = mutable.HashMap[Int, mutable.Map[Int, (Int, List[(Int,
     (Double, List[Double]))])]]()
-
-  //Create the root of the DecisionTreeModel
-  val VFDT = DecisionTreeModel
   VFDT.createRootOfTheTree
-
 
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
     var leafId = 0
@@ -346,8 +344,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                   // if all metrics from local processors have been received, then check for
                   // the best attribute to split.
                   println(s"tempPV:${tempPV._1} ---------${resultingParameters.apply(Parallelism)}")
-                  println(s"${metricsFromLocalProcessors.get(evaluationMetric.leafId).get
-                    (evaluationMetric.signalIdNumber)}\n")
+                  println(s"${
+                    metricsFromLocalProcessors.get(evaluationMetric.leafId).get
+                    (evaluationMetric.signalIdNumber)
+                  }\n")
                   if (tempPV._1 == resultingParameters.apply(Parallelism)) {
 
                     var bestValuesToSplit = tempPV._2
