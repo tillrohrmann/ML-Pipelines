@@ -36,10 +36,10 @@ import org.apache.flink.streaming.incrementalML.preprocessing.Imputer.Strategy
   *
   * @example
   * {{{
-  *                    val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
-  *                    val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
+  *                       val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
+  *                       val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
   *
-  *                    transformer.transform(trainingDS)
+  *                       transformer.transform(trainingDS)
   * }}}
   *
   * - [[Imputer.Strategy]]: The Imputation Strategy to be followed; by default equal to

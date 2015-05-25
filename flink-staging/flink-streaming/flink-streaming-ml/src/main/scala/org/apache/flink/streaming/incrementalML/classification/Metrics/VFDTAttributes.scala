@@ -20,12 +20,12 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
 
 class VFDTAttributes(
-                      val id: Int,
-                      val value: Double,
-                      val label: Double,
-                      val nOfDifferentValues: Int,
-                      val leaf: Int,
-                      val attributeType: AttributeType)
+  val id: Int,
+  val value: Double,
+  val label: Double,
+  val nOfDifferentValues: Int,
+  val leaf: Int,
+  val attributeType: AttributeType)
   extends Metrics
   with Serializable {
 
@@ -36,7 +36,7 @@ class VFDTAttributes(
 
 object VFDTAttributes {
   def apply(id: Int, value: Double, clazz: Double, nOfValues: Int, leaf: Int,
-            attrType: AttributeType): VFDTAttributes = {
+    attrType: AttributeType): VFDTAttributes = {
     new VFDTAttributes(id, value, clazz, nOfValues, leaf, attrType)
   }
 }
