@@ -22,8 +22,8 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
   *
   */
 case class EvaluationMetric(
-//  bestValue: (Int, (Double, List[Double])),
-//  secondBestValue: (Int, (Double, List[Double])),
+  //  bestValue: (Int, (Double, List[Double])),
+  //  secondBestValue: (Int, (Double, List[Double])),
   proposedValues: List[(Int, (Double, List[Double]))],
   leafId: Int,
   signalIdNumber: Int)
@@ -31,6 +31,7 @@ case class EvaluationMetric(
   with Serializable {
 
   override def toString: String = {
-    s"Proposed attributes to split: $proposedValues\n"
+    s"leaf: $leafId and signalIdNumber: $signalIdNumber, proposed attributes " +
+      s"to split: $proposedValues\n"
   }
 }

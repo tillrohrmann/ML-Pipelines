@@ -46,7 +46,8 @@ object DecisionTreeModel
     var currentNode = decisionTree.get(0).get
 
     while (!currentNode.isLeaf) {
-      var tempChildrenList = currentNode.children.get
+      var tempChildrenList = currentNode.children.getOrElse(throw new RuntimeException(s"" +
+        s"Node:$currentNode is not a leaf but has no children."))
 
       currentNode.splitAttributeType match {
         case Some(AttributeType.Numerical) => {
@@ -118,6 +119,7 @@ object DecisionTreeModel
 //      System.err.println(s"node: $nodeToSplit, excludingAttr:$attributesToExclude")
       val newNodes = nodeToSplit.splitNode(splitAttribute, attrType, splitValue, infoGain,
         attributesToExclude, decisionTree.size-1)
+      nodeToSplit.isLeaf = false
       decisionTree = decisionTree ++ newNodes
     }
 
@@ -147,6 +149,10 @@ object DecisionTreeModel
         label = node.getLabel
     }
     label
+  }
+
+  def nodeIsLeaf(node: Int): Boolean = {
+    decisionTree.apply(node).isLeaf
   }
 
   override def toString(): String = {
@@ -219,7 +225,6 @@ case class DTNode(
     //      println(s"--------node:$nodeId, isLeaf:$isLeaf, splitAttrType:$splitAttrType, " +
     //        s"attrSplitValues:$attrSplitValues")
 
-    isLeaf = false
     if (splitAttributeType.get == AttributeType.Numerical) {
       var temp = DTNode(false, true, size + 1, Some(nodeId))
       tempNodes.put(size + 1, temp)
