@@ -18,7 +18,7 @@
 package org.apache.flink.streaming.incrementalML.classification
 
 import org.apache.flink.ml.math.Vector
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{Metrics, AttributeType}
+import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType
 import org.apache.flink.streaming.incrementalML.classification.Metrics.AttributeType.AttributeType
 
 import scala.collection.mutable

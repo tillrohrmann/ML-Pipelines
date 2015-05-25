@@ -18,7 +18,6 @@
 package org.apache.flink.streaming.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.streaming.incrementalML.classification.Metrics.EvaluationMetric
 
 
 /** Base trait for algorithm which evaluates the current model for the input data points
