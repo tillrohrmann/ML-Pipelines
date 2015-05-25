@@ -22,8 +22,6 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
   *
   */
 case class EvaluationMetric(
-  //  bestValue: (Int, (Double, List[Double])),
-  //  secondBestValue: (Int, (Double, List[Double])),
   proposedValues: List[(Int, (Double, List[Double]))],
   leafId: Int,
   signalIdNumber: Int)

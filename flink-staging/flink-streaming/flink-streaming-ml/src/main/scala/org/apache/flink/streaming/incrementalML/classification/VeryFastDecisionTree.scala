@@ -80,7 +80,6 @@ class VeryFastDecisionTree(
     val mSAds = dataPointsStream.flatMap(new GlobalModelMapper(resultingParameters))
       .setParallelism(1)
 
-    //TODO:: Decide which values will declare if it is a Model or a Signal
     val attributes = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
         return value._1 >= 0
@@ -93,12 +92,11 @@ class VeryFastDecisionTree(
       }
     }).setParallelism(1)
 
-    val classificationPerInstance = mSAds.filter(new FilterFunction[(Int, Metrics)] {
+    val prequentialEvaluationStream = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
         return (value._1 == -3) //InstanceClassification
       }
     }).setParallelism(1)
-    //    classificationPerInstance.print()
 
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper).setParallelism(resultingParameters.apply
@@ -118,7 +116,7 @@ class VeryFastDecisionTree(
 
     val feedback: DataStream[Metrics] = splitDs.select("feedback")
     val output: DataStream[Metrics] = splitDs.select("output")
-    (feedback, output, classificationPerInstance)
+    (feedback, output, prequentialEvaluationStream)
   }
 
   override def fit(input: DataStream[LabeledVector], fitParameters: ParameterMap):
@@ -180,7 +178,7 @@ object VeryFastDecisionTree {
    * Specifies the number of parallel instances for the local statistics
    */
   case object Parallelism extends Parameter[Int] {
-    override val defaultValue: Option[Int] = Some(7)
+    override val defaultValue: Option[Int] = Some(2)
   }
 
   def apply(context: StreamExecutionEnvironment): VeryFastDecisionTree = {
@@ -253,19 +251,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
               s" ${newDataPoint.getLabel}")
         }
-        //#0 > #1
+
         //------------------------------------majority vote------------------------------------
-        var leafLabel = 0.0
-        if (counterPerLeaf(leafId)(0) < counterPerLeaf(leafId)(1)) {
-          leafLabel = 1.0
-          if (counterPerLeaf(leafId)(1) < counterPerLeaf(leafId)(2)) {
-            leafLabel = 2.0
-          }
-        }  //TODO:: think of using apply function in the list, to be more clear
-        else if (counterPerLeaf(leafId)(0) < counterPerLeaf(leafId)(2)) {
-          leafLabel = 2.0
-        }
-        VFDT.setNodeLabel(leafId, leafLabel) //majority vote for leaf label
+        val tempList = counterPerLeaf(leafId).view.zipWithIndex //(value,index)
+        val leafLabel = tempList maxBy (_._1)
+
+        VFDT.setNodeLabel(leafId, leafLabel._2)
         //------------------------------------end majority vote------------------------------------
 
         //TODO:: change this piece of code
@@ -314,8 +305,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             
             if ((leafMetrics.sum % resultingParameters.apply(MinNumberOfInstances) == 0) &&
               (leafMetrics.count(_ == 0) != leafMetrics.size-1) ) {
-//              (leafMetrics._1 * leafMetrics._2 != 0 || leafMetrics._2 * leafMetrics._3 != 0 ||
-//                leafMetrics._1 * leafMetrics._3 != 0)) {
 
               val temp = CalculateMetricsSignal(leafId, leafMetrics.sum , false)
               out.collect((-2, temp))
@@ -354,6 +343,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
                   // if all metrics from local processors have been received, then check for
                   // the best attribute to split.
+                  System.err.println(s"tempPV:${tempPV._1} ---------${resultingParameters.apply(Parallelism)}")
                   if (tempPV._1 == resultingParameters.apply(Parallelism)) {
 
                     var bestValuesToSplit = tempPV._2
@@ -419,7 +409,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           }
                         }
                       }
-                      println(s"--------------------${VFDT.decisionTree.size}--------------------")
+                      println(s"------------------${VFDT.getDecisionTreeSize}------------------")
                       println(s"---VFDT:$VFDT")
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
@@ -494,8 +484,8 @@ class PartialVFDTMetricsMapper extends FlatMapFunction[(Int, Metrics), Metrics] 
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
 
-        //check if there is an attributeSpectator for this attribute, update metrics
-        //if there is no attributeSpectator create one, nominal or numerical
+        //check if there is an attributeObserver for this attribute, update metrics
+        //if there is no attributeObserver create one, nominal or numerical
         attributesObserverTemp.getOrElseUpdate(value._1, {
           if (attribute.attributeType == AttributeType.Nominal) {
             new NominalAttributeObserver(attribute.nOfDifferentValues)

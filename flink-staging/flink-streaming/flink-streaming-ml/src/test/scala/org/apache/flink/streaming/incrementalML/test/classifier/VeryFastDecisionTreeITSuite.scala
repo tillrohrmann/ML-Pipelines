@@ -45,7 +45,7 @@ class VeryFastDecisionTreeITSuite
 
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
-    parameters.add(VeryFastDecisionTree.Parallelism,4)
+//    parameters.add(VeryFastDecisionTree.Parallelism,1)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
