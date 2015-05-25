@@ -99,7 +99,7 @@ class NumericalAttributeObserver
         calcEntropyOfChildren(leftHandSide, leftHandSideInstances, rightHandSide,
           rightHandSideInstances, totalInstancesSeen)
       }
-      else{
+      else {
         Double.MaxValue
       }
 
