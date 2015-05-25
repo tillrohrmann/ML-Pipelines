@@ -30,6 +30,6 @@ case class EvaluationMetric(
 
   override def toString: String = {
     s"leaf: $leafId and signalIdNumber: $signalIdNumber, proposed attributes " +
-      s"to split: $proposedValues\n"
+      s"to split: $proposedValues"
   }
 }
