@@ -34,6 +34,7 @@ import org.apache.flink.streaming.sampling.samplers.ReservoirSampler;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.util.Collector;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -53,7 +54,7 @@ import java.util.Properties;
  *
  */
 
-public class AirlinesExample {
+public class AirlinesExample implements Serializable {
 
 	public static void main(String[] args) throws Exception {
 

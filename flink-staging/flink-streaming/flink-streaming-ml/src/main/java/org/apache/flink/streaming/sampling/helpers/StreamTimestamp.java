@@ -17,10 +17,12 @@
  */
 package org.apache.flink.streaming.sampling.helpers;
 
+import java.io.Serializable;
+
 /**
  * Created by marthavk on 2015-04-24.
  */
-public class StreamTimestamp {
+public class StreamTimestamp implements Serializable {
 
 	final Long timestamp;
 
