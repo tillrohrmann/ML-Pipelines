@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.sources;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,35 +15,36 @@ package org.apache.flink.streaming.sampling.sources;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.flink.streaming.sampling.helpers;
 
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
-
-import java.util.Properties;
+import java.util.Date;
 
 /**
- * Created by marthavk on 2015-05-20.
+ * Created by marthavk on 2015-04-24.
  */
-public class NominalStreamSource implements SourceFunction<Integer> {
+public class StreamTimestamp {
 
-	long numberOfEvents;
-	long count;
-	Properties props;
+	Long timestamp;
 
-	public NominalStreamSource() {
-		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		//double[] distribution = Double.parseDouble(props.getProperty("bernoulli"));
+	public StreamTimestamp() {
+		timestamp = System.currentTimeMillis();
+	}
 
+	public StreamTimestamp(int yyyy, int mm, int dd) {
+		timestamp =(long) yyyy*10000 + mm*100 + dd;
+	}
+
+
+	public long getTimestamp() {
+		return timestamp;
+	}
+
+	public void update() {
+		timestamp = System.currentTimeMillis();
 	}
 
 	@Override
-	public boolean reachedEnd() throws Exception {
-		return false;
-	}
-
-	@Override
-	public Integer next() throws Exception {
-		return null;
+	public String toString() {
+		return timestamp.toString();
 	}
 }

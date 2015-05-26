@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.sources;/*
+package org.apache.flink.streaming.sampling.generators;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,34 +16,14 @@ package org.apache.flink.streaming.sampling.sources;/*
  * limitations under the License.
  */
 
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
-
-import java.util.Properties;
-
+import org.apache.flink.api.common.functions.RichMapFunction;
 /**
  * Created by marthavk on 2015-05-20.
  */
-public class NominalStreamSource implements SourceFunction<Integer> {
-
-	long numberOfEvents;
-	long count;
-	Properties props;
-
-	public NominalStreamSource() {
-		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		//double[] distribution = Double.parseDouble(props.getProperty("bernoulli"));
-
-	}
+public class DoubleDataGenerator<IN extends GaussianDistribution> extends RichMapFunction<IN, Double> {
 
 	@Override
-	public boolean reachedEnd() throws Exception {
-		return false;
-	}
-
-	@Override
-	public Integer next() throws Exception {
-		return null;
+	public Double map(IN value) throws Exception {
+		return value.generate();
 	}
 }

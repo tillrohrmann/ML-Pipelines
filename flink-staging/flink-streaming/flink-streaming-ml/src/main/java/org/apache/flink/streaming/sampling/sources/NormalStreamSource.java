@@ -67,43 +67,40 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 			meanStep = (meanTarget - mean) / (steps);
 			stDevStep = (stDevTarget - stDev) / (steps);
 		}
-
 	}
 
 	@Override
-	public void run(Collector<GaussianDistribution> collector) throws Exception {
-
-		for (count = 0; count < stablePoints; count ++) {
-			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
-
+	public boolean reachedEnd() throws Exception {
+		if (count < numberOfEvents) {
+			return false;
 		}
+		return true;
+	}
 
-		System.out.println();
-
-		for (count=stablePoints; count < numberOfEvents - stablePoints; count++) {
+	@Override
+	public GaussianDistribution next() throws Exception {
+		if (count <stablePoints) {
+			count ++;
+			return new GaussianDistribution(mean, stDev, outlierRate);
+		}
+		else if (count < numberOfEvents - stablePoints) {
 			long interval = numberOfEvents - 2 * stablePoints;
 			long countc = count - stablePoints;
 			double multiplier = Math.floor(countc * steps / interval);
 			mean = meanInit + meanStep * multiplier;
 			stDev = stDevInit + stDevStep * multiplier;
-			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
+			count ++;
+			return new GaussianDistribution(mean, stDev, outlierRate);
 		}
-
-		System.out.println();
-		for(count=numberOfEvents - stablePoints; count<numberOfEvents; count ++){
-			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
-			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
+		else if (count<numberOfEvents) {
+			count ++;
+			return new GaussianDistribution(mean, stDev, outlierRate);
+		}
+		else {
+			return null;
 		}
 
 	}
 
-	@Override
-	public void cancel() {
 
-	}
 }
