@@ -18,7 +18,8 @@
 package org.apache.flink.streaming.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification, Metrics}
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
+Metrics}
 
 class PrequentialEvaluator
   extends Evaluator[(Int, Metrics), (Double, Double, Double)]

@@ -24,8 +24,7 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -236,20 +235,20 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         val t = temp(newDataPoint.getLabel.toInt) + 1
         counterPerLeaf.update(leafId, temp.updated(newDataPoint.getLabel.toInt, t))
 
-//        newDataPoint.getLabel match {
-//          case 0.0 =>
-//            val t = temp(0) + 1
-//            counterPerLeaf.update(leafId, temp.updated(0, t))
-//          case 1.0 =>
-//            val t = temp(1) + 1
-//            counterPerLeaf.update(leafId, temp.updated(1, t))
-//          case 2.0 =>
-//            val t = temp(2) + 1
-//            counterPerLeaf.update(leafId, temp.updated(2, t))
-//          case _ =>
-//            throw new RuntimeException(s"I am sorry there was some problem with that " +
-//              s"class label:" + s" ${newDataPoint.getLabel}")
-//        }
+        //        newDataPoint.getLabel match {
+        //          case 0.0 =>
+        //            val t = temp(0) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(0, t))
+        //          case 1.0 =>
+        //            val t = temp(1) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(1, t))
+        //          case 2.0 =>
+        //            val t = temp(2) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(2, t))
+        //          case _ =>
+        //            throw new RuntimeException(s"I am sorry there was some problem with that " +
+        //              s"class label:" + s" ${newDataPoint.getLabel}")
+        //        }
 
         //------------------------------------majority vote------------------------------------
         val tempList = counterPerLeaf(leafId).view.zipWithIndex //(value,index)
@@ -351,12 +350,16 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                     val bestInfoGain = nonSplitEntro - bestValuesToSplit(0)._2._1
                     val secondBestInfoGain = nonSplitEntro - bestValuesToSplit(1)._2._1
 
-//                    println(s"bestValue: ${evaluationMetric.proposedValues(0)._2._1}, " +
-//                      s"secondBestValue" +
-//                      s": ${evaluationMetric.proposedValues(1)._2._1}, bestInfoGain: " +
-//                      s"$bestInfoGain, secondBestInfoGain: $secondBestInfoGain, bestInfoGain-" +
-//                      s"secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
-//                      s"nonSplitEntro: $nonSplitEntro")
+                    //                    println(s"bestValue: ${evaluationMetric.proposedValues
+                    // (0)._2._1}, " +
+                    //                      s"secondBestValue" +
+                    //                      s": ${evaluationMetric.proposedValues(1)._2._1},
+                    // bestInfoGain: " +
+                    //                      s"$bestInfoGain, secondBestInfoGain:
+                    // $secondBestInfoGain, bestInfoGain-" +
+                    //                      s"secondBestInfoGain: ${bestInfoGain -
+                    // secondBestInfoGain}, " +
+                    //                      s"nonSplitEntro: $nonSplitEntro")
 
                     //todo:: this hoeffding bound should be calculated with the number of
                     // instances when the signal was send?
@@ -378,7 +381,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                             evaluationMetric.proposedValues(0)._2._1)
 
                           //garbage collection
-                          counterPerLeaf-=(leafId)
+                          counterPerLeaf -= (leafId)
                           metricsFromLocalProcessors -= (evaluationMetric.leafId)
                           out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                         }
@@ -391,7 +394,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              counterPerLeaf-=(leafId)
+                              counterPerLeaf -= (leafId)
                               metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
@@ -402,7 +405,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              counterPerLeaf-=(leafId)
+                              counterPerLeaf -= (leafId)
                               metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
@@ -416,7 +419,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                       println(s"---counterPerLeaf: $counterPerLeaf\n")
                     }
                     //garbage collection
-                    metricsFromLocalProcessors.getOrElse(leafId,None) match {
+                    metricsFromLocalProcessors.getOrElse(leafId, None) match {
                       case None =>
                       case _ =>
                         t -= (evaluationMetric.signalIdNumber)
