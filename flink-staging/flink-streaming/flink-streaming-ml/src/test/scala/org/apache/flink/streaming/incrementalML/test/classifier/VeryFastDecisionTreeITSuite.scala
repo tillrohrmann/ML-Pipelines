@@ -49,7 +49,7 @@ class VeryFastDecisionTreeITSuite
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
-      "waveform/waveformTrainData_1000K.csv").map {
+      "UCI-Waveform/waveformTrainData_1000K.csv").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -92,8 +92,11 @@ class VeryFastDecisionTreeITSuite
 
     val streamToEvaluate = vfdtLearner.fit(datapoints, parameters)
 
+    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/Documents/" +
+      "dataSets/UCI-Waveform/waveformResultsCSV.csv").setParallelism(1)
+
     evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/" +
-      "dataSets/waveform/waveformResults.txt").setParallelism(1)
+      "dataSets/UCI-Waveform/waveformResults.txt").setParallelism(1)
 
     env.execute()
   }
