@@ -18,19 +18,18 @@
 package org.apache.flink.streaming.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
-Metrics}
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification, Metrics}
 
 class PrequentialEvaluator
-  extends Evaluator[(Int, Metrics), (Double, Double,Double)]
+  extends Evaluator[(Int, Metrics), (Double, Double, Double)]
   with Serializable {
 
+  val alpha = 0.975
   var instancesClassified = 0.0
   var sumLossFunction = 0.0
   var sumLossFunctionWithoutLatent = 0.0
   var Bdenominator = 0.0
   var preqError = 0.0
-  val alpha = 0.975
 
   /** Evaluating model's accuracy with the input observations
     *
@@ -38,26 +37,27 @@ class PrequentialEvaluator
     *
     * @return The Prediction error for each data point
     */
-  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double,Double,Double)] = {
+  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double, Double,
+    Double)] = {
     inputDataStream.map {
       input => {
         val temp = input._2.asInstanceOf[InstanceClassification]
-//        instancesClassified += 1.0
+        //        instancesClassified += 1.0
         if (temp.label != temp.clazz) {
           sumLossFunctionWithoutLatent += 1.0
-          sumLossFunction = 1.0 + alpha*sumLossFunction
-          Bdenominator = 1.0 + alpha*Bdenominator
-          preqError = sumLossFunction/ Bdenominator
+          sumLossFunction = 1.0 + alpha * sumLossFunction
+          Bdenominator = 1.0 + alpha * Bdenominator
+          preqError = sumLossFunction / Bdenominator
 
         }
-        else{
-          sumLossFunction = alpha*sumLossFunction
-          Bdenominator = 1.0 + alpha*Bdenominator
-          preqError = sumLossFunction/ Bdenominator
+        else {
+          sumLossFunction = alpha * sumLossFunction
+          Bdenominator = 1.0 + alpha * Bdenominator
+          preqError = sumLossFunction / Bdenominator
         }
         instancesClassified += 1.0
-//        (instancesClassified,sumLossFunction/instancesClassified)
-        (instancesClassified, preqError, sumLossFunctionWithoutLatent/instancesClassified)
+        //        (instancesClassified,sumLossFunction/instancesClassified)
+        (instancesClassified, preqError, sumLossFunctionWithoutLatent / instancesClassified)
       }
     }.setParallelism(1)
   }

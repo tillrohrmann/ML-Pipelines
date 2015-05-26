@@ -36,10 +36,10 @@ import org.apache.flink.streaming.incrementalML.preprocessing.Imputer.Strategy
   *
   * @example
   * {{{
-  *               val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
-  *               val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
+  *                       val trainingDS: DataStream[LabeledVector] = env.fromCollection(data)
+  *                       val transformer = Imputer.setStrategy(ImputationStrategy.Deletion)
   *
-  *               transformer.transform(trainingDS)
+  *                       transformer.transform(trainingDS)
   * }}}
   *
   * - [[Imputer.Strategy]]: The Imputation Strategy to be followed; by default equal to
@@ -84,19 +84,20 @@ class Imputer
 
 object Imputer {
 
+  def apply(): Imputer = {
+    new Imputer()
+  }
+
   case object Strategy extends Parameter[ImputationStrategy] {
     override val defaultValue: Option[ImputationStrategy] = Some(ImputationStrategy.Deletion)
   }
 
-  def apply(): Imputer = {
-    new Imputer()
-  }
 }
 
 object ImputationStrategy extends Enumeration with Serializable {
-//  TODO:: Potential additions to imputation strategies:
-//   1. Replace missing value with most frequent occurrence
-//   2. replace missing values with mean of the attribute
+  //  TODO:: Potential additions to imputation strategies:
+  //   1. Replace missing value with most frequent occurrence
+  //   2. replace missing values with mean of the attribute
   type ImputationStrategy = Value
   val Deletion = Value
 }

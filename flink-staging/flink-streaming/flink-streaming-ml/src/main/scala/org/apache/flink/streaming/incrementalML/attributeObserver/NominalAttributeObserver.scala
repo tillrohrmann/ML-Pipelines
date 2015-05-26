@@ -70,7 +70,7 @@ class NominalAttributeObserver(
         // (#0,#1,#2)
         temp = (temp._1 + 1.0, temp._2, temp._3)
       }
-      else if (VFDTAttribute.label == 1.0){
+      else if (VFDTAttribute.label == 1.0) {
         temp = (temp._1, temp._2 + 1.0, temp._3)
       }
       else {
@@ -83,7 +83,7 @@ class NominalAttributeObserver(
         // (#0,#1,#2)
         attributeValues.put(VFDTAttribute.value, (1.0, 0.0, 0.0))
       }
-      else if (VFDTAttribute.label == 1.0){
+      else if (VFDTAttribute.label == 1.0) {
         attributeValues.put(VFDTAttribute.value, (0.0, 1.0, 0.0))
       }
       else {

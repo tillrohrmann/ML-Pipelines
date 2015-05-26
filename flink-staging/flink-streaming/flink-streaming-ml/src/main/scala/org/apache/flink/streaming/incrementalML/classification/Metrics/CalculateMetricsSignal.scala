@@ -19,12 +19,13 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 
 case class CalculateMetricsSignal(
   leaf: Int,
+  signalId: Int,
   deleteObserver: Boolean)
   extends Metrics
   with Serializable {
 
   override def toString: String = {
-    s"Calculate Metrics in leaf: $leaf"
+    s"Calculate Metrics in leaf: $leaf, signalId:$signalId, deleteFlag:$deleteObserver"
   }
 
 }
