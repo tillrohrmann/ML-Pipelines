@@ -17,30 +17,20 @@
  */
 package org.apache.flink.streaming.sampling.helpers;
 
-import java.util.Date;
-
 /**
  * Created by marthavk on 2015-04-24.
  */
 public class StreamTimestamp {
 
-	Long timestamp;
+	final Long timestamp;
 
 	public StreamTimestamp() {
 		timestamp = System.currentTimeMillis();
 	}
 
-	public StreamTimestamp(int yyyy, int mm, int dd) {
-		timestamp =(long) yyyy*10000 + mm*100 + dd;
-	}
-
 
 	public long getTimestamp() {
 		return timestamp;
-	}
-
-	public void update() {
-		timestamp = System.currentTimeMillis();
 	}
 
 	@Override

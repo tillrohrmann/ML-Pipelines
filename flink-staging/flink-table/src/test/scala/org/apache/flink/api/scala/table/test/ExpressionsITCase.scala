@@ -23,7 +23,7 @@ import org.apache.flink.api.scala._
 import org.apache.flink.api.scala.table._
 import org.apache.flink.core.fs.FileSystem.WriteMode
 import org.apache.flink.test.util.MultipleProgramsTestBase
-import org.apache.flink.test.util.MultipleProgramsTestBase.TestExecutionMode
+import org.apache.flink.test.util.AbstractMultipleProgramsTestBase.TestExecutionMode
 import org.junit._
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
@@ -123,5 +123,17 @@ class ExpressionsITCase(mode: TestExecutionMode) extends MultipleProgramsTestBas
     expected = "1,7,6,-4"
   }
 
+  @Test
+  def testCaseInsensitiveForAs: Unit = {
+
+    val env = ExecutionEnvironment.getExecutionEnvironment
+
+    val ds = env.fromElements((3, 5.toByte)).as('a, 'b)
+      .groupBy("a").select("a, a.count As cnt")
+
+    ds.writeAsText(resultPath, WriteMode.OVERWRITE)
+    env.execute()
+    expected = "3,1"
+  }
 
 }

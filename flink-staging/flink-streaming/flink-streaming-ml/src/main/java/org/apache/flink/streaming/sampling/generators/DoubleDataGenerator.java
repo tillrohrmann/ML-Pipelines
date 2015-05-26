@@ -17,6 +17,7 @@ package org.apache.flink.streaming.sampling.generators;/*
  */
 
 import org.apache.flink.api.common.functions.RichMapFunction;
+
 /**
  * Created by marthavk on 2015-05-20.
  */

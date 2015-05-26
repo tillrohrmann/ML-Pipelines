@@ -18,8 +18,6 @@
 
 package org.apache.flink.test.util;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
@@ -53,28 +51,11 @@ import java.util.Collection;
  *
  * }</pre>
  */
-public class MultipleProgramsTestBase extends TestBaseUtils {
-
-	/**
-	 * Enum that defines which execution environment to run the next test on:
-	 * An embedded local flink cluster, or the collection execution backend.
-	 */
-	public enum TestExecutionMode {
-		CLUSTER,
-		COLLECTION
-	}
-
-	// -----------------------------------------------------------------------------------------...
-
-	private static final int DEFAULT_PARALLELISM = 4;
-
-	protected static ForkableFlinkMiniCluster cluster = null;
-
-	protected transient TestExecutionMode mode;
+public class MultipleProgramsTestBase extends AbstractMultipleProgramsTestBase {
 
 	public MultipleProgramsTestBase(TestExecutionMode mode){
-		this.mode = mode;
-		switch(mode){
+		super(mode);
+		switch(this.mode){
 			case CLUSTER:
 				TestEnvironment clusterEnv = new TestEnvironment(cluster, 4);
 				clusterEnv.setAsContext();
@@ -84,16 +65,6 @@ public class MultipleProgramsTestBase extends TestBaseUtils {
 				collectionEnv.setAsContext();
 				break;
 		}
-	}
-
-	@BeforeClass
-	public static void setup() throws Exception{
-		cluster = TestBaseUtils.startCluster(1, DEFAULT_PARALLELISM, false);
-	}
-
-	@AfterClass
-	public static void teardown() throws Exception {
-		stopCluster(cluster, TestBaseUtils.DEFAULT_TIMEOUT);
 	}
 
 	@Parameterized.Parameters(name = "Execution mode = {0}")

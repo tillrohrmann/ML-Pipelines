@@ -46,8 +46,8 @@ import org.apache.flink.runtime.jobmanager.scheduler.SlotSharingGroup;
 import org.apache.flink.runtime.messages.Messages;
 import org.apache.flink.runtime.messages.TaskMessages.TaskOperationResult;
 import org.apache.flink.runtime.state.StateHandle;
-import org.apache.flink.runtime.util.SerializedValue;
 import org.apache.flink.runtime.taskmanager.Task;
+import org.apache.flink.runtime.util.SerializedValue;
 import org.apache.flink.util.ExceptionUtils;
 import org.slf4j.Logger;
 import scala.concurrent.Future;
@@ -71,7 +71,6 @@ import static org.apache.flink.runtime.execution.ExecutionState.FAILED;
 import static org.apache.flink.runtime.execution.ExecutionState.FINISHED;
 import static org.apache.flink.runtime.execution.ExecutionState.RUNNING;
 import static org.apache.flink.runtime.execution.ExecutionState.SCHEDULED;
-
 import static org.apache.flink.runtime.messages.TaskMessages.CancelTask;
 import static org.apache.flink.runtime.messages.TaskMessages.FailIntermediateResultPartitions;
 import static org.apache.flink.runtime.messages.TaskMessages.SubmitTask;
@@ -415,13 +414,13 @@ public class Execution implements Serializable {
 					markTimestamp(CANCELING, getStateTimestamp(CANCELED));
 					
 					try {
-						vertex.executionCanceled();
-					}
-					finally {
 						vertex.getExecutionGraph().deregisterExecution(this);
 						if (assignedResource != null) {
 							assignedResource.releaseSlot();
 						}
+					}
+					finally {
+						vertex.executionCanceled();
 					}
 					return;
 				}
@@ -434,7 +433,7 @@ public class Execution implements Serializable {
 	}
 
 	void scheduleOrUpdateConsumers(List<List<ExecutionEdge>> allConsumers) {
-		if (allConsumers.size() != 1) {
+		if (allConsumers.size() > 1) {
 			fail(new IllegalStateException("Currently, only a single consumer group per partition is supported."));
 		}
 

@@ -20,12 +20,11 @@ package org.apache.flink.streaming.incrementalML.classification
 import java.lang.Iterable
 import java.util
 
-import org.apache.flink.api.common.functions.{FilterFunction, RichFlatMapFunction}
+import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
-NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -60,6 +59,11 @@ class VeryFastDecisionTree(
 
   def setNominalAttributes(noNominalAttrs: Map[Int, Int]): VeryFastDecisionTree = {
     parameters.add(NominalAttributes, noNominalAttrs)
+    this
+  }
+
+  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): VeryFastDecisionTree = {
+    parameters.add(OnlyNominalAttributes,onlyNominalAttrs)
     this
   }
 
@@ -118,6 +122,7 @@ class VeryFastDecisionTree(
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper(context)).setParallelism(resultingParameters.
       apply(Parallelism)).split(new OutputSelector[Metrics] {
+
       override def select(value: Metrics): Iterable[String] = {
         val output = new util.ArrayList[String]()
 
@@ -171,6 +176,13 @@ object VeryFastDecisionTree {
     override val defaultValue: Option[Map[Int, Int]] = None
   }
 
+  /** Map that specifies which attributes are Nominal and how many possible values they will have
+    *
+    */
+  case object OnlyNominalAttributes extends Parameter[Boolean] {
+    override val defaultValue: Option[Boolean] = Some(false)
+  }
+
   /**
    * Specifies the number of classes that the problem to be solved will have
    */
@@ -202,9 +214,8 @@ object VeryFastDecisionTree {
   * outType2: (-2,CalculateMetricsSignal) -> When a signal for splitting a leaf is sent
   *
   */
-//Todo:: change richFlatMap to FlatMap
 class GlobalModelMapper(resultingParameters: ParameterMap)
-  extends RichFlatMapFunction[Metrics, (Int, Metrics)] {
+  extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //Create the root of the DecisionTreeModel
   val VFDT = DecisionTreeModel
@@ -232,23 +243,25 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         val temp = counterPerLeaf.getOrElseUpdate(leafId, List.fill(
           resultingParameters.apply(NumberOfClasses))(0))
-        println(s"${getRuntimeContext.getIndexOfThisSubtask}---------$newDataPoint,------- " +
-          s"counterPerLeaf: $counterPerLeaf ")
-        newDataPoint.getLabel match {
-          case 0.0 =>
-            val t = temp(0) + 1
-            counterPerLeaf.update(leafId, temp.updated(0, t))
-          case 1.0 =>
-            val t = temp(1) + 1
-            counterPerLeaf.update(leafId, temp.updated(1, t))
-          case 2.0 =>
-            val t = temp(2) + 1
-            counterPerLeaf.update(leafId, temp.updated(2, t))
-          case _ =>
-            throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
-              s" ${newDataPoint.getLabel}")
-        }
-        println(s"--------counterPerLeaf:$counterPerLeaf")
+
+        //update metrics for leaf
+        val t = temp(newDataPoint.getLabel.toInt) + 1
+        counterPerLeaf.update(leafId, temp.updated(newDataPoint.getLabel.toInt, t))
+
+        //        newDataPoint.getLabel match {
+        //          case 0.0 =>
+        //            val t = temp(0) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(0, t))
+        //          case 1.0 =>
+        //            val t = temp(1) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(1, t))
+        //          case 2.0 =>
+        //            val t = temp(2) + 1
+        //            counterPerLeaf.update(leafId, temp.updated(2, t))
+        //          case _ =>
+        //            throw new RuntimeException(s"I am sorry there was some problem with that " +
+        //              s"class label:" + s" ${newDataPoint.getLabel}")
+        //        }
 
         //------------------------------------majority vote------------------------------------
         val tempList = counterPerLeaf(leafId).view.zipWithIndex //(value,index)
@@ -260,7 +273,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //TODO:: change this piece of code
         val nominal = resultingParameters.get(NominalAttributes)
         nominal match {
-          case None => {
+          case None => { //only numerical attributes
             for (i <- 0 until featuresVector.size) {
               //emit numerical attribute
               VFDT.getNodeExcludingAttributes(leafId) match {
@@ -301,13 +314,10 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           case leafMetrics: List[Int] => {
             //if we have seen at least MinNumberOfInstances and are not all of the same class
 
-            System.err.println(s"!!!!leafID: ${leafId}!!!! leafMetrics:${leafMetrics}, ----------" +
-              s" ${leafMetrics.count(_ == 0)}, leafMetrics.size-1: ${leafMetrics.size - 1} ")
             if ((leafMetrics.sum % resultingParameters.apply(MinNumberOfInstances) == 0) &&
               (leafMetrics.count(_ == 0) != leafMetrics.size - 1)) {
 
               val temp = CalculateMetricsSignal(leafId, leafMetrics.sum, false)
-              System.err.println(s"**********************$temp\n")
               out.collect((-2, temp))
             }
           }
@@ -318,9 +328,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
       }
       case evaluationMetric: EvaluationMetric => {
         //Aggregate metrics and update global model.
-        println(s"$evaluationMetric")
-        //        println(s"-------------------------$evaluationMetric
-        // -----------------------------------")
+
         //if node is still a leaf and has not been split yet
         if (VFDT.nodeIsLeaf(evaluationMetric.leafId)) {
           // (leafId, Map(SignalId,(Counter, List((Attr,ProposedValues)))))
@@ -333,7 +341,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             case t: mutable.HashMap[Int, (Int, List[(Int, (Double, List[Double]))])] => {
               t.getOrElse(evaluationMetric.signalIdNumber, None) match {
                 case None => {
-                  val tempHashMap = t.+((evaluationMetric.signalIdNumber, (1, evaluationMetric
+                  val tempHashMap = t + ((evaluationMetric.signalIdNumber, (1, evaluationMetric
                     .proposedValues)))
                   metricsFromLocalProcessors.update(evaluationMetric.leafId, tempHashMap)
                 }
@@ -344,11 +352,6 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
                   // if all metrics from local processors have been received, then check for
                   // the best attribute to split.
-                  println(s"tempPV:${tempPV._1} ---------${resultingParameters.apply(Parallelism)}")
-                  println(s"${
-                    metricsFromLocalProcessors.get(evaluationMetric.leafId).get
-                    (evaluationMetric.signalIdNumber)
-                  }\n")
                   if (tempPV._1 == resultingParameters.apply(Parallelism)) {
 
                     var bestValuesToSplit = tempPV._2
@@ -360,16 +363,19 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                     val bestInfoGain = nonSplitEntro - bestValuesToSplit(0)._2._1
                     val secondBestInfoGain = nonSplitEntro - bestValuesToSplit(1)._2._1
 
-                    println(s"bestValue: ${evaluationMetric.proposedValues(0)._2._1}, " +
-                      s"secondBestValue" +
-                      s": ${evaluationMetric.proposedValues(1)._2._1}, bestInfoGain: " +
-                      s"$bestInfoGain, secondBestInfoGain: $secondBestInfoGain, bestInfoGain-" +
-                      s"secondBestInfoGain: ${bestInfoGain - secondBestInfoGain}, " +
-                      s"nonSplitEntro: $nonSplitEntro")
+                    //                    println(s"bestValue: ${evaluationMetric.proposedValues
+                    // (0)._2._1}, " +
+                    //                      s"secondBestValue" +
+                    //                      s": ${evaluationMetric.proposedValues(1)._2._1},
+                    // bestInfoGain: " +
+                    //                      s"$bestInfoGain, secondBestInfoGain:
+                    // $secondBestInfoGain, bestInfoGain-" +
+                    //                      s"secondBestInfoGain: ${bestInfoGain -
+                    // secondBestInfoGain}, " +
+                    //                      s"nonSplitEntro: $nonSplitEntro")
 
                     //todo:: this hoeffding bound should be calculated with the number of
-                    // instances when the
-                    // signal was send
+                    // instances when the signal was send?
                     val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get
                       (evaluationMetric.leafId).get)
 
@@ -387,7 +393,9 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                             evaluationMetric.proposedValues(0)._2._2,
                             evaluationMetric.proposedValues(0)._2._1)
 
-                          //              counterPerLeaf-=(leafId)
+                          //garbage collection
+                          counterPerLeaf -= (leafId)
+                          metricsFromLocalProcessors -= (evaluationMetric.leafId)
                           out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                         }
                         case _ => {
@@ -399,7 +407,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              //                  counterPerLeaf-=(leafId)
+                              counterPerLeaf -= (leafId)
+                              metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
                             case x: Int => {
@@ -409,7 +418,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                                 evaluationMetric.proposedValues(0)._2._1)
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              //                  counterPerLeaf-=(leafId)
+                              counterPerLeaf -= (leafId)
+                              metricsFromLocalProcessors -= (evaluationMetric.leafId)
                               out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
                             }
                           }
@@ -420,6 +430,12 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
                       println(s"---counterPerLeaf: $counterPerLeaf\n")
+                    }
+                    //garbage collection
+                    metricsFromLocalProcessors.getOrElse(leafId, None) match {
+                      case None =>
+                      case _ =>
+                        t -= (evaluationMetric.signalIdNumber)
                     }
                   }
                 }
@@ -472,8 +488,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   * This mapper emits values of type [[EvaluationMetric]], which extends [[Metrics]].
   *
   */
-class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment) extends RichFlatMapFunction[
-  (Int, Metrics), Metrics] {
+class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment)
+  extends FlatMapFunction[(Int, Metrics), Metrics] {
 
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
@@ -532,7 +548,6 @@ class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment) extends Rich
               }
               val t = EvaluationMetric(List(bestAttr, secondBestAttr), calcMetricsSignal.leaf,
                 calcMetricsSignal.signalId)
-              System.err.println(s"${getRuntimeContext.getIndexOfThisSubtask}--------t")
               out.collect(t)
             }
             else {
