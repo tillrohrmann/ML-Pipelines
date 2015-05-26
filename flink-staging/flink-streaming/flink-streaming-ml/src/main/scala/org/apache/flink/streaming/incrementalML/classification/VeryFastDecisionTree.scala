@@ -62,6 +62,11 @@ class VeryFastDecisionTree(
     this
   }
 
+  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): VeryFastDecisionTree = {
+    parameters.add(OnlyNominalAttributes,onlyNominalAttrs)
+    this
+  }
+
   def setNumberOfClasses(noClasses: Int): VeryFastDecisionTree = {
     parameters.add(NumberOfClasses, noClasses)
     this
@@ -117,6 +122,7 @@ class VeryFastDecisionTree(
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper(context)).setParallelism(resultingParameters.
       apply(Parallelism)).split(new OutputSelector[Metrics] {
+
       override def select(value: Metrics): Iterable[String] = {
         val output = new util.ArrayList[String]()
 
@@ -168,6 +174,13 @@ object VeryFastDecisionTree {
     */
   case object NominalAttributes extends Parameter[Map[Int, Int]] {
     override val defaultValue: Option[Map[Int, Int]] = None
+  }
+
+  /** Map that specifies which attributes are Nominal and how many possible values they will have
+    *
+    */
+  case object OnlyNominalAttributes extends Parameter[Boolean] {
+    override val defaultValue: Option[Boolean] = Some(false)
   }
 
   /**
@@ -260,7 +273,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //TODO:: change this piece of code
         val nominal = resultingParameters.get(NominalAttributes)
         nominal match {
-          case None => {
+          case None => { //only numerical attributes
             for (i <- 0 until featuresVector.size) {
               //emit numerical attribute
               VFDT.getNodeExcludingAttributes(leafId) match {

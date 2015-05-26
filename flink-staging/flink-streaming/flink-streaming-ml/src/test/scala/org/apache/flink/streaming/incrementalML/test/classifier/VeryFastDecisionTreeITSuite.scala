@@ -43,6 +43,7 @@ class VeryFastDecisionTreeITSuite
     parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
     parameters.add(VeryFastDecisionTree.Parallelism, 4)
+    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
@@ -51,10 +52,12 @@ class VeryFastDecisionTreeITSuite
         var featureList = Vector[Double]()
         val features = line.split(',')
         for (i <- 0 until features.size - 1) {
-          features(i).trim match {
-            case "?" =>
-              featureList = featureList :+ Double.NaN
-            case _ => {
+          featureList = featureList :+ features(i).trim.toDouble
+//          features(i).trim
+//          match {
+//            case "?" =>
+//              featureList = featureList :+ Double.NaN
+//            case _ => {
               //              if (nominalAttributes.contains(i)) {
               ////                val temp =  MurmurHash3.stringHash(features(i)).toDouble
               ////                System.err.println(features(i) + "->" +temp)
@@ -62,11 +65,11 @@ class VeryFastDecisionTreeITSuite
               // .toDouble
               //              }
               //              else {
-              featureList = featureList :+ features(i).toDouble
+//              featureList = featureList :+ features(i).toDouble
               //              }
             }
-          }
-        }
+//          }
+//        }
         //        val vector = if (features(features.size - 1).trim equals ">50K") {
         //          LabeledVector(1, DenseVector(featureList.toArray))
         //        }
