@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.airlines;
+
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
@@ -27,16 +28,15 @@ import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 /**
  * Created by marthavk on 2015-05-21.
- *
+ * <p>
  * Tuple2 has the fields: f0->Integer[] and f1->String[]
- *
+ * <p>
  * Integer[] is an array of 11 values containing in the following order:
  * [year, month, day of month, day of week, CRS depart time, CRS arrival time
  * flight number, actual elapsed time, distance, diverted, delay]
- *
+ * <p>
  * String[] is an array of 3 values containing in the following order:
  * [unique carrier, origin, destination]
- *
  */
 
 public class AirlinesExample {
@@ -46,34 +46,34 @@ public class AirlinesExample {
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
-		DataStreamSource<String> source = env.readTextFile(path + "2008_14col.data")	;
+		DataStreamSource<String> source = env.readTextFile(path + "2008_14col.data");
 
 		SingleOutputStreamOperator<Tuple2<Integer[], String[]>, ?> dataStream =
 				source.map(new MapFunction<String, Tuple2<Integer[], String[]>>() {
 
-				@Override
-				public Tuple2<Integer[], String[]> map(String record) throws Exception {
+					@Override
+					public Tuple2<Integer[], String[]> map(String record) throws Exception {
 
-					String[] values = record.split(",");
-					Integer[] vInt = new Integer[11];
-					int[] integerFields = new int[]{0, 1, 2, 3, 4, 5, 7, 8, 11, 12, 13};
+						String[] values = record.split(",");
+						Integer[] vInt = new Integer[11];
+						int[] integerFields = new int[]{0, 1, 2, 3, 4, 5, 7, 8, 11, 12, 13};
 
-					for(int i=0; i<integerFields.length; i++) {
-						int index = integerFields[i];
-						vInt[i] = Integer.parseInt(values[index]);
+						for (int i = 0; i < integerFields.length; i++) {
+							int index = integerFields[i];
+							vInt[i] = Integer.parseInt(values[index]);
+						}
+
+						String[] vStr = new String[3];
+						int[] stringFields = new int[]{6, 9, 10};
+						for (int i = 0; i < stringFields.length; i++) {
+							int index = stringFields[i];
+							vStr[i] = (values[index]);
+						}
+
+						return new Tuple2<Integer[], String[]>(vInt, vStr);
+
 					}
-
-					String[] vStr = new String[3];
-					int[] stringFields = new int[]{6, 9, 10};
-					for (int i=0; i<stringFields.length; i++) {
-						int index = stringFields[i];
-						vStr[i] = (values[index]);
-					}
-
-					return new Tuple2<Integer[], String[]>(vInt, vStr);
-
-				}
-			});
+				});
 
 		dataStream.addSink(new RichSinkFunction<Tuple2<Integer[], String[]>>() {
 			@Override

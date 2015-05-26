@@ -24,7 +24,10 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.*;
+import org.apache.flink.streaming.sampling.helpers.MetaAppender;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
 import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
@@ -97,7 +100,7 @@ public class BiasedReservoirSamplingExample {
 				.flatMap(new DistributionComparator())
 
 				/*sink*/
-				//.print();
+						//.print();
 				.writeAsText(SamplingUtils.path + "biased");
 	}
 

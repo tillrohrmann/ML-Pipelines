@@ -21,8 +21,6 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.MetaAppender;
@@ -97,7 +95,7 @@ public class PrioritySamplingExample {
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
 				.flatMap(new DistanceEvaluator())
-				//.flatMap(new DistributionComparator())
+						//.flatMap(new DistributionComparator())
 
 				/*sink*/
 						//.print();

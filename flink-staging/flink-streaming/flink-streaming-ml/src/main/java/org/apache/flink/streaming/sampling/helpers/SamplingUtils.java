@@ -131,9 +131,8 @@ public final class SamplingUtils {
 	}
 
 	public static double squaredDistance(double x1, double x2) {
-		return Math.pow((x1-x2),2);
+		return Math.pow((x1 - x2), 2);
 	}
-
 
 
 }

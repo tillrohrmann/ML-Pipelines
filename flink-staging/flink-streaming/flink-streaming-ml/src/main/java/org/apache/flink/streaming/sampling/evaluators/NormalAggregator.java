@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.evaluators;
+
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;

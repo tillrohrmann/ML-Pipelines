@@ -17,14 +17,13 @@
  */
 
 package org.apache.flink.streaming.sampling.generators;
-import org.apache.flink.util.Collector;
 
 import java.util.Random;
 
 /**
  * Created by marthavk on 2015-05-20.
  */
-public class BernoulliDistribution implements NumberGenerator<Integer>{
+public class BernoulliDistribution implements NumberGenerator<Integer> {
 	int classes;
 	double[] distribution;
 	Random r = new Random();
@@ -36,10 +35,10 @@ public class BernoulliDistribution implements NumberGenerator<Integer>{
 
 
 	public double[] cumsum(double[] dist) {
-		double[] cs =new double[classes];
+		double[] cs = new double[classes];
 		int aggregate = 0;
-		for (int i=0; i<dist.length; i++){
-			aggregate += dist[i]*100;
+		for (int i = 0; i < dist.length; i++) {
+			aggregate += dist[i] * 100;
 			cs[i] = aggregate;
 		}
 		return cs;
@@ -47,12 +46,12 @@ public class BernoulliDistribution implements NumberGenerator<Integer>{
 
 	@Override
 	public Integer generate() {
-		int number=0;
+		int number = 0;
 		double n = r.nextDouble();
 		double[] cs = cumsum(distribution);
-		for (int i=0; i<cs.length; i++) {
+		for (int i = 0; i < cs.length; i++) {
 			if (n < cs[i]) {
-				number=i;
+				number = i;
 				break;
 			}
 		}

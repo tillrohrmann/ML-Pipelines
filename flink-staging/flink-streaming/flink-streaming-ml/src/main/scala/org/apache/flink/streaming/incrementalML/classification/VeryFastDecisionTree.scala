@@ -247,8 +247,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 //            val t = temp(2) + 1
 //            counterPerLeaf.update(leafId, temp.updated(2, t))
 //          case _ =>
-//            throw new RuntimeException(s"I am sorry there was some problem with that class label:" +
-//              s" ${newDataPoint.getLabel}")
+//            throw new RuntimeException(s"I am sorry there was some problem with that " +
+//              s"class label:" + s" ${newDataPoint.getLabel}")
 //        }
 
         //------------------------------------majority vote------------------------------------
@@ -329,7 +329,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
             case t: mutable.HashMap[Int, (Int, List[(Int, (Double, List[Double]))])] => {
               t.getOrElse(evaluationMetric.signalIdNumber, None) match {
                 case None => {
-                  val tempHashMap = t.+((evaluationMetric.signalIdNumber, (1, evaluationMetric
+                  val tempHashMap = t + ((evaluationMetric.signalIdNumber, (1, evaluationMetric
                     .proposedValues)))
                   metricsFromLocalProcessors.update(evaluationMetric.leafId, tempHashMap)
                 }

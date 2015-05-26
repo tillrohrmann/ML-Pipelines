@@ -21,7 +21,6 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
 import java.util.ArrayList;
 import java.util.Properties;
@@ -105,8 +104,7 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 		if (SamplingUtils.flip(count / sample.getMaxSize())) {
 			if (!sample.isFull()) {
 				sample.addSample(element);
-			}
-			else {
+			} else {
 				sample.replaceAtRandom(element);
 			}
 		}

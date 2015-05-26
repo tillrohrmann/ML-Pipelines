@@ -23,7 +23,6 @@ import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-26.
@@ -90,8 +89,8 @@ public class Sample<T> implements Serializable {
 
 	public double[] getSampleAsArray() {
 		double[] array = new double[sample.size()];
-		for (int i=0; i<sample.size(); i++) {
-			array[i] = (Double)sample.get(i);
+		for (int i = 0; i < sample.size(); i++) {
+			array[i] = (Double) sample.get(i);
 		}
 		return array;
 	}

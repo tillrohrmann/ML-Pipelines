@@ -37,7 +37,7 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 
 	long count;
 
-	public NormalStreamSource () {
+	public NormalStreamSource() {
 
 		//parse properties
 		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
@@ -73,16 +73,18 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 	@Override
 	public void run(Collector<GaussianDistribution> collector) throws Exception {
 
-		for (count = 0; count < stablePoints; count ++) {
+		for (count = 0; count < stablePoints; count++) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
+			if (count % 10000 == 0) {
+				System.out.println(count);
+			}
 
 		}
 
 		System.out.println();
 
-		for (count=stablePoints; count < numberOfEvents - stablePoints; count++) {
+		for (count = stablePoints; count < numberOfEvents - stablePoints; count++) {
 			long interval = numberOfEvents - 2 * stablePoints;
 			long countc = count - stablePoints;
 			double multiplier = Math.floor(countc * steps / interval);
@@ -90,14 +92,18 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 			stDev = stDevInit + stDevStep * multiplier;
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
+			if (count % 10000 == 0) {
+				System.out.println(count);
+			}
 		}
 
 		System.out.println();
-		for(count=numberOfEvents - stablePoints; count<numberOfEvents; count ++){
+		for (count = numberOfEvents - stablePoints; count < numberOfEvents; count++) {
 			gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 			collector.collect(gaussD);
-			if (count % 10000 == 0) { System.out.println(count);}
+			if (count % 10000 == 0) {
+				System.out.println(count);
+			}
 		}
 
 	}

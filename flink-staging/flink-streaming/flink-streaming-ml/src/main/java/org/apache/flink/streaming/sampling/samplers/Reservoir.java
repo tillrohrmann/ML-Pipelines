@@ -37,8 +37,7 @@ public class Reservoir<T> extends Sample<T> implements Serializable, Iterable {
 	public void addSample(T item) {
 		if (!isFull()) {
 			this.sample.add(item);
-		}
-		else {
+		} else {
 			replaceSample(item);
 		}
 	}

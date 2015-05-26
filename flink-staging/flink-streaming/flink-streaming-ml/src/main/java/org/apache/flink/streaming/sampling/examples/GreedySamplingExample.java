@@ -111,7 +111,7 @@ public class GreedySamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env ) {
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
 	}
 
