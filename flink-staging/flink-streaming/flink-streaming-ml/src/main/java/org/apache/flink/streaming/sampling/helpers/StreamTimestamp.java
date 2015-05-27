@@ -24,7 +24,7 @@ import java.io.Serializable;
  */
 public class StreamTimestamp implements Serializable {
 
-	final Long timestamp;
+	Long timestamp;
 
 	public StreamTimestamp() {
 		timestamp = System.currentTimeMillis();
@@ -38,5 +38,9 @@ public class StreamTimestamp implements Serializable {
 	@Override
 	public String toString() {
 		return timestamp.toString();
+	}
+
+	public void update () {
+		timestamp = System.currentTimeMillis();
 	}
 }

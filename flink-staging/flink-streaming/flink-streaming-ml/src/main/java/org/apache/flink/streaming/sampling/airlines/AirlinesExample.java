@@ -16,26 +16,16 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.airlines;
-import org.apache.commons.net.ntp.TimeStamp;
 import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.java.operators.translation.PlanFilterOperator;
 import org.apache.flink.api.java.tuple.*;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-import org.apache.flink.streaming.sampling.helpers.MetaAppender;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
 import org.apache.flink.streaming.sampling.samplers.ReservoirSampler;
 import org.apache.flink.streaming.sampling.samplers.Sample;
-import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -63,9 +53,11 @@ public class AirlinesExample implements Serializable {
 		int sample_size = Integer.parseInt(initProps.getProperty("sampleSize"));
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		env.setParallelism(1);
+		//env.setParallelism(1);
+		//DataStreamSource<String> source = env.readTextFile(path + "sampling_results/reservoir_sample_10000.data")	;
 		DataStreamSource<String> source = env.readTextFile(path + "january_dataset.data")	;
 		//DataStreamSource<String> source = env.readTextFile(path + "xs_dataset.data")	;
+
 		/*
 		 * Tuple8 fields:
 		 * f0 day of january (Integer)
@@ -83,9 +75,13 @@ public class AirlinesExample implements Serializable {
 					public Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> map(String record) throws Exception {
 						Tuple8 out = new Tuple8();
 						String[] values = record.split(",");
+						/*int[] integerFields = new int[]{0,1,2};
+						int[] stringFields = new int[]{3, 4, 5};
+						int[] integerFields2 = new int[]{6, 7};*/
+
 						int[] integerFields = new int[]{1,2,3};
 						int[] stringFields = new int[]{4, 5, 6};
-						int[] integerFields2 = new int[]{7,8};
+						int[] integerFields2 = new int[]{7, 8};
 
 						int counter = 0;
 						for(int i:integerFields) {
@@ -109,7 +105,10 @@ public class AirlinesExample implements Serializable {
 						return out;
 
 					}
-				});
+				}).shuffle();
+
+		//AGGREGATES
+
 
 		//HEAVY HITTERS
 		/*dataStream
@@ -118,51 +117,54 @@ public class AirlinesExample implements Serializable {
 					public boolean filter(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value) throws Exception {
 						return !value.f5.equals("ATL") && !value.f5.equals("ORD") && !value.f5.equals("DFW")
 								&& !value.f5.equals("DEN") && !value.f5.equals("LAX") && !value.f5.equals("PHX")
-								&& !value.f5.equals("LAS") && !value.f5.equals("IAH") && !value.f5.equals("DTW");
+								&& !value.f5.equals("IAH") && !value.f5.equals("LAS") && !value.f5.equals("DTW");
 					}
-				})
-				.groupBy(5).sum(7).filter(new FilterFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
+				}).groupBy(5).sum(7).filter(new FilterFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
 			@Override
 			public boolean filter(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value) throws Exception {
-				return value.f7>12090;
+				return value.f7>210;
 			}
-		})
-				.print();*/
+		}).print();*/
 
 		//RANGE QUERIES
 		/*dataStream.filter(new FilterFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
 			@Override
 			public boolean filter(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value) throws Exception {
-				return value.f0<8;
+				return value.f0>24;
 			}
 		}).filter(new FilterFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
 			@Override
 			public boolean filter(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value) throws Exception {
-				return value.f1==6||value.f1==7;
+				return value.f6>20;
 			}
-		}).count().print();*/
-
-
+		})
+				.count().print();
+*/
 		//SAMPLE
-		dataStream.map(new ReservoirSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size))
-				.flatMap(new FlatMapFunction<Sample<Tuple8<Integer,Integer,Integer,String,String,String,Integer,Integer>>, String>() {
-					StreamTimestamp s = new StreamTimestamp();
-					@Override
-					public void flatMap(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value, Collector<String> out) throws Exception {
-						StreamTimestamp now = new StreamTimestamp();
-						long time = now.getTimestamp()-s.getTimestamp();
-						if (time > 1000) {
-							//make string:
-							String str = new String();
-							ArrayList<Tuple8> allSamples = new ArrayList<Tuple8>();
-							for (Tuple8 sample: allSamples) {
-								String cTuple = sample.toString();
-								/*cTuple = cTuple.substring(0)*/
+		SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
+				sample = dataStream.map(new ReservoirSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));
 
-							}
-						}
-					}
-				});
+		sample.filter(new FilterFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>>() {
+			long counter = 0;
+			@Override
+			public boolean filter(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value) throws Exception {
+				System.out.println(counter++);
+				return counter > 145000;
+			}
+		}).map(new MapFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, String>() {
+			@Override
+			public String map(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value) throws Exception {
+				String str = new String();
+				ArrayList<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> allSamples = value.getSample();
+				for (Tuple8 sample : allSamples) {
+					String cTupleStr = sample.toString();
+					cTupleStr = cTupleStr.substring(1, cTupleStr.indexOf(")"));
+					str += cTupleStr + "\n";
+				}
+				str += "\n";
+				return str;
+			}
+		}).writeAsText(SamplingUtils.path + "reservoir_50000");
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
