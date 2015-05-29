@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.airlines;/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,7 +15,7 @@ package org.apache.flink.streaming.sampling.airlines;/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+package org.apache.flink.streaming.sampling.airlines;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple8;
@@ -34,8 +34,8 @@ public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
 		/*//value
 		Double rand = value.generate();*/
 
-//timestamp
-final StreamTimestamp t = new StreamTimestamp(value.f0);
+		//timestamp
+		final StreamTimestamp t = new StreamTimestamp(value.f0);
 
 		//order
 		index++;
@@ -44,4 +44,4 @@ final StreamTimestamp t = new StreamTimestamp(value.f0);
 		}
 
 
-		}
+}

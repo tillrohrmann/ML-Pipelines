@@ -21,9 +21,10 @@ import org.apache.flink.api.java.tuple.*;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
+import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.ReservoirSampler;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.*;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -51,11 +52,15 @@ public class AirlinesExample implements Serializable {
 		String path = SamplingUtils.path;
 		Properties initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		int sample_size = Integer.parseInt(initProps.getProperty("sampleSize"));
+		long time_window_size = Long.parseLong(initProps.getProperty("timeWindowSize"));
+		int count_window_size = Integer.parseInt(initProps.getProperty("countWindowSize"));
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		//env.setParallelism(1);
-		//DataStreamSource<String> source = env.readTextFile(path + "sampling_results/reservoir_sample_10000.data")	;
-		DataStreamSource<String> source = env.readTextFile(path + "january_dataset.data")	;
+		env.setParallelism(4);
+		DataStreamSource<String> source = env.readTextFile(path + "sampling_results/fifo_sampling_5000")	;
+		//DataStreamSource<String> source = env.readTextFile(path + "january_dataset").setParallelism(1);
+		//DataStreamSource<String> source = env.readTextFile(path + "dummy_dataset.data");
+		//DataStreamSource<String> source = env.readTextFile(path + "small_dataset.data");
 		//DataStreamSource<String> source = env.readTextFile(path + "xs_dataset.data")	;
 
 		/*
@@ -70,18 +75,20 @@ public class AirlinesExample implements Serializable {
 		 * f7 1
 		 */
 		SingleOutputStreamOperator<Tuple8<Integer,Integer,Integer,String,String,String,Integer,Integer>,?> dataStream =
-				source.map(new MapFunction<String, Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
+				source.map(new RichMapFunction<String, Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
 					@Override
 					public Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> map(String record) throws Exception {
 						Tuple8 out = new Tuple8();
 						String[] values = record.split(",");
-						/*int[] integerFields = new int[]{0,1,2};
+						int[] integerFields = new int[]{0,1,2};
 						int[] stringFields = new int[]{3, 4, 5};
-						int[] integerFields2 = new int[]{6, 7};*/
+						int[] integerFields2 = new int[]{6, 7};
 
+/*
 						int[] integerFields = new int[]{1,2,3};
 						int[] stringFields = new int[]{4, 5, 6};
 						int[] integerFields2 = new int[]{7, 8};
+*/
 
 						int counter = 0;
 						for(int i:integerFields) {
@@ -101,13 +108,21 @@ public class AirlinesExample implements Serializable {
 							counter++;
 						}
 
-
+						//StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+						//System.out.println(context.getIndexOfThisSubtask() + ">  " + out.toString());
 						return out;
 
 					}
-				}).shuffle();
+				}).setParallelism(1).shuffle();
+
 
 		//AGGREGATES
+		dataStream.filter(new FilterFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
+			@Override
+			public boolean filter(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value) throws Exception {
+				return value.f3.equals("UA") ;
+			}
+		}).groupBy(3).sum(7).print();
 
 
 		//HEAVY HITTERS
@@ -141,15 +156,29 @@ public class AirlinesExample implements Serializable {
 				.count().print();
 */
 		//SAMPLE
-		SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
-				sample = dataStream.map(new ReservoirSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));
 
-		sample.filter(new FilterFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>>() {
+/*		SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
+				sample = dataStream.map(new FifoSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));*/
+		/*SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?>
+				sample = dataStream.map(new BiasedReservoirSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size));*/
+
+		//dataStream.print();
+
+
+
+		/*SingleOutputStreamOperator<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, ?> sample =  dataStream
+				.map(new AirdataMetaAppender<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>())
+				.map(new ChainSampler<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>(sample_size, count_window_size))
+				.map(new SampleExtractor<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>());
+
+		sample.filter(new RichFilterFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>>() {
 			long counter = 0;
 			@Override
 			public boolean filter(Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> value) throws Exception {
-				System.out.println(counter++);
-				return counter > 145000;
+				StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+				System.out.println(context.getIndexOfThisSubtask()+1 + "> " + counter);
+				counter ++;
+				return counter>146000;
 			}
 		}).map(new MapFunction<Sample<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>, String>() {
 			@Override
@@ -164,7 +193,8 @@ public class AirlinesExample implements Serializable {
 				str += "\n";
 				return str;
 			}
-		}).writeAsText(SamplingUtils.path + "reservoir_50000");
+		}).writeAsText(SamplingUtils.path + "chain_50000");
+*/
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());

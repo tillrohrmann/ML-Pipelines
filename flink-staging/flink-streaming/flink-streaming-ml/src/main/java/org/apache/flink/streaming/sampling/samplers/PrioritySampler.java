@@ -42,6 +42,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 	public PrioritySampler(int lSize, long lWindowSize) {
 		this.chainSample = new ChainSample<Tuple3<T, StreamTimestamp, Long>>(lSize);
 		this.windowSize = lWindowSize;
+
 		this.priorityList = new ArrayList<LinkedList<Double>>();
 		initializeLists();
 	}
@@ -70,7 +71,7 @@ public class PrioritySampler<T> extends RichMapFunction<Tuple3<T, StreamTimestam
 		//printIndexedString("chainSample: " + chainSampletoString(chainSample),0);
 		//printIndexedString("priotiryList: " + prioritiesToString(), 0);
 		//update expired elements
-		StreamTimestamp currentTimestamp = new StreamTimestamp();
+		StreamTimestamp currentTimestamp = new StreamTimestamp(element.f1.getTimestamp());
 		update(currentTimestamp);
 		//printIndexedString(currentTimestamp.toString(),0);
 

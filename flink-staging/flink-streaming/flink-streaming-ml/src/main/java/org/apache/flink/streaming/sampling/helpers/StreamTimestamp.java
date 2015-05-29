@@ -30,6 +30,22 @@ public class StreamTimestamp implements Serializable {
 		timestamp = System.currentTimeMillis();
 	}
 
+	public StreamTimestamp(int dd) {
+		//suppose that year and month are the same and only day changes
+		String date;
+		if (dd<10) {
+			date = 0 + "" + dd;
+		}
+		else {
+			date = "" + dd;
+		}
+		timestamp = Long.parseLong(date);
+	}
+
+	public StreamTimestamp(long ts) {
+		timestamp=ts;
+	}
+
 
 	public long getTimestamp() {
 		return timestamp;
