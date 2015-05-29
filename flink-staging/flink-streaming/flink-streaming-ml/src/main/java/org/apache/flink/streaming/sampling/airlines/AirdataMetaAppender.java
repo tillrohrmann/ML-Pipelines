@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.generators;/*
+package org.apache.flink.streaming.sampling.airlines;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,13 +17,31 @@ package org.apache.flink.streaming.sampling.generators;/*
  */
 
 import org.apache.flink.api.common.functions.RichMapFunction;
-/**
- * Created by marthavk on 2015-05-20.
- */
-public class DoubleDataGenerator<IN extends GaussianDistribution> extends RichMapFunction<IN, Double> {
+import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.api.java.tuple.Tuple8;
+import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
-	@Override
-	public Double map(IN value) throws Exception {
-		return value.generate();
-	}
-}
+/**
+ * Created by marthavk on 2015-05-27.
+ */
+public class AirdataMetaAppender<T extends Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> extends RichMapFunction<T, Tuple3<T, StreamTimestamp, Long>> {
+
+		long index = 0;
+
+@Override
+public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
+
+		/*//value
+		Double rand = value.generate();*/
+
+//timestamp
+final StreamTimestamp t = new StreamTimestamp(value.f0);
+
+		//order
+		index++;
+
+		return new Tuple3<T, StreamTimestamp, Long>(value, t, index);
+		}
+
+
+		}
