@@ -24,9 +24,9 @@ import java.util.Iterator;
 /**
  * Created by marthavk on 2015-03-31.
  */
-public class Fifo<T> extends Sample<T> implements Serializable, Iterable {
+public class FiFo<T> extends Sample<T> implements Serializable, Iterable {
 
-	public Fifo(int size) {
+	public FiFo(int size) {
 		super(size);
 	}
 
