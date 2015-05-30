@@ -18,51 +18,84 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
- * Created by marthavk on 2015-03-31.
+ * Performs uniform sampling with a reservoir. Each item in the stream has 1/maxSize final probability
+ * to be included in the sample.
+ * As the stream evolves, each new element is picked by probability equal to maxSize/counter where
+ * counter is its position in the stream.
+ * That means if the reservoir size hasn't reached maxSize, each element will be definitely picked.
+ * If an item is picked and the reservoir is full then it replaces an existing element uniformly at
+ * random.
+ * @param <IN>
  */
-public class ReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
-	Reservoir reservoirSample;
-	int count = 0;
+	Fraction outputRate;
+	Sample<IN> reservoir;
+	//Reservoir reservoir;
+	long counter = 0;
+	long internalCounter = 0;
 
-	public ReservoirSampler(int size) {
-		reservoirSample = new Reservoir(size);
+	public ReservoirSampler(int maxsize) {
+		reservoir = new Sample<IN>(maxsize);
+		outputRate = new Fraction(1);
+	}
+
+	public ReservoirSampler(int maxsize, double outR) {
+		outputRate = new Fraction(outR);
+		reservoir = new Sample<IN>(maxsize);
 	}
 
 	@Override
-	public Sample<IN> map(IN value) throws Exception {
-		count++;
-		this.sample(value);
-		return reservoirSample;
+	public void flatMap(IN value, Collector<IN> out) throws Exception {
+		counter++;
+		internalCounter ++;
+		sample(value);
+
+		if (internalCounter == outputRate.getDenominator()) {
+			internalCounter=0;
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				out.collect(reservoir.generate());
+			}
+		}
 	}
+
 
 	@Override
 	public ArrayList<IN> getElements() {
-		return reservoirSample.getSample();
+		return reservoir.getSample();
 	}
 
 	@Override
 	public void sample(IN element) {
-		if (SamplingUtils.flip(count / reservoirSample.getMaxSize())) {
-			reservoirSample.addSample(element);
+		if (SamplingUtils.flip((double) reservoir.getMaxSize()/counter)) {
+			if (!reservoir.isFull()) {
+				reservoir.addSample(element);
+			}
+			else {
+				replace(element);
+			}
 		}
 	}
 
-	@Override
-	public int size() {
-		return reservoirSample.getSize();
+
+	public void replace(IN item) {
+		// choose position in sample uniformly at random
+		int pos = new Random().nextInt(reservoir.getSize());
+		// replace element at pos with item
+		reservoir.replaceSample(pos, item);
 	}
 
-	@Override
-	public int maxSize() {
-		return reservoirSample.getMaxSize();
-	}
+
 }
 
 

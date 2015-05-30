@@ -25,10 +25,10 @@ import java.util.LinkedList;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class ChainSample<T> extends Sample implements Serializable, Iterable {
+public class Chain<T> extends Sample implements Serializable, Iterable {
 
 
-	public ChainSample(int size) {
+	public Chain(int size) {
 		sample = new ArrayList<LinkedList<T>>();
 		maxSize = size;
 	}
@@ -48,12 +48,6 @@ public class ChainSample<T> extends Sample implements Serializable, Iterable {
 		LinkedList<T> newList = new LinkedList<T>();
 		newList.add((T) item);
 		sample.add(newList);
-	}
-
-
-	@Override
-	public void removeSample() {
-		//TODO
 	}
 
 	@Override

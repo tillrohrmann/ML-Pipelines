@@ -17,13 +17,12 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.flink.api.common.functions.RichMapFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
+import org.apache.commons.math3.fraction.Fraction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-
+import org.apache.flink.util.Collector;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,78 +31,79 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-07.
  */
 
-public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, Long>,
-		ChainSample<Tuple3<T, StreamTimestamp, Long>>> implements Sampler<Tuple3<T, StreamTimestamp, Long>> {
+public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>,FlatMapFunction<T,T> {
 
-	ChainSample<Tuple3<T, StreamTimestamp, Long>> chainSample;
+	Chain<Tuple2<T, Long>> chainSample;
 
 	int windowSize;
+	long counter;
+	Fraction outputRate;
+	long internalCounter = 0;
 
 	public ChainSampler(int lSize, int lWindowSize) {
-		chainSample = new ChainSample<Tuple3<T, StreamTimestamp, Long>>(lSize);
-		//TODO: add initialization to cTor of chainSample (also suitable for PrioritySampler)
-		//initializeList();
+		counter = 0;
+		chainSample = new Chain<Tuple2<T, Long>>(lSize);
 		windowSize = lWindowSize;
+		outputRate = new Fraction(1);
+	}
 
+	public ChainSampler(int lSize, int lWindowSize, double outR) {
+		counter = 0;
+		chainSample = new Chain<Tuple2<T, Long>>(lSize);
+		windowSize = lWindowSize;
+		outputRate = new Fraction(outR);
 	}
 
 	@Override
-	public ChainSample<Tuple3<T, StreamTimestamp, Long>> map(Tuple3<T, StreamTimestamp, Long> value) throws Exception {
-		//TODO: fix bug in distributed sampling. When shuffling the stream it is impossible to know which indices will belong in the same instance
-		//printIndexedString("\nEnters map. Item : " + value.toString(),0);
-		//printIndexedString("beginning of map : " + chainSampletoString(chainSample),0);
-		storeChainedItems(value);
-		//printIndexedString("after storing chained items : " + chainSampletoString(chainSample),0);
-		updateExpiredItems(value);
-		//printIndexedString("after updating expired items : " + chainSampletoString(chainSample),0);
-		sample(value);
-		//printIndexedString("after sampling value : " + chainSampletoString(chainSample),0);
-
-		return chainSample;
-
+	public void flatMap(T value, Collector<T> out) throws Exception {
+		counter++;
+		internalCounter++;
+		//wrap values
+		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(value, counter);
+		storeChainedItems(wrappedValue);
+		updateExpiredItems(wrappedValue);
+		sample(wrappedValue);
+		if (internalCounter == outputRate.getDenominator()) {
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				internalCounter=0;
+				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
+				out.collect(sample.f0);
+			}
+		}
 	}
 
 	@Override
-	public ArrayList<Tuple3<T, StreamTimestamp, Long>> getElements() {
+	public ArrayList<Tuple2<T, Long>> getElements() {
 		return chainSample.extractSample();
 	}
 
 	@Override
-	public void sample(Tuple3<T, StreamTimestamp, Long> item) {
+	public void sample(Tuple2<T, Long> item) {
 		if (!chainSample.isFull()) {
 			int pos = chainSample.getSize();
 			chainSample.addSample(item);
 
 			long futureReplacement = selectReplacement(item);
-			Tuple3<T, StreamTimestamp, Long> futureItem
-					= new Tuple3<T, StreamTimestamp, Long>(null, null, futureReplacement);
+			Tuple2<T, Long> futureItem
+					= new Tuple2<T, Long>(null, futureReplacement);
 			chainSample.chainItem(futureItem, pos);
 
 		} else {
-			double prob = (double) chainSample.getMaxSize() / SamplingUtils.max(chainSample.getMaxSize(), item.f2);
+			double prob = (double) chainSample.getMaxSize() / SamplingUtils.max(chainSample.getMaxSize(), item.f1);
 			if (SamplingUtils.flip(prob)) {
 
 				int pos = SamplingUtils.randomBoundedInteger(0, chainSample.getSize() - 1);
 				chainSample.replaceChain(pos, item);
 
 				long futureReplacement = selectReplacement(item);
-				Tuple3<T, StreamTimestamp, Long> futureItem
-						= new Tuple3<T, StreamTimestamp, Long>(null, null, futureReplacement);
+				Tuple2<T, Long> futureItem
+						= new Tuple2<T, Long>(null, futureReplacement);
 
 				chainSample.chainItem(futureItem, pos);
 			}
 		}
 	}
 
-	@Override
-	public int size() {
-		return chainSample.getSize();
-	}
-
-	@Override
-	public int maxSize() {
-		return chainSample.getMaxSize();
-	}
 
 
 	/** CHAIN SAMPLING METHODS **/
@@ -111,8 +111,8 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	/**
 	 * @return the index for replacement when current item expires
 	 */
-	public long selectReplacement(Tuple3<T, StreamTimestamp, Long> item) {
-		return SamplingUtils.randomBoundedLong(item.f2 + 1, item.f2 + windowSize);
+	public long selectReplacement(Tuple2<T, Long> item) {
+		return SamplingUtils.randomBoundedLong(item.f1 + 1, item.f1 + windowSize);
 	}
 
 	/**
@@ -121,16 +121,16 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	 *
 	 * @param item
 	 */
-	void storeChainedItems(Tuple3<T, StreamTimestamp, Long> item) {
+	void storeChainedItems(Tuple2<T, Long> item) {
 		for (int i = 0; i < chainSample.getSize(); i++) {
-			LinkedList<Tuple3<T, StreamTimestamp, Long>> currentList = chainSample.get(i);
-			if (currentList.getLast().f2.equals(item.f2)) {
-				//System.out.print(" " + item.f2);
+			LinkedList<Tuple2<T, Long>> currentList = chainSample.get(i);
+			if (currentList.getLast().f1.equals(item.f1)) {
+
 				currentList.removeLast();
 				chainSample.chainItem(item, i);
 
 				long replacement = selectReplacement(item);
-				Tuple3<T, StreamTimestamp, Long> indicator = new Tuple3<T, StreamTimestamp, Long>(null, null, replacement);
+				Tuple2<T, Long> indicator = new Tuple2<T, Long>(null, replacement);
 				chainSample.chainItem(indicator, i);
 			}
 		}
@@ -140,22 +140,16 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	 * updates all expired Items (pops the heads of the chains so that
 	 * the chained elements are now in the sample)
 	 */
-	void updateExpiredItems(Tuple3<T, StreamTimestamp, Long> item) {
+	void updateExpiredItems(Tuple2<T, Long> item) {
 
-		int threshold = (int) (item.f2 - windowSize);
+		int threshold = (int) (item.f1 - windowSize);
 		for (int pos = 0; pos < chainSample.getSize(); pos++) {
-			if (chainSample.get(pos).peek().f2 <= threshold) {
+			if (chainSample.get(pos).peek().f1 <= threshold) {
 				chainSample.get(pos).pollFirst();
 			}
 		}
 	}
 
-	void printIndexedString(String str, int subtaskIndex) {
-		StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-		if (context.getIndexOfThisSubtask() == subtaskIndex) {
-			System.out.println(str);
-		}
-	}
 
 	/**
 	 * initialize priorityList and chainSample with null elements
@@ -163,22 +157,22 @@ public class ChainSampler<T> extends RichMapFunction<Tuple3<T, StreamTimestamp, 
 	public void initializeList() {
 
 		//initialize chainSample with null elements
-		for (int i = 0; i < maxSize(); i++) {
+		for (int i = 0; i < chainSample.getMaxSize(); i++) {
 			chainSample.addSample(null);
 		}
 
 	}
 
-	public String chainSampletoString(ChainSample<Tuple3<T, StreamTimestamp, Long>> chain) {
+	public String chainSampletoString(Chain<Tuple2<T, Long>> chain) {
 		String chainSampleStr;
 		chainSampleStr = "[";
 		Iterator<LinkedList> iter = chain.iterator();
 		while (iter.hasNext()) {
-			LinkedList<Tuple3<Object, Timestamp, Long>> list = iter.next();
+			LinkedList<Tuple2<Object, Long>> list = iter.next();
 			chainSampleStr += "(";
 			if (!list.contains(null)) {
 				for (int i = 0; i < list.size(); i++) {
-					chainSampleStr += list.get(i).f2 + "->";
+					chainSampleStr += list.get(i).f1 + "->";
 				}
 			}
 			chainSampleStr += ")";

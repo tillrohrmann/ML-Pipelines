@@ -17,11 +17,14 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
+import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 import java.util.Properties;
@@ -33,9 +36,11 @@ import java.util.Properties;
  * from the reservoir are evicted and new ones are sampled using the biased reservoir sampling
  * algorithm.
  */
-public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	Sample sample;
+	Fraction outputRate;
+	long internalCounter;
 
 	/* Properties for Page Hinkley Test */
 	PageHinkleyTest detector;
@@ -43,26 +48,41 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 
 	/* Properties for Sampler */
 	double evictionRate = 0.9;
-	int activeSampler;
 
 	private boolean hasDrift = false;
-	int count = 0;
+	long counter = 0;
 
 	public GreedySampler(int size) {
 		sample = new Sample(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
+		outputRate = new Fraction(1);
+		detector = new PageHinkleyTest(lambda, delta, 30);
+
+	}
+
+	public GreedySampler(int size, double outR) {
+		sample = new Sample(size);
+		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
+		lambda = Double.parseDouble(props.getProperty("lambda"));
+		delta = Double.parseDouble(props.getProperty("delta"));
+		outputRate = new Fraction(outR);
 		detector = new PageHinkleyTest(lambda, delta, 30);
 	}
 
 	@Override
-	public Sample<IN> map(IN value) throws Exception {
-		count++;
+	public void flatMap(IN value, Collector<IN> out) throws Exception {
+		counter ++;
+		internalCounter ++;
 		sample(value);
-		return sample;
+		if (internalCounter==outputRate.getDenominator()) {
+			internalCounter=0;
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				out.collect((IN) sample.generate());
+			}
+		}
 	}
-
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -85,24 +105,13 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 			sample.discard(evictionRate);
 		}
 
-		reservoirSample(element);
-
-		//TODO
+		uniformSample(element);
 
 	}
 
-	@Override
-	public int size() {
-		return sample.getSize();
-	}
 
-	@Override
-	public int maxSize() {
-		return sample.getMaxSize();
-	}
-
-	public void reservoirSample(IN element) {
-		if (SamplingUtils.flip(count / sample.getMaxSize())) {
+	public void uniformSample(IN element) {
+		if (SamplingUtils.flip((double) sample.getMaxSize() / counter )) {
 			if (!sample.isFull()) {
 				sample.addSample(element);
 			}
@@ -120,6 +129,7 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 			sample.addSample(element);
 		}
 	}
+
 
 
 }
