@@ -17,7 +17,15 @@ package org.apache.flink.streaming.sampling.examples;/*
  */
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.functions.WindowMapFunction;
+import org.apache.flink.streaming.api.windowing.helper.Count;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.samplers.Reservoir;
+import org.apache.flink.util.Collector;
 
 import java.util.HashMap;
 
@@ -27,14 +35,42 @@ import java.util.HashMap;
 public class Test {
 
 	public static void main(String[] args) {
-		HashMap<String, Integer> foo = new HashMap<String, Integer>();
-		foo.put("A", 34);
-		foo.put("B", 22);
-		foo.put("C", 87);
-		foo.put("D", 12);
-		foo.put("E", 44);
 
 
 
+	}
+
+	/**
+	 * Windows the dataStream into windows of size wSize and constructs different reservoirs
+	 * for each window. Then merges the reservoirs into one big reservoir.
+	 *
+	 * @param dataStream
+	 * @param rSize
+	 * @param wSize
+	 */
+	public static void windowSampling(DataStream<Long> dataStream, final Integer rSize, final Integer wSize) {
+		dataStream
+				.window(Count.of(wSize)).mapWindow(new WindowMapFunction<Long, Reservoir<Long>>() {
+			@Override
+			public void mapWindow(Iterable<Long> values, Collector<Reservoir<Long>> out) throws Exception {
+				Reservoir<Long> r = new Reservoir<Long>(rSize);
+				int count = 0;
+				for (Long v : values) {
+					count++;
+					if (SamplingUtils.flip(count / rSize)) {
+						r.addSample(v);
+					}
+				}
+				out.collect(r);
+			}
+		})
+				.flatten()
+				.reduce(new ReduceFunction<Reservoir<Long>>() {
+					@Override
+					public Reservoir<Long> reduce(Reservoir<Long> value1, Reservoir<Long> value2) throws Exception {
+						return Reservoir.merge(value1, value2);
+						//return null;
+					}
+				}).print();
 	}
 }

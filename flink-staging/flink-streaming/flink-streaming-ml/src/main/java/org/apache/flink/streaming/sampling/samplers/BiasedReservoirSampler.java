@@ -18,8 +18,8 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.util.Collector;
 
@@ -31,33 +31,47 @@ import java.util.ArrayList;
  */
 public class BiasedReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
-	Reservoir reservoirSample;
-	int count = 0;
+	Reservoir<IN> reservoir;
+	int counter = 0;
+	Fraction outputRate;
+	long internalCounter=0;
 
 	public BiasedReservoirSampler(int size) {
-		reservoirSample = new Reservoir(size);
+		reservoir = new Reservoir<IN>(size);
+		outputRate = new Fraction(1);
 	}
 
-	//TODO: implement Collector policy
+	public BiasedReservoirSampler(int size, double outR) {
+		reservoir = new Reservoir<IN>(size);
+		outputRate = new Fraction(outR);
+	}
+
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		count++;
+		internalCounter++;
+		counter++;
 		sample(value);
+		if (internalCounter==outputRate.getDenominator()) {
+			internalCounter=0;
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				out.collect((IN) reservoir.generate());
+			}
+		}
 
 	}
 
 	@Override
 	public ArrayList<IN> getElements() {
-		return reservoirSample.getSample();
+		return reservoir.getSample();
 	}
 
 	@Override
 	public void sample(IN element) {
-		double proportion = reservoirSample.getSize() / reservoirSample.getMaxSize();
+		double proportion = reservoir.getSize() / reservoir.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
-			reservoirSample.replaceSample(element);
+			reservoir.replaceSample(element);
 		} else {
-			reservoirSample.addSample(element);
+			reservoir.addSample(element);
 		}
 	}
 

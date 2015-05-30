@@ -17,16 +17,12 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.streaming.api.windowing.helper.Timestamp;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 import org.apache.flink.util.Collector;
-
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -41,25 +37,39 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>,FlatMapFunction
 
 	int windowSize;
 	long counter;
+	Fraction outputRate;
+	long internalCounter = 0;
 
 	public ChainSampler(int lSize, int lWindowSize) {
 		counter = 0;
 		chainSample = new Chain<Tuple2<T, Long>>(lSize);
 		windowSize = lWindowSize;
-
+		outputRate = new Fraction(1);
 	}
 
+	public ChainSampler(int lSize, int lWindowSize, double outR) {
+		counter = 0;
+		chainSample = new Chain<Tuple2<T, Long>>(lSize);
+		windowSize = lWindowSize;
+		outputRate = new Fraction(outR);
+	}
 
-	//TODO implement collector policy
 	@Override
 	public void flatMap(T value, Collector<T> out) throws Exception {
-		//wrap values
 		counter++;
+		internalCounter++;
+		//wrap values
 		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(value, counter);
 		storeChainedItems(wrappedValue);
 		updateExpiredItems(wrappedValue);
 		sample(wrappedValue);
-
+		if (internalCounter == outputRate.getDenominator()) {
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				internalCounter=0;
+				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
+				out.collect(sample.f0);
+			}
+		}
 	}
 
 	@Override

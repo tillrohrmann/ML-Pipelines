@@ -75,35 +75,51 @@ public class ReservoirSamplingExample {
 	 * @param env
 	 */
 	public static void evaluateSampling(StreamExecutionEnvironment env) {
+/*
 
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create stream of distributions as source (also number generators) and shuffle*/
+		*/
+/*create stream of distributions as source (also number generators) and shuffle*//*
+
 		DataStreamSource<GaussianDistribution> source = createSource(env);
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random number from distribution*/
+		*/
+/*generate random number from distribution*//*
+
 		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
-				/*sample the stream*/
+				*/
+/*sample the stream*//*
+
 				.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
 
-				/*extract Double sampled values (unwrap from Tuple3)*/
+				*/
+/*extract Double sampled values (unwrap from Tuple3)*//*
+
 				.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
 
 
-		/*connect sampled stream to source*/
+		*/
+/*connect sampled stream to source*//*
+
 		sample.connect(shuffledSrc)
 
-				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
+				*/
+/*evaluate sample: compare current distribution parameters with sampled distribution parameters*//*
+
 				.flatMap(new DistanceEvaluator())
 				//.sum(0)
 				//.flatMap(new DistributionComparator())
 
-				/*sink*/
+				*/
+/*sink*//*
+
 						//.print();
 				.writeAsText(SamplingUtils.path + "reservoir");
+*/
 
 	}
 

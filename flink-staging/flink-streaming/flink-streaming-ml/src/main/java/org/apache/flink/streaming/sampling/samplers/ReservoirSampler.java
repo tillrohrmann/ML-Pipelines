@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
@@ -27,32 +28,47 @@ import java.util.ArrayList;
 import java.util.Random;
 
 /**
- * Created by marthavk on 2015-03-31.
+ * Performs uniform sampling with a reservoir. Each item in the stream has 1/maxSize final probability
+ * to be included in the sample.
+ * As the stream evolves, each new element is picked by probability equal to maxSize/counter where
+ * counter is its position in the stream.
+ * That means if the reservoir size hasn't reached maxSize, each element will be definitely picked.
+ * If an item is picked and the reservoir is full then it replaces an existing element uniformly at
+ * random.
+ * @param <IN>
  */
 public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
+	Fraction outputRate;
 	Sample<IN> reservoir;
 	//Reservoir reservoir;
-	int count = 0;
+	long counter = 0;
+	long internalCounter = 0;
 
 	public ReservoirSampler(int maxsize) {
 		reservoir = new Sample<IN>(maxsize);
-		//reservoirSample = new Reservoir(size);
+		outputRate = new Fraction(1);
 	}
 
-	//TODO :implement collector policy-> with a selected injection rate generate items from the stream
+	public ReservoirSampler(int maxsize, double outR) {
+		outputRate = new Fraction(outR);
+		reservoir = new Sample<IN>(maxsize);
+	}
+
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		count++;
+		counter++;
+		internalCounter ++;
 		sample(value);
+
+		if (internalCounter == outputRate.getDenominator()) {
+			internalCounter=0;
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				out.collect(reservoir.generate());
+			}
+		}
 	}
 
-/*	@Override
-	public Sample<IN> map(IN value) throws Exception {
-		count++;
-		this.sample(value);
-		return reservoir;
-	}*/
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -61,7 +77,7 @@ public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN
 
 	@Override
 	public void sample(IN element) {
-		if (SamplingUtils.flip(count / reservoir.getMaxSize())) {
+		if (SamplingUtils.flip((double) reservoir.getMaxSize()/counter)) {
 			if (!reservoir.isFull()) {
 				reservoir.addSample(element);
 			}

@@ -105,26 +105,26 @@ public class StreamApproximationExample {
 
 		SingleOutputStreamOperator<GaussianDistribution, ?> aggregator = generator.map(new NormalAggregator());
 
-		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
+		//// SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
 
 				/*sample the stream*/
-				.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp,Long>>(sampleSize))
+		////	.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp,Long>>(sampleSize))
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
 				//.map(new SampleExtractor<Double>()); //use that for Chain and Priority Samplers.
-				.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
+		////	.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
 
 		/*connect sampled stream to source*/
-		sample.connect(aggregator)
+		//// sample.connect(aggregator)
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
-				.flatMap(new DistanceEvaluator())
+		////		.flatMap(new DistanceEvaluator())
 				//.flatMap(new DistributionComparator())
 				//.setParallelism(1)
 
 				/*sink*/
-				.sum(0)
-				.writeAsText(SamplingUtils.path + "evaluation");
+		////		.sum(0)
+		////		.writeAsText(SamplingUtils.path + "evaluation");
 		//.setParallelism(1);
 	}
 

@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.util.Collector;
@@ -30,16 +31,31 @@ import java.util.ArrayList;
 public class FiFoSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	FiFo fifoSample;
+	Fraction outputRate;
+	long internalCounter=0;
+
 
 	public FiFoSampler(int maxSize) {
 		fifoSample = new FiFo(maxSize);
+		outputRate = new Fraction(1);
 	}
 
-	
-	//TODO: implement Collector policy
+	public FiFoSampler(int maxSize, double outR) {
+		fifoSample = new FiFo(maxSize);
+		outputRate = new Fraction(outR);
+	}
+
+
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
+		internalCounter++;
 		sample(value);
+		if (internalCounter==outputRate.getDenominator()) {
+			internalCounter=0;
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				out.collect((IN) fifoSample.generate());
+			}
+		}
 	}
 
 	@Override

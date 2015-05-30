@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
@@ -36,11 +37,33 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 	Chain<Tuple2<T, StreamTimestamp>> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
 	Long windowSize;
+	Fraction outputRate;
+	long internalCounter = 0;
 
+	/**
+	 * Creates a new Priority Sampler with output rate 1/1
+	 * @param lSize the size of the sample
+	 * @param lWindowSize the size of the time window
+	 */
 	public PrioritySampler(int lSize, long lWindowSize) {
 		this.chainSample = new Chain<Tuple2<T, StreamTimestamp>>(lSize);
 		this.windowSize = lWindowSize;
 		this.priorityList = new ArrayList<LinkedList<Double>>();
+		this.outputRate = new Fraction(1);
+		initializeLists();
+	}
+
+	/**
+	 * Creates a new Priority Sampler
+	 * @param lSize the size of the sample
+	 * @param lWindowSize the size of the time window
+	 * @param outR the output rate
+	 */
+	public PrioritySampler(int lSize, long lWindowSize, long outR) {
+		this.chainSample = new Chain<Tuple2<T, StreamTimestamp>>(lSize);
+		this.windowSize = lWindowSize;
+		this.priorityList = new ArrayList<LinkedList<Double>>();
+		this.outputRate = new Fraction(outR);
 		initializeLists();
 	}
 
@@ -48,13 +71,19 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 	 * METHODS IMPLEMENTING FlatMapFunction
 	 */
 
-	//TODO implement Collector Policy
 	@Override
 	public void flatMap(T value, Collector<T> out) throws Exception {
+		internalCounter++;
 		final StreamTimestamp t = new StreamTimestamp();
 		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(value,t);
 		sample(wrappedValue);
-
+		if (internalCounter == outputRate.getDenominator()) {
+			for (int i=0; i<outputRate.getNumerator(); i++) {
+				internalCounter=0;
+				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
+				out.collect(sample.f0);
+			}
+		}
 	}
 
 	@Override

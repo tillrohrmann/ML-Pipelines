@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import com.codahale.metrics.Sampling;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
@@ -38,6 +39,14 @@ public class Sample<T> implements Serializable {
 	public Sample(int lMaxSize) {
 		sample = new ArrayList<T>();
 		maxSize = lMaxSize;
+	}
+
+	public T generate() {
+		if (!sample.isEmpty()) {
+			int pos = SamplingUtils.nextRandInt(sample.size());
+			return sample.get(pos);
+		}
+		return null;
 	}
 
 	void setMaxSize(int s) {
@@ -99,4 +108,6 @@ public class Sample<T> implements Serializable {
 			this.removeSample(pos);
 		}
 	}
+
+
 }
