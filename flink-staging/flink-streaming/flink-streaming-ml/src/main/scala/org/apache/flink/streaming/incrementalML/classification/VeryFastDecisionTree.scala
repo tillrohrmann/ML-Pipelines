@@ -24,7 +24,8 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
+import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver,
+NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
@@ -63,7 +64,7 @@ class VeryFastDecisionTree(
   }
 
   def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): VeryFastDecisionTree = {
-    parameters.add(OnlyNominalAttributes,onlyNominalAttrs)
+    parameters.add(OnlyNominalAttributes, onlyNominalAttrs)
     this
   }
 
@@ -120,8 +121,8 @@ class VeryFastDecisionTree(
     }).setParallelism(1)
 
     val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
-      .flatMap(new PartialVFDTMetricsMapper(context)).setParallelism(resultingParameters.
-      apply(Parallelism)).split(new OutputSelector[Metrics] {
+      .flatMap(new PartialVFDTMetricsMapper(resultingParameters)).setParallelism(
+        resultingParameters.apply(Parallelism)).split(new OutputSelector[Metrics] {
 
       override def select(value: Metrics): Iterable[String] = {
         val output = new util.ArrayList[String]()
@@ -166,7 +167,7 @@ object VeryFastDecisionTree {
     *
     */
   case object VfdtDelta extends Parameter[Double] {
-    override val defaultValue: Option[Double] = Some(0.0000001)
+    override val defaultValue: Option[Double] = Some(0.000001)
   }
 
   /** Map that specifies which attributes are Nominal and how many possible values they will have
@@ -219,15 +220,17 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
   //Create the root of the DecisionTreeModel
   val VFDT = DecisionTreeModel
+  VFDT.createRootOfTheTree
+
   //counterPerLeaf -> (leafId,(#0,#1,#2))
   var counterPerLeaf = mutable.HashMap[Int, List[Int]]((0,
     List.fill(resultingParameters.apply(NumberOfClasses))(0)))
   var metricsFromLocalProcessors = mutable.HashMap[Int, mutable.Map[Int, (Int, List[(Int,
     (Double, List[Double]))])]]()
-  VFDT.createRootOfTheTree
+
+  val classesNumber = resultingParameters.apply(NumberOfClasses)
 
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
-    var leafId = 0
 
     value match {
       case newDataPoint: DataPoints => {
@@ -236,206 +239,238 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         //-------------------------------Prequential Evaluation-------------------------------
         //classify data point first
-        leafId = VFDT.classifyDataPointToLeaf(featuresVector)
-        val label = VFDT.getNodeLabel(leafId)
+        val classifiedAtLeaf = VFDT.classifyDataPointToLeaf(featuresVector)
+        val label = VFDT.getNodeLabel(classifiedAtLeaf)
         out.collect((-3, InstanceClassification(label, newDataPoint.getLabel)))
         //-------------------------------end Prequential Evaluation-------------------------------
 
-        val temp = counterPerLeaf.getOrElseUpdate(leafId, List.fill(
-          resultingParameters.apply(NumberOfClasses))(0))
+        val temp = counterPerLeaf.getOrElseUpdate(classifiedAtLeaf, List.fill(classesNumber)(0))
 
         //update metrics for leaf
         val t = temp(newDataPoint.getLabel.toInt) + 1
-        counterPerLeaf.update(leafId, temp.updated(newDataPoint.getLabel.toInt, t))
-
-        //        newDataPoint.getLabel match {
-        //          case 0.0 =>
-        //            val t = temp(0) + 1
-        //            counterPerLeaf.update(leafId, temp.updated(0, t))
-        //          case 1.0 =>
-        //            val t = temp(1) + 1
-        //            counterPerLeaf.update(leafId, temp.updated(1, t))
-        //          case 2.0 =>
-        //            val t = temp(2) + 1
-        //            counterPerLeaf.update(leafId, temp.updated(2, t))
-        //          case _ =>
-        //            throw new RuntimeException(s"I am sorry there was some problem with that " +
-        //              s"class label:" + s" ${newDataPoint.getLabel}")
-        //        }
+        counterPerLeaf.update(classifiedAtLeaf, temp.updated(newDataPoint.getLabel.toInt, t))
 
         //------------------------------------majority vote------------------------------------
-        val tempList = counterPerLeaf(leafId).view.zipWithIndex //(value,index)
+        val tempList = counterPerLeaf(classifiedAtLeaf).view.zipWithIndex //(value,index)
         val leafLabel = tempList maxBy (_._1)
 
-        VFDT.setNodeLabel(leafId, leafLabel._2)
+        VFDT.setNodeLabel(classifiedAtLeaf, leafLabel._2)
         //------------------------------------end majority vote------------------------------------
 
+        //----------------------change from here--------------------------------------------------
         //TODO:: change this piece of code
+        //only nominal attributes
+        //        if (resultingParameters.apply(OnlyNominalAttributes)) {
+        //          for (i <- 0 until featuresVector.size) {
+        //
+        //            //emit Nominal attribute
+        //            VFDT.getNodeExcludingAttributes(leafId) match {
+        //              case None => {
+        //                out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint
+        // .getLabel,
+        //                  -1, leafId, AttributeType.Nominal)))
+        //              }
+        //              case _ => {
+        //                //emit it only if the attribute is not in the excluded ones  the
+        // specific leaf
+        //                if (!VFDT.getNodeExcludingAttributes(leafId).get.contains(i)) {
+        //                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint
+        // .getLabel,
+        //                    -1, leafId, AttributeType.Nominal)))
+        //                }
+        //              }
+        //            }
+        //          }
+        //        }
+        //        else {
         val nominal = resultingParameters.get(NominalAttributes)
         nominal match {
-          case None => { //only numerical attributes
-            for (i <- 0 until featuresVector.size) {
-              //emit numerical attribute
-              VFDT.getNodeExcludingAttributes(leafId) match {
-                case None => {
-                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
-                    leafId, AttributeType.Numerical)))
+          case None => {
+            //only numerical attributes
+            VFDT.getNodeExcludingAttributes(classifiedAtLeaf) match {
+              case None => {
+                for (i <- 0 until featuresVector.size) {
+                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                    -1, classifiedAtLeaf, AttributeType.Numerical)))
                 }
-                case _ => {
-                  //emit it only if the attribute is not in the excluded ones for the specific leaf
-                  if (!VFDT.getNodeExcludingAttributes(leafId).get.contains(i)) {
-                    out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
-                      leafId, AttributeType.Numerical)))
+              }
+              case _ => {
+                //emit it only if the attribute is not in the excluded ones  the specific leaf
+                for (i <- 0 until featuresVector.size) {
+                  if (!VFDT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
+                    out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                      -1, classifiedAtLeaf, AttributeType.Numerical)))
                   }
                 }
               }
             }
+
           } //TODO:: correct this piece of code -> check if attribute is excluded
           case _ => {
-            for (i <- 0 until featuresVector.size) {
-              nominal.get.getOrElse(i, None) match {
-                case nOfValue: Int => {
-                  //emit Nominal attribute
-                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
-                    nOfValue, leafId, AttributeType.Nominal)))
-                }
-                case None => {
-                  //emit numerical attribute
-                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
-                    leafId, AttributeType.Numerical)))
-                }
-              }
-            }
+            System.err.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+            //            //both nominal and numerical attributes
+            //            for (i <- 0 until featuresVector.size) {
+            //              nominal.get.getOrElse(i, None) match {
+            //                case nOfValue: Int => {
+            //                  //emit Nominal attribute
+            //                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+            //                    nOfValue, classifiedAtLeaf, AttributeType.Nominal)))
+            //                }
+            //                case None => {
+            //                  //emit numerical attribute
+            //                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
+            //                    classifiedAtLeaf, AttributeType.Numerical)))
+            //                }
+            //              }
+            //            }
           }
         }
-        //----------------------till here----------------------------------------------------------
+        //        }
 
-        counterPerLeaf.getOrElse(leafId, None) match {
+        //todo:: merge this piece of code with the above  -> to be changed
+        //---------------------- end change here--------------------------------------------------
+
+        counterPerLeaf.getOrElse(classifiedAtLeaf, None) match {
           case leafMetrics: List[Int] => {
             //if we have seen at least MinNumberOfInstances and are not all of the same class
 
             if ((leafMetrics.sum % resultingParameters.apply(MinNumberOfInstances) == 0) &&
               (leafMetrics.count(_ == 0) != leafMetrics.size - 1)) {
-
-              val temp = CalculateMetricsSignal(leafId, leafMetrics.sum, false)
+              val temp = CalculateMetricsSignal(classifiedAtLeaf, leafMetrics, false)
               out.collect((-2, temp))
             }
           }
           case None =>
-            throw new RuntimeException(s"leaf:$leafId doesn't exist")
+            throw new RuntimeException(s"leaf:$classifiedAtLeaf doesn't exist")
         }
 
       }
       case evaluationMetric: EvaluationMetric => {
         //Aggregate metrics and update global model.
-
         //if node is still a leaf and has not been split yet
         if (VFDT.nodeIsLeaf(evaluationMetric.leafId)) {
           // (leafId, Map(SignalId,(Counter, List((Attr,ProposedValues)))))
           val temp = metricsFromLocalProcessors.getOrElse(evaluationMetric.leafId, None)
           temp match {
+
             case None => {
               metricsFromLocalProcessors.put(evaluationMetric.leafId, mutable.Map(
-                (evaluationMetric.signalIdNumber, (1, evaluationMetric.proposedValues))))
-            } //(SignalId,(Counter,List(Attr,(entropy,proposedValues))))
+                (evaluationMetric.signalLeafMetrics.sum, (1, evaluationMetric.proposedValues))))
+              //              System.err.println(s"\nleaf:${evaluationMetric.leafId}, counter= ${metricsFromLocalProcessors(evaluationMetric.leafId)(evaluationMetric.signalLeafMetrics.sum)._1}, metricsFromLocalProcessors=$metricsFromLocalProcessors")
+              //              System.err.println(s"counterPerLeaf= ${evaluationMetric.signalLeafMetrics}")
+
+            }
+            //(SignalId,(Counter,List(Attr,(entropy,proposedValues))))
             case t: mutable.HashMap[Int, (Int, List[(Int, (Double, List[Double]))])] => {
-              t.getOrElse(evaluationMetric.signalIdNumber, None) match {
+
+              t.getOrElse(evaluationMetric.signalLeafMetrics.sum, None) match {
+
                 case None => {
-                  val tempHashMap = t + ((evaluationMetric.signalIdNumber, (1, evaluationMetric
-                    .proposedValues)))
+                  val tempHashMap = t + ((evaluationMetric.signalLeafMetrics.sum, (1,
+                    evaluationMetric.proposedValues)))
                   metricsFromLocalProcessors.update(evaluationMetric.leafId, tempHashMap)
+                  //                  System.err.println(s"\nleaf:${evaluationMetric.leafId}, counter= ${metricsFromLocalProcessors(evaluationMetric.leafId)(evaluationMetric.signalLeafMetrics.sum)._1}, metricsFromLocalProcessors=$metricsFromLocalProcessors")
+                  //                  System.err.println(s"counterPerLeaf= ${evaluationMetric.signalLeafMetrics}")
                 }
+
                 case pv: (Int, List[(Int, (Double, List[Double]))]) => {
+
                   val tempPV = (pv._1 + 1, pv._2 ::: evaluationMetric.proposedValues)
-                  t.update(evaluationMetric.signalIdNumber, tempPV)
+                  t.update(evaluationMetric.signalLeafMetrics.sum, tempPV)
                   metricsFromLocalProcessors.update(evaluationMetric.leafId, t)
+
+                  //                  println(s"\n****leaf:${evaluationMetric.leafId}, counter= ${metricsFromLocalProcessors(evaluationMetric.leafId)(evaluationMetric.signalLeafMetrics.sum)._1}, metricsFromLocalProcessors=$metricsFromLocalProcessors")
+                  //                  println(s"****counterPerLeaf= ${evaluationMetric.signalLeafMetrics}")
 
                   // if all metrics from local processors have been received, then check for
                   // the best attribute to split.
                   if (tempPV._1 == resultingParameters.apply(Parallelism)) {
 
                     var bestValuesToSplit = tempPV._2
-                    bestValuesToSplit = bestValuesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
 
-                    val nonSplitEntro = nonSplittingEntropy(counterPerLeaf.get(evaluationMetric
-                      .leafId).get)
+                    bestValuesToSplit = bestValuesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
+                    //                    System.err.println(bestValuesToSplit)
+                    val nonSplitEntro = nonSplittingEntropy(evaluationMetric.signalLeafMetrics)
 
                     val bestInfoGain = nonSplitEntro - bestValuesToSplit(0)._2._1
                     val secondBestInfoGain = nonSplitEntro - bestValuesToSplit(1)._2._1
 
-                    //                    println(s"bestValue: ${evaluationMetric.proposedValues
-                    // (0)._2._1}, " +
-                    //                      s"secondBestValue" +
-                    //                      s": ${evaluationMetric.proposedValues(1)._2._1},
-                    // bestInfoGain: " +
-                    //                      s"$bestInfoGain, secondBestInfoGain:
-                    // $secondBestInfoGain, bestInfoGain-" +
-                    //                      s"secondBestInfoGain: ${bestInfoGain -
-                    // secondBestInfoGain}, " +
-                    //                      s"nonSplitEntro: $nonSplitEntro")
-
                     //todo:: this hoeffding bound should be calculated with the number of
                     // instances when the signal was send?
-                    val hoeffdingBoundVariable = hoeffdingBound(counterPerLeaf.get
-                      (evaluationMetric.leafId).get)
+                    val hoeffdingBoundVariable = hoeffdingBound(evaluationMetric.signalLeafMetrics)
 
-                    if (((bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable) &&
-                      bestInfoGain >= nonSplitEntro) || (
-                      (bestInfoGain - secondBestInfoGain < hoeffdingBoundVariable) && (
-                        hoeffdingBoundVariable < resultingParameters.get(VfdtTau).get))) {
+                    //                    println(//s"bestValue: ${bestValuesToSplit(0)._2._1}, " +
+                    //                      s"secondBestValue: ${bestValuesToSplit(1)._2._1}, bestInfoGain: " +
+                    //                                            s"$bestInfoGain, secondBestInfoGain: $secondBestInfoGain, bestInfoGain-" +
+                    //                      s"leaf:${evaluationMetric.leafId}, -- signal=${evaluationMetric.signalLeafMetrics.sum}, counterPerLeaf:${counterPerLeaf(evaluationMetric.leafId).sum}, " +
+                    //                        s"attributes to split: ${bestValuesToSplit(0)._1}, ${bestValuesToSplit(1)._1}, " +
+                    //                        s"best-secondbestinfogain: ${bestInfoGain - secondBestInfoGain}, " +
+                    //                        s"nonSplitEntro: $nonSplitEntro, hoeffdingBound: ${hoeffdingBoundVariable}"
+                    //                    )
+
+                    if (bestInfoGain - secondBestInfoGain > hoeffdingBoundVariable
+                      || hoeffdingBoundVariable < resultingParameters.apply(VfdtTau)) {
 
                       val nominal = resultingParameters.get(NominalAttributes)
                       nominal match {
+
                         case None => {
                           //if there are no Nominal attributes
-                          VFDT.growTree(evaluationMetric.leafId,
-                            evaluationMetric.proposedValues(0)._1, AttributeType.Numerical,
-                            evaluationMetric.proposedValues(0)._2._2,
-                            evaluationMetric.proposedValues(0)._2._1)
+                          VFDT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
+                            AttributeType.Numerical, bestValuesToSplit(0)._2._2,
+                            bestValuesToSplit(0)._2._1)
+
+                          //                          System.err.println(s"${evaluationMetric.leafId}, - ${evaluationMetric.signalLeafMetrics.sum}, - ${evaluationMetric.signalLeafMetrics}")
 
                           //garbage collection
-                          counterPerLeaf -= (leafId)
+                          counterPerLeaf -= (evaluationMetric.leafId)
                           metricsFromLocalProcessors -= (evaluationMetric.leafId)
-                          out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
+                          out.collect((-2, CalculateMetricsSignal(evaluationMetric.leafId, List[Int](), true)))
                         }
+
                         case _ => {
-                          nominal.get.getOrElse(evaluationMetric.proposedValues(0)._1, None) match {
+                          nominal.get.getOrElse(bestValuesToSplit(0)._1, None) match {
+
                             case None => {
-                              VFDT.growTree(evaluationMetric.leafId, evaluationMetric
-                                .proposedValues(0)._1,
-                                AttributeType.Numerical, evaluationMetric.proposedValues(0)._2._2,
-                                evaluationMetric.proposedValues(0)._2._1)
+                              VFDT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
+                                AttributeType.Numerical, bestValuesToSplit(0)._2._2,
+                                bestValuesToSplit(0)._2._1)
+
+                              //                              System.err.println(s"${evaluationMetric.leafId}, - ${evaluationMetric.signalLeafMetrics.sum}, - ${evaluationMetric.signalLeafMetrics}")
+
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              counterPerLeaf -= (leafId)
+                              counterPerLeaf -= (evaluationMetric.leafId)
                               metricsFromLocalProcessors -= (evaluationMetric.leafId)
-                              out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
+                              out.collect((-2, CalculateMetricsSignal(evaluationMetric.leafId, List[Int](), true)))
                             }
+
                             case x: Int => {
-                              VFDT.growTree(evaluationMetric.leafId, evaluationMetric
-                                .proposedValues(0)._1,
-                                AttributeType.Nominal, evaluationMetric.proposedValues(0)._2._2,
-                                evaluationMetric.proposedValues(0)._2._1)
+                              VFDT.growTree(evaluationMetric.leafId,bestValuesToSplit(0)._1,
+                                AttributeType.Nominal, bestValuesToSplit(0)._2._2,
+                                bestValuesToSplit(0)._2._1)
+
+                              //                              System.err.println(s"${evaluationMetric.leafId}, - ${evaluationMetric.signalLeafMetrics.sum}, - ${evaluationMetric.signalLeafMetrics}")
+
                               //garbage collect the counter for the grown leaf and the observers
                               // in the local statistics
-                              counterPerLeaf -= (leafId)
+                              counterPerLeaf -= (evaluationMetric.leafId)
                               metricsFromLocalProcessors -= (evaluationMetric.leafId)
-                              out.collect((-2, CalculateMetricsSignal(leafId, 0, true)))
+                              out.collect((-2, CalculateMetricsSignal((evaluationMetric.leafId), List[Int](), true)))
                             }
                           }
                         }
                       }
-                      println(s"------------------${VFDT.getDecisionTreeSize}------------------")
-                      println(s"---VFDT:$VFDT")
+                      println(s"---${VFDT.getDecisionTreeSize} ---- VFDT:$VFDT")
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
-                      println(s"---counterPerLeaf: $counterPerLeaf\n")
+                      //                      println(s"---counterPerLeaf: $counterPerLeaf\n")
                     }
                     //garbage collection
-                    metricsFromLocalProcessors.getOrElse(leafId, None) match {
+                    metricsFromLocalProcessors.getOrElse((evaluationMetric.leafId), None) match {
                       case None =>
                       case _ =>
-                        t -= (evaluationMetric.signalIdNumber)
+                        metricsFromLocalProcessors -= (evaluationMetric.signalLeafMetrics.sum)
                     }
                   }
                 }
@@ -452,13 +487,13 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   }
 
   private def hoeffdingBound(counterPerClass: List[Int]): Double = {
-    val R_square = math.pow(Utils.logBase2(resultingParameters.get(NumberOfClasses).get), 2.0)
+    val R_square = math.pow(Utils.logBase2(classesNumber), 2.0)
     val delta = resultingParameters.get(VfdtDelta).get
 
     val n = counterPerClass.sum
 
     val hoeffdingBound = math.sqrt((R_square * math.log(1.0 / delta)) / (2.0 * n))
-    //    println(s"---hoeffding bound: $hoeffdingBound")
+    //        println(s"---hoeffding bound: $hoeffdingBound")
     hoeffdingBound
   }
 
@@ -488,22 +523,19 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   * This mapper emits values of type [[EvaluationMetric]], which extends [[Metrics]].
   *
   */
-class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment)
+class PartialVFDTMetricsMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[(Int, Metrics), Metrics] {
 
   //[LeafId,HashMap[AttributeId,AttributeObserver]]
   val leafsObserver = new mutable.HashMap[Int, mutable.HashMap
     [Int, AttributeObserver[Metrics]]]()
 
-  var attributesObserverTemp = mutable.HashMap[Int, AttributeObserver[Metrics]]()
-
   override def flatMap(value: (Int, Metrics), out: Collector[Metrics]): Unit = {
-
 
     value._2 match {
       case attribute: VFDTAttributes => {
         //take the class observer, else if there is no observer for that leaf
-        leafsObserver.getOrElseUpdate(attribute.leaf, {
+        val attributesObserverTemp = leafsObserver.getOrElseUpdate(attribute.leaf, {
           new mutable.HashMap[Int, AttributeObserver[Metrics]]()
         })
 
@@ -511,15 +543,15 @@ class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment)
         //if there is no attributeObserver create one, nominal or numerical
         attributesObserverTemp.getOrElseUpdate(value._1, {
           if (attribute.attributeType == AttributeType.Nominal) {
-            new NominalAttributeObserver(attribute.nOfDifferentValues)
+            new NominalAttributeObserver(attribute.nOfDifferentValues,
+              resultingParameters.apply(NumberOfClasses))
           }
           else {
-            new NumericalAttributeObserver
+            new NumericalAttributeObserver(resultingParameters.apply(NumberOfClasses),attribute.id)
           }
         }).updateMetricsWithAttribute(attribute)
 
         leafsObserver.put(attribute.leaf, attributesObserverTemp)
-        //        println(leafsObserver)
       }
 
       case calcMetricsSignal: CalculateMetricsSignal => {
@@ -534,20 +566,26 @@ class PartialVFDTMetricsMapper(context: StreamExecutionEnvironment)
             if (!calcMetricsSignal.deleteObserver) {
               for (attr <- leafToSplit) {
                 val temp = attr._2.getSplitEvaluationMetric
-                bestAttributesToSplit += ((attr._1, temp))
+                //                if (attr._1==0) {
+                //                  System.err.println(s"*********************attribute: ${attr._1}, entropy: $temp")
+                //                }
+                if (temp._2.size>0) { //if attribute_std==0, it returns an empty list
+                  bestAttributesToSplit += ((attr._1, temp))
+                }
               }
 
               bestAttributesToSplit = bestAttributesToSplit sortWith ((x, y) => x._2._1 < y._2._1)
-              var bestAttr: (Int, (Double, List[Double])) = null
-              var secondBestAttr: (Int, (Double, List[Double])) = null
+              var suggestedAttrs = List[(Int, (Double, List[Double]))]()
+
               if (bestAttributesToSplit.size > 0) {
-                bestAttr = bestAttributesToSplit(0)
+                suggestedAttrs = suggestedAttrs :+ bestAttributesToSplit(0)
               }
               if (bestAttributesToSplit.size > 1) {
-                secondBestAttr = bestAttributesToSplit(1)
+                suggestedAttrs = suggestedAttrs :+ bestAttributesToSplit(1)
               }
-              val t = EvaluationMetric(List(bestAttr, secondBestAttr), calcMetricsSignal.leaf,
-                calcMetricsSignal.signalId)
+              val t = EvaluationMetric(suggestedAttrs, calcMetricsSignal.leaf,
+                calcMetricsSignal.leafMetrics)
+              //              System.err.println(bestAttributesToSplit)
               out.collect(t)
             }
             else {

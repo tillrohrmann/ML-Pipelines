@@ -23,27 +23,27 @@ import org.apache.flink.streaming.incrementalML.common.Utils
 
 import scala.collection.mutable
 
-class NumericalAttributeObserver
+class NumericalAttributeObserver(
+  numberOfClasses: Int,
+  attrId: Int)
   extends AttributeObserver[Metrics]
   with Serializable {
 
   val SPLIT_POINTS_TO_CONSIDER = 10
 
   //(min,max) per class
-  var minMaxValuePerClass = mutable.MutableList[(Double, Double)](
-    (Double.MaxValue, Double.MinValue), (Double.MaxValue, Double.MinValue), (Double.MaxValue,
-      Double.MinValue)
-  )
+  var minMaxValuePerClass = mutable.MutableList.fill(numberOfClasses)(
+    (Double.MaxValue, Double.MinValue))
 
   //(instancesSeen, mean, std) per class: 0, 1, 2
-  var meanStdPerClass = mutable.MutableList[(Double, Double, Double)]((0, 0, 0), (0, 0, 0), (0,
-    0, 0))
+  var meanStdPerClass = mutable.MutableList.fill(numberOfClasses)((0.0, 0.0, 0.0))
+
 
   //TODO:: replace below variables with a function that calculates those from the per class metrics
   var minValueObserved = Double.MaxValue
   var maxValueObserved = Double.MinValue
 
-  override def getSplitEvaluationMetric(): (Double, List[Double]) = {
+  override def getSplitEvaluationMetric: (Double, List[Double]) = {
 
     val potentialSplitPoints = Utils.getSplitPointsWithUniformApproximation(
       SPLIT_POINTS_TO_CONSIDER, minValueObserved, maxValueObserved)
@@ -92,7 +92,18 @@ class NumericalAttributeObserver
               rightHandSideInstances += meanStdPerClass(i)._1 - instancesToLHS
             }
           }
-          case None =>
+          case None => {
+            if (meanStdPerClass(i)._1 != 0.0) { //number of instances != 0
+              if (splitPoint < meanStdPerClass(i)._2) {
+                rightHandSide.+=((i, meanStdPerClass(i)._1))
+                rightHandSideInstances += meanStdPerClass(i)._1
+              } //splitPoint is greater than max value of this class
+              else if (splitPoint >= meanStdPerClass(i)._2) {
+                leftHandSide.+=((i, meanStdPerClass(i)._1))
+                leftHandSideInstances += meanStdPerClass(i)._1
+              }
+            }
+          }
         }
       }
       val entropy = if (leftHandSideInstances + rightHandSideInstances != 0.0) {
@@ -128,6 +139,11 @@ class NumericalAttributeObserver
 
     val entropy = (leftHSInstances / totalInstances) * leftHSEntropy + (rightHSInstances /
       totalInstances) * rightHSEntropy
+
+    //    if (attrId==16 || attrId==10 || attrId==13 || attrId == 5) {
+    //      println(s"------entropy: $entropy,  rhs: $rhs, lfs: $lhs,----meanStdPerClass$meanStdPerClass, rightEntropy:$rightHSEntropy, " +
+    //        s"leftEntropy: $leftHSEntropy, class:$attrId, #left: $leftHSInstances, #right: $rightHSInstances, #total: $totalInstances\n")
+    //    }
 
     entropy
   }

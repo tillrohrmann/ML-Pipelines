@@ -22,37 +22,32 @@ import org.apache.flink.streaming.incrementalML.common.Utils
 
 import scala.collection.mutable
 
-class NominalAttributeObserver(
-  val numberOfValues: Int)
+case class NominalAttributeObserver(
+  numberOfValues: Int,
+  numberOfClasses: Int)
   extends AttributeObserver[Metrics]
   with Serializable {
 
-  // [AttributeVale,(#0,#1,#2)]
-  val attributeValues = mutable.HashMap[Double, (Double, Double, Double)]()
-  var instancesSeen: Double = 0.0 // instancesSeen
+  // [AttributeVale,(#class1,#class2,#class3,...)]
+  val attributeValues = mutable.HashMap[Double, List[Int]]()
+  var instancesSeen = 0.0D // instancesSeen
 
   override def getSplitEvaluationMetric: (Double, List[Double]) = {
-    //TODO :: Handle the case that no instancesSeen==0.0
-    var entropy = 0.0
+    var entropy = 0.0D
     for (attrValue <- attributeValues) {
       //E(attribute) = Sum { P(attrValue)*E(attrValue) }
-      val valueCounter = attrValue._2._1 + attrValue._2._2 + attrValue._2._3
-      val valueProb = valueCounter / instancesSeen
-      System.err.println(valueProb)
-      var valueEntropy = 0.0
 
-      if (attrValue._2._1 != 0.0) {
-        valueEntropy -= (attrValue._2._1 / valueCounter) * Utils.logBase2((attrValue._2._1 /
-          valueCounter))
-      }
-      if (attrValue._2._2 != 0.0) {
-        valueEntropy -= (attrValue._2._2 / valueCounter) * Utils.logBase2((attrValue._2._2 /
-          valueCounter))
-      }
-      if (attrValue._2._3 != 0.0) {
-        valueEntropy -= (attrValue._2._3 / valueCounter) * Utils.logBase2((attrValue._2._3 /
-          valueCounter))
-      }
+      val valueCounter = attrValue._2.sum.toDouble
+      val valueProb = valueCounter / instancesSeen
+
+      var valueEntropy = 0.0D
+
+      attrValue._2.foreach(metric => {
+        if (metric != 0) {
+          valueEntropy -= (metric / valueCounter) * Utils.logBase2(metric / valueCounter)
+        }
+      })
+
       entropy += valueEntropy * valueProb
     }
     (entropy, attributeValues.keySet.toList)
@@ -64,32 +59,18 @@ class NominalAttributeObserver(
     //if it's not the first time that we see the same value for e.g. attribute 1
     //attributes hashMap -> <attributeValue,(#1.0,#0.0)>
     instancesSeen += 1.0
+    val tempLabel = VFDTAttribute.label.toInt
+    var tempList: List[Int] = null
+
     if (attributeValues.contains(VFDTAttribute.value)) {
-      var temp = attributeValues.apply(VFDTAttribute.value)
-      if (VFDTAttribute.label == 0.0) {
-        // (#0,#1,#2)
-        temp = (temp._1 + 1.0, temp._2, temp._3)
-      }
-      else if (VFDTAttribute.label == 1.0) {
-        temp = (temp._1, temp._2 + 1.0, temp._3)
-      }
-      else {
-        temp = (temp._1, temp._2, temp._3 + 1.0)
-      }
-      attributeValues.put(VFDTAttribute.value, temp)
+      tempList = attributeValues.apply(VFDTAttribute.value)
     }
     else {
-      if (VFDTAttribute.label == 0.0) {
-        // (#0,#1,#2)
-        attributeValues.put(VFDTAttribute.value, (1.0, 0.0, 0.0))
-      }
-      else if (VFDTAttribute.label == 1.0) {
-        attributeValues.put(VFDTAttribute.value, (0.0, 1.0, 0.0))
-      }
-      else {
-        attributeValues.put(VFDTAttribute.value, (0.0, 0.0, 1.0))
-      }
+      tempList = List.fill(numberOfClasses)(0)
     }
+    tempList = tempList.updated(tempLabel, tempList(tempLabel) + 1)
+    attributeValues.put(VFDTAttribute.value, tempList)
+
   }
 
   override def toString: String = {

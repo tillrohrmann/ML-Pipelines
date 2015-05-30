@@ -22,15 +22,14 @@ import org.apache.flink.streaming.incrementalML.classification.Metrics.{Instance
 Metrics}
 
 class PrequentialEvaluator
-  extends Evaluator[(Int, Metrics), (Double, Double, Double)]
+  extends Evaluator[(Int, Metrics), (Double, Double, Double, Double)]
   with Serializable {
 
-  val alpha = 0.975
+  val alpha = 0.995
   var instancesClassified = 0.0
   var sumLossFunction = 0.0
   var sumLossFunctionWithoutLatent = 0.0
   var Bdenominator = 0.0
-  var preqError = 0.0
 
   /** Evaluating model's accuracy with the input observations
     *
@@ -39,26 +38,24 @@ class PrequentialEvaluator
     * @return The Prediction error for each data point
     */
   override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double, Double,
-    Double)] = {
+    Double, Double)] = {
     inputDataStream.map {
       input => {
         val temp = input._2.asInstanceOf[InstanceClassification]
-        //        instancesClassified += 1.0
+        instancesClassified += 1.0
         if (temp.label != temp.clazz) {
           sumLossFunctionWithoutLatent += 1.0
           sumLossFunction = 1.0 + alpha * sumLossFunction
-          Bdenominator = 1.0 + alpha * Bdenominator
-          preqError = sumLossFunction / Bdenominator
-
         }
         else {
           sumLossFunction = alpha * sumLossFunction
-          Bdenominator = 1.0 + alpha * Bdenominator
-          preqError = sumLossFunction / Bdenominator
         }
-        instancesClassified += 1.0
-        //        (instancesClassified,sumLossFunction/instancesClassified)
-        (instancesClassified, preqError, sumLossFunctionWithoutLatent / instancesClassified)
+
+        Bdenominator = 1.0 + alpha * Bdenominator
+
+        (instancesClassified, sumLossFunction / Bdenominator,
+          sumLossFunctionWithoutLatent / instancesClassified,
+          (instancesClassified-sumLossFunctionWithoutLatent)/instancesClassified )
       }
     }.setParallelism(1)
   }

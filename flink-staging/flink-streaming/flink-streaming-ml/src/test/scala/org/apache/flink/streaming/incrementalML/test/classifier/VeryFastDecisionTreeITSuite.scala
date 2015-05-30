@@ -40,10 +40,10 @@ class VeryFastDecisionTreeITSuite
     //    val nominalAttributes = Map(1 -> 8, 3 -> 16, 5 -> 7, 6 -> 14, 7 -> 6, 8 -> 5, 9 -> 2,
     // 13 -> 41)
 
-    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
+//    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
     parameters.add(VeryFastDecisionTree.Parallelism, 4)
-    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
+//    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
@@ -92,8 +92,8 @@ class VeryFastDecisionTreeITSuite
 
     val streamToEvaluate = vfdtLearner.fit(datapoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/Documents/" +
-      "dataSets/UCI-Waveform/waveformResultsCSV.csv").setParallelism(1)
+//    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/Documents/" +
+//      "dataSets/UCI-Waveform/waveformResultsCSV.csv").setParallelism(1)
 
     evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/" +
       "dataSets/UCI-Waveform/waveformResults.txt").setParallelism(1)
