@@ -18,8 +18,10 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -27,23 +29,30 @@ import java.util.Random;
 /**
  * Created by marthavk on 2015-03-31.
  */
-public class ReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	Sample<IN> reservoir;
 	//Reservoir reservoir;
 	int count = 0;
 
-	public ReservoirSampler(int size) {
-		reservoir = new Sample<IN>(size);
+	public ReservoirSampler(int maxsize) {
+		reservoir = new Sample<IN>(maxsize);
 		//reservoirSample = new Reservoir(size);
 	}
 
+	//TODO :implement collector -> with a selected injection rate generate items from the stream
 	@Override
+	public void flatMap(IN value, Collector<IN> out) throws Exception {
+		count++;
+		sample(value);
+	}
+
+/*	@Override
 	public Sample<IN> map(IN value) throws Exception {
 		count++;
 		this.sample(value);
 		return reservoir;
-	}
+	}*/
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -69,6 +78,8 @@ public class ReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sample
 		// replace element at pos with item
 		reservoir.replaceSample(pos, item);
 	}
+
+
 }
 
 
