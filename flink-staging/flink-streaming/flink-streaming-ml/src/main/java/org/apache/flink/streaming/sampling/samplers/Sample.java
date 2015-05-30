@@ -63,19 +63,8 @@ public class Sample<T> implements Serializable {
 		this.replaceSample(pos, item);
 	}
 
-	void removeSample(T item) {
-		sample.remove(item);
-	}
-
-
 	void removeSample(int pos) {
 		sample.remove(pos);
-	}
-
-	void removeSample() {
-		if (!sample.isEmpty()) {
-			sample.remove(0);
-		}
 	}
 
 	int getSize() {

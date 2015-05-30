@@ -17,11 +17,13 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
+import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 import java.util.Properties;
@@ -33,7 +35,7 @@ import java.util.Properties;
  * from the reservoir are evicted and new ones are sampled using the biased reservoir sampling
  * algorithm.
  */
-public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	Sample sample;
 
@@ -43,7 +45,6 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 
 	/* Properties for Sampler */
 	double evictionRate = 0.9;
-	int activeSampler;
 
 	private boolean hasDrift = false;
 	int count = 0;
@@ -56,13 +57,13 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 		detector = new PageHinkleyTest(lambda, delta, 30);
 	}
 
+	//TODO implement collector policy
 	@Override
-	public Sample<IN> map(IN value) throws Exception {
-		count++;
+	public void flatMap(IN value, Collector<IN> out) throws Exception {
+		count ++;
 		sample(value);
-		return sample;
-	}
 
+	}
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -85,23 +86,12 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 			sample.discard(evictionRate);
 		}
 
-		reservoirSample(element);
-
-		//TODO
+		uniformSample(element);
 
 	}
 
-	@Override
-	public int size() {
-		return sample.getSize();
-	}
 
-	@Override
-	public int maxSize() {
-		return sample.getMaxSize();
-	}
-
-	public void reservoirSample(IN element) {
+	public void uniformSample(IN element) {
 		if (SamplingUtils.flip(count / sample.getMaxSize())) {
 			if (!sample.isFull()) {
 				sample.addSample(element);
@@ -120,6 +110,7 @@ public class GreedySampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<I
 			sample.addSample(element);
 		}
 	}
+
 
 
 }

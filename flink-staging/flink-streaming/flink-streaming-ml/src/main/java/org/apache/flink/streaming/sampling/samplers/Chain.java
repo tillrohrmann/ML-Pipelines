@@ -50,12 +50,6 @@ public class Chain<T> extends Sample implements Serializable, Iterable {
 		sample.add(newList);
 	}
 
-
-	@Override
-	public void removeSample() {
-		//TODO
-	}
-
 	@Override
 	public int getSize() {
 		return sample.size();

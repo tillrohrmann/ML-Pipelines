@@ -18,8 +18,10 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 
@@ -27,7 +29,7 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-04-01.
  */
-public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class BiasedReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	Reservoir reservoirSample;
 	int count = 0;
@@ -36,13 +38,13 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 		reservoirSample = new Reservoir(size);
 	}
 
+	//TODO: implement Collector policy
 	@Override
-	public Sample<IN> map(IN value) throws Exception {
+	public void flatMap(IN value, Collector<IN> out) throws Exception {
 		count++;
 		sample(value);
-		return reservoirSample;
-	}
 
+	}
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -59,13 +61,6 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 		}
 	}
 
-	@Override
-	public int size() {
-		return reservoirSample.getSize();
-	}
 
-	@Override
-	public int maxSize() {
-		return reservoirSample.getMaxSize();
-	}
+
 }
