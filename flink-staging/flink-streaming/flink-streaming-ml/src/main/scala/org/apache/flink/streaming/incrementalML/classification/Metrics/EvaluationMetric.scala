@@ -24,12 +24,12 @@ package org.apache.flink.streaming.incrementalML.classification.Metrics
 case class EvaluationMetric(
   proposedValues: List[(Int, (Double, List[Double]))],
   leafId: Int,
-  signalIdNumber: Int)
+  signalLeafMetrics: List[Int])
   extends Metrics
   with Serializable {
 
   override def toString: String = {
-    s"leaf: $leafId and signalIdNumber: $signalIdNumber, proposed attributes " +
+    s"leaf: $leafId and signalLeafMetrics: $signalLeafMetrics, proposed attributes " +
       s"to split: $proposedValues"
   }
 }

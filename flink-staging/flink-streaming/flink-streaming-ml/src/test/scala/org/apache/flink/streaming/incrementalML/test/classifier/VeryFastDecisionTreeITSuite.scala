@@ -37,17 +37,17 @@ class VeryFastDecisionTreeITSuite
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     val parameters = ParameterMap()
-    //    val nominalAttributes = Map(1 -> 8, 3 -> 16, 5 -> 7, 6 -> 14, 7 -> 6, 8 -> 5, 9 -> 2,
-    // 13 -> 41)
+    //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
 
 //    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
     parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
     parameters.add(VeryFastDecisionTree.Parallelism, 4)
+
 //    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
     val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
-      "UCI-Waveform/waveformTrainData_1000K.csv").map {
+      "UCI-Waveform/waveform-2000K.csv").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -96,7 +96,7 @@ class VeryFastDecisionTreeITSuite
 //      "dataSets/UCI-Waveform/waveformResultsCSV.csv").setParallelism(1)
 
     evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/" +
-      "dataSets/UCI-Waveform/waveformResults.txt").setParallelism(1)
+      "dataSets/UCI-Waveform/waveform-2000K-Results.txt").setParallelism(1)
 
     env.execute()
   }
