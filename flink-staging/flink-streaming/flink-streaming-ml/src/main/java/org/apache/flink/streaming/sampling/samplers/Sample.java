@@ -18,12 +18,10 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-26.

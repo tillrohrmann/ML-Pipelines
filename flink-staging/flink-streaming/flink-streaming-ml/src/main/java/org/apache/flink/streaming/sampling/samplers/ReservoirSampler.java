@@ -40,7 +40,7 @@ public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN
 		//reservoirSample = new Reservoir(size);
 	}
 
-	//TODO :implement collector -> with a selected injection rate generate items from the stream
+	//TODO :implement collector policy-> with a selected injection rate generate items from the stream
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
 		count++;
