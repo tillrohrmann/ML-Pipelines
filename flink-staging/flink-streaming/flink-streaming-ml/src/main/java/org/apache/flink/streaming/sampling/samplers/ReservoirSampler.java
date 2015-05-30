@@ -22,46 +22,52 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by marthavk on 2015-03-31.
  */
 public class ReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
-	Reservoir reservoirSample;
+	Sample<IN> reservoir;
+	//Reservoir reservoir;
 	int count = 0;
 
 	public ReservoirSampler(int size) {
-		reservoirSample = new Reservoir(size);
+		reservoir = new Sample<IN>(size);
+		//reservoirSample = new Reservoir(size);
 	}
 
 	@Override
 	public Sample<IN> map(IN value) throws Exception {
 		count++;
 		this.sample(value);
-		return reservoirSample;
+		return reservoir;
 	}
 
 	@Override
 	public ArrayList<IN> getElements() {
-		return reservoirSample.getSample();
+		return reservoir.getSample();
 	}
 
 	@Override
 	public void sample(IN element) {
-		if (SamplingUtils.flip(count / reservoirSample.getMaxSize())) {
-			reservoirSample.addSample(element);
+		if (SamplingUtils.flip(count / reservoir.getMaxSize())) {
+			if (!reservoir.isFull()) {
+				reservoir.addSample(element);
+			}
+			else {
+				replace(element);
+			}
 		}
 	}
 
-	@Override
-	public int size() {
-		return reservoirSample.getSize();
-	}
 
-	@Override
-	public int maxSize() {
-		return reservoirSample.getMaxSize();
+	public void replace(IN item) {
+		// choose position in sample uniformly at random
+		int pos = new Random().nextInt(reservoir.getSize());
+		// replace element at pos with item
+		reservoir.replaceSample(pos, item);
 	}
 }
 
