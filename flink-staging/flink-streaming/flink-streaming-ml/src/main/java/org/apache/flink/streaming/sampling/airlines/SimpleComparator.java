@@ -1,4 +1,4 @@
-package org.apache.flink.streaming.sampling.examples;/*
+package org.apache.flink.streaming.sampling.airlines;/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,25 +16,25 @@ package org.apache.flink.streaming.sampling.examples;/*
  * limitations under the License.
  */
 
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
-
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.Map;
 
 /**
- * Created by marthavk on 2015-05-08.
+ * Created by marthavk on 2015-05-29.
  */
-public class Test {
+public class SimpleComparator implements Comparator<String> {
 
-	public static void main(String[] args) {
-		HashMap<String, Integer> foo = new HashMap<String, Integer>();
-		foo.put("A", 34);
-		foo.put("B", 22);
-		foo.put("C", 87);
-		foo.put("D", 12);
-		foo.put("E", 44);
+	Map<String, Integer> hashmap;
 
+	public SimpleComparator(Map<String, Integer> m) {
+		this.hashmap = m;
+	}
 
-
+	public int compare(String a, String b) {
+		if (hashmap.get(a) >= hashmap.get(b)) {
+			return -1;
+		} else {
+			return 1;
+		}
 	}
 }
