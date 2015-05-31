@@ -26,7 +26,6 @@ import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.MetaAppender;
-import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
 import org.apache.flink.streaming.sampling.samplers.Sample;
@@ -75,33 +74,33 @@ public class PrioritySamplingExample {
 	 * @param env
 	 */
 	public static void evaluateSampling(StreamExecutionEnvironment env) {
-
+/*
 		int sampleSize = SAMPLE_SIZE;
 
-		/*create stream of distributions as source (also number generators) and shuffle*/
+		*//*create stream of distributions as source (also number generators) and shuffle*//*
 		DataStreamSource<GaussianDistribution> source = createSource(env);
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
-		/*generate random number from distribution*/
+		*//*generate random number from distribution*//*
 		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 
 		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
-				/*sample the stream*/
+				*//*sample the stream*//*
 				.map(new PrioritySampler<Double>(sampleSize, TIME_WINDOW_SIZE))
 
-				/*extract Double sampled values (unwrap from Tuple3)*/
+				*//*extract Double sampled values (unwrap from Tuple3)*//*
 				.map(new SampleExtractor<Double>());
 
-		/*connect sampled stream to source*/
+		*//*connect sampled stream to source*//*
 		sample.connect(shuffledSrc)
 
-				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
+				*//*evaluate sample: compare current distribution parameters with sampled distribution parameters*//*
 				.flatMap(new DistanceEvaluator())
 				//.flatMap(new DistributionComparator())
 
-				/*sink*/
+				*//*sink*//*
 						//.print();
-				.writeAsText(SamplingUtils.path + "priority");
+				.writeAsText(SamplingUtils.path + "priority");*/
 	}
 
 

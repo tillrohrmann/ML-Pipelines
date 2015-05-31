@@ -37,14 +37,14 @@ public interface Sampler<T> {
 	 */
 	public void sample(T element);
 
-	/**
+/*	*//**
 	 * @return The current size of the sample
-	 */
+	 *//*
 	public int size();
 
-	/**
+	*//**
 	 * @return The max size of the sample
-	 */
-	public int maxSize();
+	 *//*
+	public int maxSize();*/
 
 }

@@ -22,10 +22,8 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-import org.apache.flink.streaming.sampling.helpers.SampleExtractor;
+
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.*;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
@@ -68,10 +66,6 @@ public class AirlinesExample implements Serializable {
 
 		/*set source*/
 		DataStreamSource<String> source = env.readTextFile(source_file)	;
-		//DataStreamSource<String> source = env.readTextFile(path + "january_dataset").setParallelism(1);
-		//DataStreamSource<String> source = env.readTextFile(path + "dummy_dataset.data");
-		//DataStreamSource<String> source = env.readTextFile(path + "small_dataset.data");
-		//DataStreamSource<String> source = env.readTextFile(path + "xs_dataset.data")	;
 
 		/*
 		 * Tuple8 fields:
@@ -179,7 +173,7 @@ public class AirlinesExample implements Serializable {
 		}).setParallelism(1).map(new MapFunction<HashMap<String, Integer>, TreeMap<String,Integer>>() {
 			@Override
 			public TreeMap<String,Integer> map(HashMap<String, Integer> destinations) throws Exception {
-				AggregateComparator acomp =  new AggregateComparator(destinations);
+				SimpleComparator acomp =  new SimpleComparator(destinations);
 				TreeMap<String,Integer> sorted = new TreeMap<String,Integer>(acomp);
 				sorted.putAll(destinations);
 				return sorted;

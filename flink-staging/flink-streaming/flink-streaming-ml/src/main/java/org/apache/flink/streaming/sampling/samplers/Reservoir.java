@@ -17,7 +17,6 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,15 +31,14 @@ public class Reservoir<T> extends Sample<T> implements Serializable, Iterable {
 		super(size);
 	}
 
-
 	@Override
 	public void addSample(T item) {
-		if (!isFull()) {
+		/*if (!isFull()) {
 			this.sample.add(item);
 		}
 		else {
 			replaceSample(item);
-		}
+		}*/
 	}
 
 

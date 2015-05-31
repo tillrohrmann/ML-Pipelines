@@ -15,36 +15,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.helpers;
 
-import java.util.Date;
+package org.apache.flink.streaming.sampling.samplers;
+
+import java.io.Serializable;
+import java.util.Iterator;
 
 /**
- * Created by marthavk on 2015-04-24.
+ * Created by marthavk on 2015-03-31.
  */
-public class StreamTimestamp {
+public class FiFo<T> extends Sample<T> implements Serializable, Iterable {
 
-	Long timestamp;
-
-	public StreamTimestamp() {
-		timestamp = System.currentTimeMillis();
+	public FiFo(int size) {
+		super(size);
 	}
 
-	public StreamTimestamp(int yyyy, int mm, int dd) {
-		timestamp =(long) yyyy*10000 + mm*100 + dd;
-	}
-
-
-	public long getTimestamp() {
-		return timestamp;
-	}
-
-	public void update() {
-		timestamp = System.currentTimeMillis();
+	/**
+	 * Adds a sample to the queue.
+	 * If the queue is full evict the oldest (first) element
+	 * then add the sample.
+	 *
+	 * @param item the sample to be added to the queue
+	 */
+	@Override
+	public void addSample(T item) {
+		if (getSize() < getMaxSize()) {
+			sample.add(item);
+		} else {
+			sample.remove(0);
+			sample.add(item);
+		}
 	}
 
 	@Override
-	public String toString() {
-		return timestamp.toString();
+	public Iterator iterator() {
+		return sample.iterator();
 	}
 }
