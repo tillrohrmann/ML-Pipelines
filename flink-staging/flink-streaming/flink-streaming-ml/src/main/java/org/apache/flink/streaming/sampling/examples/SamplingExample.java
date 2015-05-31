@@ -80,10 +80,12 @@ public class SamplingExample {
 				shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 		SingleOutputStreamOperator<GaussianDistribution, ?> aggregator = generator.map(new NormalAggregator());
 
-		SingleOutputStreamOperator<Double, ?> sample =
-				generator.flatMap(new ReservoirSampler<Double>(SAMPLE_SIZE, OUT_RATE));
+		ReservoirSampler<Double> sampler = new ReservoirSampler<Double>(SAMPLE_SIZE, OUT_RATE);
+		SingleOutputStreamOperator<Double, ?> sample = generator.flatMap(sampler);
 
-		sample.writeAsText(SamplingUtils.path + "reservoir_new");
+
+
+		//sample.writeAsText(SamplingUtils.path + "reservoir_new");
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
