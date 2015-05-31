@@ -21,6 +21,7 @@ import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
 Metrics}
 
+
 class PrequentialEvaluator
   extends Evaluator[(Int, Metrics), (Double, Double, Double, Double)]
   with Serializable {
@@ -35,7 +36,7 @@ class PrequentialEvaluator
     *
     * @param inputDataStream The points to be used for the evaluation.
     *
-    * @return The Prediction error for each data point
+    * @return (#instances,fading_factors_errors,prequential,accuracy)
     */
   override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double, Double,
     Double, Double)] = {
@@ -55,7 +56,7 @@ class PrequentialEvaluator
 
         (instancesClassified, sumLossFunction / Bdenominator,
           sumLossFunctionWithoutLatent / instancesClassified,
-          (instancesClassified-sumLossFunctionWithoutLatent)/instancesClassified )
+          ((instancesClassified-sumLossFunctionWithoutLatent)/instancesClassified)*100)
       }
     }.setParallelism(1)
   }

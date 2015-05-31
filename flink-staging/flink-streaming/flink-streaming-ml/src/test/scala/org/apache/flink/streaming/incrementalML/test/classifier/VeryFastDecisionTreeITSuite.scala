@@ -39,20 +39,22 @@ class VeryFastDecisionTreeITSuite
     val parameters = ParameterMap()
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
 
-//    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 200)
-    parameters.add(VeryFastDecisionTree.NumberOfClasses, 3)
-    parameters.add(VeryFastDecisionTree.Parallelism, 4)
+    parameters.add(VeryFastDecisionTree.MinNumberOfInstances, 300)
+    parameters.add(VeryFastDecisionTree.NumberOfClasses, 4)
+    parameters.add(VeryFastDecisionTree.Parallelism, 8)
 
 //    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-    val datapoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/" +
-      "UCI-Waveform/waveform-2000K.csv").map {
+    val dataPoints = env.readTextFile("/Users/fobeligi/Documents/dataSets/randomRBF-10M.arff").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
         for (i <- 0 until features.size - 1) {
           featureList = featureList :+ features(i).trim.toDouble
+        }
+
+        LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
 //          features(i).trim
 //          match {
 //            case "?" =>
@@ -67,7 +69,6 @@ class VeryFastDecisionTreeITSuite
               //              else {
 //              featureList = featureList :+ features(i).toDouble
               //              }
-            }
 //          }
 //        }
         //        val vector = if (features(features.size - 1).trim equals ">50K") {
@@ -76,12 +77,11 @@ class VeryFastDecisionTreeITSuite
         //        else {
         //          LabeledVector(-1, DenseVector(featureList.toArray))
         //        }
-        LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
+//        LabeledVector(features(0).trim.toDouble, DenseVector(featureList.toArray))
       }
     }
 
-    //    val dataPoints = StreamingMLUtils.readLibSVM(env,
-    //      "/Users/fobeligi/Downloads/decisionTreeTestData.t", 123)
+//        val dataPoints = StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/Documents/dataSets/forestCovertype/covtype.libsvm.binary.scale", 54)
 
     //    val transformer = Imputer()
     val vfdtLearner = VeryFastDecisionTree(env)
@@ -90,13 +90,9 @@ class VeryFastDecisionTreeITSuite
     //    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int, Metrics)](
     //      transformer, vfdtLearner)
 
-    val streamToEvaluate = vfdtLearner.fit(datapoints, parameters)
+    val streamToEvaluate = vfdtLearner.fit(dataPoints, parameters)
 
-//    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/Documents/" +
-//      "dataSets/UCI-Waveform/waveformResultsCSV.csv").setParallelism(1)
-
-    evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/" +
-      "dataSets/UCI-Waveform/waveform-2000K-Results.txt").setParallelism(1)
+    evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/Documents/dataSets/randomRBF-10M-result.txt").setParallelism(1)
 
     env.execute()
   }
