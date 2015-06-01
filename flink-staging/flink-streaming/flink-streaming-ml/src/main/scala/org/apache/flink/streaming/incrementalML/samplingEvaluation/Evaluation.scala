@@ -18,14 +18,23 @@
  */
 
 package org.apache.flink.streaming.incrementalML.samplingEvaluation
+
+import org.apache.flink.streaming.api.scala
+import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils
+
 /**
  * Created by marthavk on 2015-06-01.
  */
 class Evaluation {
 
-  object HelloWorld {
+  object ClassificationTest {
     def main(args: Array[String]) {
-      println("Hello, world!")
+      val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
+      val rawData: scala.DataStream[String] = env.readTextFile(SamplingUtils.path + "small_dataset")
+      val tree = VeryFastDecisionTree(env)
+      rawData.print();
     }
   }
 
