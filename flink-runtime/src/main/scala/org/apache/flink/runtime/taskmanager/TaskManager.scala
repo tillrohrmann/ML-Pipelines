@@ -37,7 +37,7 @@ import grizzled.slf4j.Logger
 
 import org.apache.flink.configuration._
 import org.apache.flink.runtime.messages.checkpoint.{ConfirmCheckpoint, TriggerCheckpoint, AbstractCheckpointMessage}
-import org.apache.flink.runtime.{ActorSynchronousLogging, ActorLogMessages}
+import org.apache.flink.runtime.{StreamingMode, ActorSynchronousLogging, ActorLogMessages}
 import org.apache.flink.runtime.akka.AkkaUtils
 import org.apache.flink.runtime.blob.{BlobService, BlobCache}
 import org.apache.flink.runtime.broadcast.BroadcastVariableManager
@@ -158,7 +158,6 @@ extends Actor with ActorLogMessages with ActorSynchronousLogging {
 
   private var heartbeatScheduler: Option[Cancellable] = None
 
-
   // --------------------------------------------------------------------------
   //  Actor messages and life cycle
   // --------------------------------------------------------------------------
@@ -192,7 +191,7 @@ extends Actor with ActorLogMessages with ActorSynchronousLogging {
    */
   override def postStop(): Unit = {
     log.info(s"Stopping TaskManager ${self.path.toSerializationFormat}.")
-
+    
     cancelAndClearEverything(new Exception("TaskManager is shutting down."))
 
     if (isConnected) {
@@ -999,8 +998,8 @@ object TaskManager {
   /** Return code for critical errors during the runtime */
   val RUNTIME_FAILURE_RETURN_CODE = 2
 
+  /** The name of the TaskManager actor */
   val TASK_MANAGER_NAME = "taskmanager"
-  val PROFILER_NAME = "profiler"
 
   /** Maximum time (msecs) that the TaskManager will spend searching for a
     * suitable network interface to use for communication */
@@ -1033,7 +1032,8 @@ object TaskManager {
     EnvironmentInformation.checkJavaVersion()
 
     // try to parse the command line arguments
-    val configuration = try {
+    val (configuration: Configuration,
+         mode: StreamingMode) = try {
       parseArgsAndLoadConfig(args)
     }
     catch {
@@ -1050,13 +1050,13 @@ object TaskManager {
         LOG.info("Security is enabled. Starting secure TaskManager.")
         SecurityUtils.runSecured(new FlinkSecuredRunner[Unit] {
           override def run(): Unit = {
-            selectNetworkInterfaceAndRunTaskManager(configuration, classOf[TaskManager])
+            selectNetworkInterfaceAndRunTaskManager(configuration, mode, classOf[TaskManager])
           }
         })
       }
       else {
         LOG.info("Security is not enabled. Starting non-authenticated TaskManager.")
-        selectNetworkInterfaceAndRunTaskManager(configuration, classOf[TaskManager])
+        selectNetworkInterfaceAndRunTaskManager(configuration, mode, classOf[TaskManager])
       }
     }
     catch {
@@ -1074,31 +1074,44 @@ object TaskManager {
    * @return The parsed configuration.
    */
   @throws(classOf[Exception])
-  def parseArgsAndLoadConfig(args: Array[String]): Configuration = {
-
+  def parseArgsAndLoadConfig(args: Array[String]): (Configuration, StreamingMode) = {
+    
     // set up the command line parser
-    val parser = new scopt.OptionParser[TaskManagerCLIConfiguration]("taskmanager") {
-      head("flink task manager")
-      opt[String]("configDir") action { (x, c) =>
-        c.copy(configDir = x)
-      } text "Specify configuration directory."
+    val parser = new scopt.OptionParser[TaskManagerCliOptions]("TaskManager") {
+      head("Flink TaskManager")
+      
+      opt[String]("configDir") action { (param, conf) =>
+        conf.setConfigDir(param)
+        conf
+      } text {
+        "Specify configuration directory."
+      }
+
+      opt[String]("streamingMode").optional().action { (param, conf) =>
+        conf.setMode(param)
+        conf
+      } text {
+        "The streaming mode of the JobManager (STREAMING / BATCH)"
+      }
     }
 
     // parse the CLI arguments
-    val cliConfig = parser.parse(args, TaskManagerCLIConfiguration()).getOrElse {
+    val cliConfig = parser.parse(args, new TaskManagerCliOptions()).getOrElse {
       throw new Exception(
         s"Invalid command line agruments: ${args.mkString(" ")}. Usage: ${parser.usage}")
     }
 
     // load the configuration
-    try {
-      LOG.info("Loading configuration from " + cliConfig.configDir)
-      GlobalConfiguration.loadConfiguration(cliConfig.configDir)
+    val conf: Configuration = try {
+      LOG.info("Loading configuration from " + cliConfig.getConfigDir())
+      GlobalConfiguration.loadConfiguration(cliConfig.getConfigDir())
       GlobalConfiguration.getConfiguration()
     }
     catch {
       case e: Exception => throw new Exception("Could not load configuration", e)
     }
+    
+    (conf, cliConfig.getMode)
   }
 
   // --------------------------------------------------------------------------
@@ -1120,11 +1133,13 @@ object TaskManager {
    * (library cache, shuffle network stack, ...), and starts the TaskManager itself.
 
    * @param configuration The configuration for the TaskManager.
+   * @param streamingMode The streaming mode to start the TaskManager in (streaming/batch-only)
    * @param taskManagerClass The actor class to instantiate.
    *                         Allows to use TaskManager subclasses for example for YARN.
    */
   @throws(classOf[Exception])
   def selectNetworkInterfaceAndRunTaskManager(configuration: Configuration,
+                                              streamingMode: StreamingMode,
                                               taskManagerClass: Class[_ <: TaskManager]) : Unit = {
 
     val (jobManagerHostname, jobManagerPort) = getAndCheckJobManagerAddress(configuration)
@@ -1132,7 +1147,8 @@ object TaskManager {
     val (taskManagerHostname, actorSystemPort) =
        selectNetworkInterfaceAndPort(configuration, jobManagerHostname, jobManagerPort)
 
-    runTaskManager(taskManagerHostname, actorSystemPort, configuration, taskManagerClass)
+    runTaskManager(taskManagerHostname, actorSystemPort, configuration,
+                   streamingMode, taskManagerClass)
   }
 
   @throws(classOf[IOException])
@@ -1196,14 +1212,17 @@ object TaskManager {
    * @param taskManagerHostname The hostname/address of the interface where the actor system
    *                         will communicate.
    * @param actorSystemPort The port at which the actor system will communicate.
+   * @param streamingMode The streaming mode to start the TaskManager in (streaming/batch-only)
    * @param configuration The configuration for the TaskManager.
    */
   @throws(classOf[Exception])
   def runTaskManager(taskManagerHostname: String,
-                     actorSystemPort: Int,
-                     configuration: Configuration) : Unit = {
+                     actorSystemPort: Int, 
+                     configuration: Configuration,
+                     streamingMode: StreamingMode) : Unit = {
 
-    runTaskManager(taskManagerHostname, actorSystemPort, configuration, classOf[TaskManager])
+    runTaskManager(taskManagerHostname, actorSystemPort, configuration,
+                   streamingMode, classOf[TaskManager])
   }
 
   /**
@@ -1218,6 +1237,7 @@ object TaskManager {
    *                         will communicate.
    * @param actorSystemPort The port at which the actor system will communicate.
    * @param configuration The configuration for the TaskManager.
+   * @param streamingMode The streaming mode to start the TaskManager in (streaming/batch-only)
    * @param taskManagerClass The actor class to instantiate. Allows the use of TaskManager
    *                         subclasses for example for YARN.
    */
@@ -1225,6 +1245,7 @@ object TaskManager {
   def runTaskManager(taskManagerHostname: String,
                      actorSystemPort: Int,
                      configuration: Configuration,
+                     streamingMode: StreamingMode,
                      taskManagerClass: Class[_ <: TaskManager]) : Unit = {
 
     LOG.info("Starting TaskManager")
@@ -1264,9 +1285,10 @@ object TaskManager {
                                                            taskManagerHostname,
                                                            Some(TASK_MANAGER_NAME),
                                                            None, false,
+                                                           streamingMode,
                                                            taskManagerClass)
 
-      // start a process reaper that watches the JobManager. If the JobManager actor dies,
+      // start a process reaper that watches the JobManager. If the TaskManager actor dies,
       // the process reaper will kill the JVM process (to ensure easy failure detection)
       LOG.debug("Starting TaskManager process reaper")
       taskManagerSystem.actorOf(
@@ -1317,6 +1339,7 @@ object TaskManager {
    *                       JobManager hostname an port specified in the configuration.
    * @param localTaskManagerCommunication If true, the TaskManager will not initiate the
    *                                      TCP network stack.
+   * @param streamingMode The streaming mode to start the TaskManager in (streaming/batch-only)
    * @param taskManagerClass The class of the TaskManager actor. May be used to give
    *                         subclasses that understand additional actor messages.
    *
@@ -1339,6 +1362,7 @@ object TaskManager {
                                          taskManagerActorName: Option[String],
                                          jobManagerPath: Option[String],
                                          localTaskManagerCommunication: Boolean,
+                                         streamingMode: StreamingMode,
                                          taskManagerClass: Class[_ <: TaskManager]): ActorRef = {
 
     // get and check the JobManager config
@@ -1391,13 +1415,17 @@ object TaskManager {
 
       relativeMemSize
     }
+    
+    val preAllocateMemory: Boolean = streamingMode == StreamingMode.BATCH_ONLY
 
     // now start the memory manager
     val memoryManager = try {
       new DefaultMemoryManager(memorySize,
                                taskManagerConfig.numberOfSlots,
-                               netConfig.networkBufferSize)
-    } catch {
+                               netConfig.networkBufferSize,
+                               preAllocateMemory)
+    }
+    catch {
       case e: OutOfMemoryError => throw new Exception(
         "OutOfMemory error (" + e.getMessage + ") while allocating the TaskManager memory (" +
           memorySize + " bytes).", e)

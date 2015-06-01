@@ -29,29 +29,19 @@ and roadmap here](vision_roadmap.html).
 * This will be replaced by the TOC
 {:toc}
 
-## Getting Started
-
-You can use FlinkML in your project by adding the following dependency to your pom.xml
-
-{% highlight bash %}
-<dependency>
-  <groupId>org.apache.flink</groupId>
-  <artifactId>flink-ml</artifactId>
-  <version>{{site.version }}</version>
-</dependency>
-{% endhighlight %}
-
 ## Supported Algorithms
+
+FlinkML currently supports the following algorithms:
 
 ### Supervised Learning
 
-* [Communication efficient distributed dual coordinate ascent (CoCoA)](cocoa.html)
+* [SVM using Communication efficient distributed dual coordinate ascent (CoCoA)](svm.html)
 * [Multiple linear regression](multiple_linear_regression.html)
 * [Optimization Framework](optimization.html)
 
 ### Data Preprocessing
 
-* [Polynomial Base Feature Mapper](polynomial_base_feature_mapper.html)
+* [Polynomial Features](polynomial_features.html)
 * [Standard Scaler](standard_scaler.html)
 
 ### Recommendation
@@ -62,30 +52,70 @@ You can use FlinkML in your project by adding the following dependency to your p
 
 * [Distance Metrics](distance_metrics.html)
 
-## Example & Quickstart guide
+## Getting Started
 
-We already have some of the building blocks for FlinkML in place, and will continue to extend the
-library with more algorithms. An example of how simple it is to create a learning model in
-FlinkML is given below:
+First, you have to [set up a Flink program](http://ci.apache.org/projects/flink/flink-docs-master/apis/programming_guide.html#linking-with-flink).
+Next, you have to add the FlinkML dependency to the `pom.xml` of your project.  
+
+{% highlight bash %}
+<dependency>
+  <groupId>org.apache.flink</groupId>
+  <artifactId>flink-ml</artifactId>
+  <version>{{site.version }}</version>
+</dependency>
+{% endhighlight %}
+
+Now you can start solving your analysis task.
+The following code snippet shows how easy it is to train a multiple linear regression model.
 
 {% highlight scala %}
 // LabeledVector is a feature vector with a label (class or real value)
-val data: DataSet[LabeledVector] = ...
+val trainingData: DataSet[LabeledVector] = ...
+val testingData: DataSet[Vector] = ...
 
-val learner = MultipleLinearRegression()
+val mlr = MultipleLinearRegression()
   .setStepsize(1.0)
   .setIterations(100)
   .setConvergenceThreshold(0.001)
 
-learner.fit(data, parameters)
+mlr.fit(trainingData, parameters)
 
-// The learner can now be used to make predictions using learner.predict()
+// The fitted model can now be used to make predictions
+val predictions: DataSet[LabeledVector] = mlr.predict(testingData)
 {% endhighlight %}
 
-For a more comprehensive guide, you can check out our [quickstart guide](quickstart.html)
+For a more comprehensive guide, please check out our [quickstart guide](quickstart.html)
+
+## Pipelines
+
+A key concept of FlinkML is its [scikit-learn](http://scikit-learn.org) inspired pipelining mechanism.
+It allows you to quickly build complex data analysis pipelines how they appear in every data scientist's daily work.
+
+The following example code shows how easy it is to set up an analysis pipeline with FlinkML.
+
+{% highlight scala %}
+val trainingData: DataSet[LabeledVector] = ...
+val testingData: DataSet[Vector] = ...
+
+val scaler = StandardScaler()
+val polyFeatures = PolynomialFeatures().setDegree(3)
+val mlr = MultipleLinearRegression()
+
+// Construct pipeline of standard scaler, polynomial features and multiple linear regression
+val pipeline = scaler.chainTransformer(polyFeatures).chainPredictor(mlr)
+
+// Train pipeline
+pipeline.fit(trainingData)
+
+// Calculate predictions
+val predictions: DataSet[LabeledVector] = pipeline.predict(testingData)
+{% endhighlight %} 
+
+One can chain a `Transformer` to another `Transformer` or a set of chained `Transformers` by calling the method `chainTransformer`.
+If one wants to chain a `Predictor` to a `Transformer` or a set of chained `Transformers`, one has to call the method `chainPredictor`. 
+An in-depth description of FlinkML's pipelines and their internal workings can be found [here](pipelines.html).
 
 ## How to contribute
 
-Please check our [roadmap](vision_roadmap.html#roadmap) and [contribution guide](contribution_guide.html). 
-You can also check out our list of
-[unresolved issues on JIRA](https://issues.apache.org/jira/browse/FLINK-1748?jql=component%20%3D%20%22Machine%20Learning%20Library%22%20AND%20project%20%3D%20FLINK%20AND%20resolution%20%3D%20Unresolved%20ORDER%20BY%20priority%20DESC)
+The Flink community welcomes all contributors who want to get involved in the development of Flink and its libraries.
+In order to get quickly started with contributing to FlinkML, please read first the official [contribution guide]({{site.baseurl}}/libs/ml/contribution_guide.html).
