@@ -17,12 +17,15 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.Function;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by marthavk on 2015-04-07.
  */
-public interface Sampler<T> {
+public interface SampleFunction<T> extends Function, Serializable{
 
 	/**
 	 * @return an ArrayList holding the whole sample
@@ -36,6 +39,8 @@ public interface Sampler<T> {
 	 * @param element
 	 */
 	public void sample(T element);
+
+	public T getRandomEvent();
 
 /*	*//**
 	 * @return The current size of the sample

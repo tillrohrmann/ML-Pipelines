@@ -57,6 +57,9 @@ public class ReservoirSamplingExample {
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
+
 		/*evaluate sampling method, run main algorithm*/
 		evaluateSampling(env);
 
