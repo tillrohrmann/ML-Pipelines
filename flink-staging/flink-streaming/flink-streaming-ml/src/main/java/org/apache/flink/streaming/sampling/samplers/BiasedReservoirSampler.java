@@ -18,46 +18,33 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 
 
 /**
- * Created by marthavk on 2015-04-01.
+ * Biased Reservoir Sampler (uses a Reservoir but is biased towards new events).
+ * Each new element will deterministically enter the reservoir. The Reservoir is either extended
+ * (until it reaches max size) or the incoming element is replacing an older element in the
+ * reservoir uniformly at random.
+ * @param <IN> the type of incoming elements
  */
-public class BiasedReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
+public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
 
 	Reservoir<IN> reservoir;
 	int counter = 0;
-	Fraction outputRate;
-	long internalCounter=0;
 
-	public BiasedReservoirSampler(int size) {
-		reservoir = new Reservoir<IN>(size);
-		outputRate = new Fraction(1);
-	}
-
-	public BiasedReservoirSampler(int size, double outR) {
-		reservoir = new Reservoir<IN>(size);
-		outputRate = new Fraction(outR);
+	public BiasedReservoirSampler(int maxsize) {
+		reservoir = new Reservoir<IN>(maxsize);
 	}
 
 	@Override
-	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		internalCounter++;
-		counter++;
+	public Sample<IN> map(IN value) throws Exception {
+		counter ++;
 		sample(value);
-		if (internalCounter==outputRate.getDenominator()) {
-			internalCounter=0;
-			for (int i=0; i<outputRate.getNumerator(); i++) {
-				out.collect((IN) reservoir.generate());
-			}
-		}
-
+		return reservoir;
 	}
 
 	@Override
@@ -74,7 +61,4 @@ public class BiasedReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Samp
 			reservoir.addSample(element);
 		}
 	}
-
-
-
 }

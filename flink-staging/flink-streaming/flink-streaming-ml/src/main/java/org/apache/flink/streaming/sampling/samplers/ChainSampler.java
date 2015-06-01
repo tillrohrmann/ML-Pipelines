@@ -19,6 +19,7 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
@@ -31,45 +32,36 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-07.
  */
 
-public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>,FlatMapFunction<T,T> {
+public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunction<T,Sample<T>> {
 
 	Chain<Tuple2<T, Long>> chainSample;
 
 	int windowSize;
 	long counter;
-	Fraction outputRate;
-	long internalCounter = 0;
 
 	public ChainSampler(int lSize, int lWindowSize) {
 		counter = 0;
 		chainSample = new Chain<Tuple2<T, Long>>(lSize);
 		windowSize = lWindowSize;
-		outputRate = new Fraction(1);
 	}
 
 	public ChainSampler(int lSize, int lWindowSize, double outR) {
 		counter = 0;
 		chainSample = new Chain<Tuple2<T, Long>>(lSize);
 		windowSize = lWindowSize;
-		outputRate = new Fraction(outR);
 	}
 
+
 	@Override
-	public void flatMap(T value, Collector<T> out) throws Exception {
-		counter++;
-		internalCounter++;
+	public void flatMap(T value, Collector<Sample<T>> out) throws Exception {
+		counter ++;
+
 		//wrap values
 		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(value, counter);
 		storeChainedItems(wrappedValue);
 		updateExpiredItems(wrappedValue);
 		sample(wrappedValue);
-		if (internalCounter == outputRate.getDenominator()) {
-			for (int i=0; i<outputRate.getNumerator(); i++) {
-				internalCounter=0;
-				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
-				out.collect(sample.f0);
-			}
-		}
+		//TODO
 	}
 
 	@Override
@@ -180,5 +172,6 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>,FlatMapFunction
 		chainSampleStr += "]";
 		return chainSampleStr;
 	}
+
 
 }
