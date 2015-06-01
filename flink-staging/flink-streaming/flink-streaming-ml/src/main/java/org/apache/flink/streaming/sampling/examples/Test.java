@@ -49,7 +49,7 @@ public class Test {
 	 * @param wSize
 	 */
 	public static void windowSampling(DataStream<Long> dataStream, final Integer rSize, final Integer wSize) {
-		//comment added
+		
 		dataStream
 				.window(Count.of(wSize)).mapWindow(new WindowMapFunction<Long, Reservoir<Long>>() {
 			@Override
