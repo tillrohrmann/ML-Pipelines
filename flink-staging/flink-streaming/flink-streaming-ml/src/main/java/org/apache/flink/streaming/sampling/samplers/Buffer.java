@@ -57,9 +57,12 @@ public class Buffer<T> implements Serializable {
 		return maxSize;
 	}
 
-	public void addSample(T item) {
-		sample.add(item);
+	T get(int pos) {
+		return sample.get(pos);
 	}
+	/*public void addSample(T item) {
+		sample.add(item);
+	}*/
 
 	void replaceSample(int pos, T item) {
 		sample.set(pos, item);

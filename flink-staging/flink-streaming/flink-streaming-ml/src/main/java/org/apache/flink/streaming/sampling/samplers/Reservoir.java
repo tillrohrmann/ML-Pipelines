@@ -31,14 +31,13 @@ public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 		super(size);
 	}
 
-	@Override
 	public void addSample(T item) {
-		/*if (!isFull()) {
+		if (!isFull()) {
 			this.sample.add(item);
 		}
 		else {
 			replaceSample(item);
-		}*/
+		}
 	}
 
 
@@ -56,6 +55,9 @@ public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 
 	}
 
+	public void reset() {
+		this.sample.clear();
+	}
 
 	/**
 	 * AUXILIARY METHODS

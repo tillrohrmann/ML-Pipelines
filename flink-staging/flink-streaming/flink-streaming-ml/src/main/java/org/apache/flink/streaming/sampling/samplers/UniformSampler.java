@@ -19,23 +19,20 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-
-
 import java.util.ArrayList;
-import java.util.Random;
 
 /**
  * Created by marthavk on 2015-06-02.
  */
 public class UniformSampler<IN> implements SampleFunction<IN> {
 
-	Buffer<IN> reservoir;
+	Reservoir<IN> reservoir;
 	long counter = 0;
-	final int rate;
+	final int sampleRate;
 
 	public UniformSampler(int lMaxSize, int lRate) {
-		reservoir = new Buffer<IN>(lMaxSize);
-		rate = lRate;
+		reservoir = new Reservoir<IN>(lMaxSize);
+		sampleRate = lRate;
 	}
 
 	@Override
@@ -77,12 +74,12 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public int getSampleRate() {
-		return rate;
+		return sampleRate;
 	}
 
 	public synchronized void replace(IN item) {
 		// choose position in sample uniformly at random
-		int pos = new Random().nextInt(reservoir.getSize());
+		int pos = SamplingUtils.nextRandInt(reservoir.getSize());
 		// replace element at pos with item
 		reservoir.replaceSample(pos, item);
 	}

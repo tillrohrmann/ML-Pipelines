@@ -18,12 +18,9 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,63 +29,32 @@ import java.util.LinkedList;
 /**
  * Created by marthavk on 2015-04-21.
  */
-public class PrioritySampler<T> implements SampleFunction<Tuple2<T,StreamTimestamp>> {
+public class PrioritySampler<T> implements SampleFunction<T> {
 
-	Chain<Tuple2<T, StreamTimestamp>> chainSample;
+	Chain<T,StreamTimestamp> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
 	Long windowSize;
-	Fraction outputRate;
-	long internalCounter = 0;
-
-	/**
-	 * Creates a new Priority Sampler with output rate 1/1
-	 * @param lSize the size of the sample
-	 * @param lWindowSize the size of the time window
-	 */
-	public PrioritySampler(int lSize, long lWindowSize) {
-		this.chainSample = new Chain<Tuple2<T, StreamTimestamp>>(lSize);
-		this.windowSize = lWindowSize;
-		this.priorityList = new ArrayList<LinkedList<Double>>();
-		this.outputRate = new Fraction(1);
-		initializeLists();
-	}
+	final int sampleRate;
 
 	/**
 	 * Creates a new Priority Sampler
 	 * @param lSize the size of the sample
 	 * @param lWindowSize the size of the time window
-	 * @param outR the output rate
+	 * @param lRate the sampling rate (in records/sec)
 	 */
-	public PrioritySampler(int lSize, long lWindowSize, long outR) {
-		this.chainSample = new Chain<Tuple2<T, StreamTimestamp>>(lSize);
+	public PrioritySampler(int lSize, long lWindowSize, int lRate) {
+		this.chainSample = new Chain<T,StreamTimestamp>(lSize);
 		this.windowSize = lWindowSize;
 		this.priorityList = new ArrayList<LinkedList<Double>>();
-		this.outputRate = new Fraction(outR);
+		this.sampleRate = lRate;
 		initializeLists();
 	}
 
-	/**
-	 * METHODS IMPLEMENTING FlatMapFunction
-	 */
-
-
-	public void flatMap(T value, Collector<T> out) throws Exception {
-		internalCounter++;
-		final StreamTimestamp t = new StreamTimestamp();
-		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(value,t);
-		sample(wrappedValue);
-		if (internalCounter == outputRate.getDenominator()) {
-			for (int i=0; i<outputRate.getNumerator(); i++) {
-				internalCounter=0;
-				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
-				out.collect(sample.f0);
-			}
-		}
-	}
 
 	@Override
-	public ArrayList<Tuple2<T, StreamTimestamp>> getElements() {
-		return chainSample.extractSample();
+	public ArrayList<T> getElements() {
+		chainSample.extractSample();
+		return null;
 	}
 
 
@@ -96,33 +62,37 @@ public class PrioritySampler<T> implements SampleFunction<Tuple2<T,StreamTimesta
 	 * METHODS IMPLEMENTING Sampler INTERFACE *
 	 */
 	@Override
-	public void sample(Tuple2<T, StreamTimestamp> element) {
-		//update expired elements
-		StreamTimestamp currentTimestamp = new StreamTimestamp(element.f1.getTimestamp());
-		update(currentTimestamp);
+	public void sample(T element) {
+
+		final StreamTimestamp t = new StreamTimestamp();
+		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(element,t);
+
+		update(t);
 
 		//assign k priorities between 0,1
 		ArrayList<Double> priorities = assignPriorities();
 
 		//place new sample
-		placeInList(element, priorities);
+		placeInList(wrappedValue, priorities);
 
 	}
 
 	@Override
-	public Tuple2<T, StreamTimestamp> getRandomEvent() {
-		return null;
+	public T getRandomEvent() {
+		int randomIndex = SamplingUtils.nextRandInt(chainSample.getSize());
+		return chainSample.get(randomIndex).getFirst().f0;
 	}
 
 	@Override
 	public void reset() {
-
+		this.chainSample.reset();
+		this.priorityList.clear();
+		initializeLists();
 	}
 
 	@Override
 	public int getSampleRate() {
-		//TODO
-		return 0;
+		return sampleRate;
 	}
 
 

@@ -18,7 +18,6 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -31,20 +30,15 @@ import java.util.ArrayList;
  * reservoir uniformly at random.
  * @param <IN> the type of incoming elements
  */
-public class BiasedReservoirSampler<IN> implements MapFunction<IN, Buffer<IN>>, SampleFunction<IN> {
+public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	Reservoir<IN> reservoir;
 	int counter = 0;
+	final int sampleRate;
 
-	public BiasedReservoirSampler(int maxsize) {
+	public BiasedReservoirSampler(int maxsize, int lSampleRate) {
 		reservoir = new Reservoir<IN>(maxsize);
-	}
-
-	@Override
-	public Buffer<IN> map(IN value) throws Exception {
-		counter ++;
-		sample(value);
-		return reservoir;
+		sampleRate = lSampleRate;
 	}
 
 	@Override
@@ -54,6 +48,7 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Buffer<IN>>, 
 
 	@Override
 	public void sample(IN element) {
+		counter ++;
 		double proportion = reservoir.getSize() / reservoir.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
 			reservoir.replaceSample(element);
@@ -64,17 +59,17 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Buffer<IN>>, 
 
 	@Override
 	public IN getRandomEvent() {
-		return null;
+		int randomIndex = SamplingUtils.nextRandInt(reservoir.getSize());
+		return reservoir.get(randomIndex);
 	}
 
 	@Override
 	public void reset() {
-
+		reservoir.reset();
 	}
 
 	@Override
 	public int getSampleRate() {
-		//TODO
-		return 0;
+		return sampleRate;
 	}
 }

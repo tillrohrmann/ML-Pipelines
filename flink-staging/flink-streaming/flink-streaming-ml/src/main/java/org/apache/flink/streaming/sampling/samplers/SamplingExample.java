@@ -16,24 +16,17 @@
  * limitations under the License.
  */
 
-package org.apache.flink.streaming.sampling.examples;
+package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
-import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree;
-import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.ReservoirSampler;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-import scala.Tuple2;
-import scala.reflect.ClassTag;
 
 import java.util.Properties;
 
@@ -75,8 +68,8 @@ public class SamplingExample {
 				shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
 		SingleOutputStreamOperator<GaussianDistribution, ?> aggregator = generator.map(new NormalAggregator());
 
-		ReservoirSampler<Double> sampler = new ReservoirSampler<Double>(SAMPLE_SIZE, OUT_RATE);
-		SingleOutputStreamOperator<Double, ?> sample = generator.flatMap(sampler);
+		//ReservoirSampler<Double> sampler = new ReservoirSampler<Double>(SAMPLE_SIZE, OUT_RATE);
+		//SingleOutputStreamOperator<Double, ?> sample = generator.flatMap(sampler);
 
 		//VeryFastDecisionTree tree = new VeryFastDecisionTree(env);
 		//tree.fit();
