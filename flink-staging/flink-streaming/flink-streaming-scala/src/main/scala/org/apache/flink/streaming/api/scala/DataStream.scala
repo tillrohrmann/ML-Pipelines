@@ -18,6 +18,10 @@
 
 package org.apache.flink.streaming.api.scala
 
+import org.apache.flink.api.common.io.OutputFormat
+import org.apache.flink.api.scala.operators.ScalaCsvOutputFormat
+import org.apache.flink.core.fs.{FileSystem, Path}
+
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
@@ -679,8 +683,19 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * is written.
    *
    */
-  def writeAsCsv(path: String, millis: Long = 0): DataStream[T] =
-    javaStream.writeAsCsv(path, millis)
+  def writeAsCsv(
+      path: String,
+      millis: Long = 0,
+      rowDelimiter: String = ScalaCsvOutputFormat.DEFAULT_LINE_DELIMITER,
+      fieldDelimiter: String = ScalaCsvOutputFormat.DEFAULT_FIELD_DELIMITER,
+      writeMode: FileSystem.WriteMode = null): DataStream[T] = {
+    require(javaStream.getType.isTupleType, "CSV output can only be used with Tuple DataSets.")
+    val of = new ScalaCsvOutputFormat[Product](new Path(path), rowDelimiter, fieldDelimiter)
+    if (writeMode != null) {
+      of.setWriteMode(writeMode)
+    }
+    javaStream.writeToFile(of.asInstanceOf[OutputFormat[T]], millis)
+  }
 
   /**
    * Writes the DataStream to a socket as a byte array. The format of the output is
