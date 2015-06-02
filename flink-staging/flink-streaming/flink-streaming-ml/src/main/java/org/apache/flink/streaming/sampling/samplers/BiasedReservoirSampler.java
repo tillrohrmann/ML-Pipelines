@@ -71,4 +71,10 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Buffer<IN>>, 
 	public void reset() {
 
 	}
+
+	@Override
+	public int getSampleRate() {
+		//TODO
+		return 0;
+	}
 }

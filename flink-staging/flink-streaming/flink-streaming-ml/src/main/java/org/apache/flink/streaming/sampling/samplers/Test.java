@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.samplers.UniformSampler;
+import org.apache.flink.streaming.sampling.sources.DebugSource;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 /**
@@ -29,14 +30,24 @@ import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
  */
 public class Test {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setParallelism(1);
+		DataStreamSource<Long> debugSource = env.addSource(new DebugSource(1000000));
+
+
 		DataStreamSource<GaussianDistribution> source = createSource(env);
 		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSource = source.shuffle();
 
-		UniformSampler<GaussianDistribution> uniformSampler = new UniformSampler<GaussianDistribution>(1000);
 
-		shuffledSource.transform("sample", shuffledSource.getType(), new StreamSampler<GaussianDistribution>(uniformSampler));
+		UniformSampler<Long> uniformSampler = new UniformSampler<Long>(10,10);
+
+		debugSource.transform("sample", debugSource.getType(), new StreamSampler<Long>(uniformSampler)).print();
+
+		//shuffledSource.transform("sample", shuffledSource.getType(), new StreamSampler<GaussianDistribution>(uniformSampler)).print();
+
+		env.execute();
 
 	}
 
@@ -49,5 +60,13 @@ public class Test {
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
 	}
+
+	public static void foo() {
+		int rate = 120;
+		long millis = 1000;
+		System.out.println(millis/rate);
+	}
+
+
 
 }

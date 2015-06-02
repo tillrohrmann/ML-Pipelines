@@ -119,6 +119,12 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, SampleFunctio
 
 	}
 
+	@Override
+	public int getSampleRate() {
+		//TODO
+		return 0;
+	}
+
 
 	public void uniformSample(IN element) {
 		if (SamplingUtils.flip((double) sample.getMaxSize() / counter )) {

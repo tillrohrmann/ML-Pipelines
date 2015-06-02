@@ -21,13 +21,13 @@ package org.apache.flink.streaming.incrementalML.test.sampling
 import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils
+import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{Matchers, FlatSpec}
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
-import org.apache.flink.streaming.sampling.samplers.ReservoirSampler
 
 
 /**
@@ -72,7 +72,7 @@ class SamplingTest
 
         LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
       }
-    }.flatMap(new ReservoirSampler[LabeledVector](sample_size, 0.1))
+    }.flatMap(new BiasedReservoirSampler[LabeledVector](sample_size, 0.1))
 
     val vfdTree = VeryFastDecisionTree(env)
     val evaluator = PrequentialEvaluator()

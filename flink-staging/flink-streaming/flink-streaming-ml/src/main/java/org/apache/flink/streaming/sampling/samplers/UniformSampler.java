@@ -20,6 +20,7 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
+
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -30,18 +31,20 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	Buffer<IN> reservoir;
 	long counter = 0;
+	final int rate;
 
-	public UniformSampler(int lMaxSize) {
+	public UniformSampler(int lMaxSize, int lRate) {
 		reservoir = new Buffer<IN>(lMaxSize);
+		rate = lRate;
 	}
 
 	@Override
-	public ArrayList<IN> getElements() {
+	public synchronized ArrayList<IN> getElements() {
 		return reservoir.getSample();
 	}
 
 	@Override
-	public void sample(IN element) {
+	public synchronized void sample(IN element) {
 		counter++;
 		if (SamplingUtils.flip((double) reservoir.getMaxSize() / counter)) {
 			if (!reservoir.isFull()) {
@@ -54,18 +57,30 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 	}
 
 	@Override
-	public IN getRandomEvent() {
-		return reservoir.getSample().get(SamplingUtils.nextRandInt(reservoir.getMaxSize()));
+	public synchronized IN getRandomEvent() throws IndexOutOfBoundsException {
+		if (reservoir.getSize()>0) {
+			IN randomRecord = reservoir.getSample().get(SamplingUtils.nextRandInt(reservoir.getSize()));
+			return randomRecord;
+		}
+		else {
+			throw new IndexOutOfBoundsException();
+		}
+
 	}
 
 	@Override
-	public void reset() {
+	public synchronized void reset() {
 		reservoir.getSample().clear();
 		counter=0;
 
 	}
 
-	public void replace(IN item) {
+	@Override
+	public int getSampleRate() {
+		return rate;
+	}
+
+	public synchronized void replace(IN item) {
 		// choose position in sample uniformly at random
 		int pos = new Random().nextInt(reservoir.getSize());
 		// replace element at pos with item

@@ -30,36 +30,54 @@ import java.io.Serializable;
 public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunction<IN>>
 		implements OneInputStreamOperator<IN, IN> {
 
+	final SampleFunction<IN> sampler ;
+	boolean running;
 
 	public StreamSampler(SampleFunction<IN> userFunction) {
 		super(userFunction);
+		this.sampler = userFunction;
+
 	}
 
 	@Override
 	public void open(Configuration parameters) throws Exception {
 		super.open(parameters);
-		FunctionUtils.setFunctionRuntimeContext(userFunction, runtimeContext);
-		FunctionUtils.openFunction(userFunction, parameters);
+		running = true;
+		FunctionUtils.setFunctionRuntimeContext(sampler, runtimeContext);
+		FunctionUtils.openFunction(sampler, parameters);
+
 		//logic for the thread
-/*		Thread thread = new Thread(new Runnable() {
+		Thread thread = new Thread(new Runnable() {
+
 			@Override
 			public void run() {
-				while(true){
+				while(running){
 					try {
-						Thread.sleep(10);
+						Thread.sleep(100);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					output.collect(userFunction.getRandomEvent());
+					try {
+						if(running) {
+							output.collect(sampler.getRandomEvent());
+						}
+					}
+					catch (IndexOutOfBoundsException ignored){}
 				}
 			}
-		});*/
-		output.collect(userFunction.getRandomEvent());
+		});
+
+		thread.start();
 	}
 
+	@Override
+	public void close() throws Exception {
+		super.close();
+		running = false;
+	}
 
 	@Override
 	public void processElement(IN element) throws Exception {
-		userFunction.sample(element);
+		sampler.sample(element);
 	}
 }

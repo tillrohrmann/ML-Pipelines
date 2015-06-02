@@ -44,12 +44,17 @@ public interface SampleFunction<T> extends Function, Serializable{
 	 * Produces a random output from the buffer
 	 * @return
 	 */
-	public T getRandomEvent();
+	public T getRandomEvent() throws IndexOutOfBoundsException;
 
 	/**
 	 * Resets the buffer
 	 */
 	public void reset();
+
+	/**
+	 * retrieves tha sample rate of the sampler (records per second)
+	 */
+	public int getSampleRate();
 
 
 }

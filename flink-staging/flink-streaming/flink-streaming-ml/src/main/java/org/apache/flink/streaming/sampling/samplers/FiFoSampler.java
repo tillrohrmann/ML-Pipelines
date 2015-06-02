@@ -78,5 +78,11 @@ public class FiFoSampler<IN> implements FlatMapFunction<IN, IN>, SampleFunction<
 
 	}
 
+	@Override
+	public int getSampleRate() {
+		//TODO
+		return 0;
+	}
+
 
 }

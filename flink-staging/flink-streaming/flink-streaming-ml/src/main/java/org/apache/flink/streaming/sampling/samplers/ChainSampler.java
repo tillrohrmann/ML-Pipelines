@@ -106,6 +106,12 @@ public class ChainSampler<T> implements SampleFunction<Tuple2<T, Long>>, FlatMap
 
 	}
 
+	@Override
+	public int getSampleRate() {
+		//TODO
+		return 0;
+	}
+
 
 	/** CHAIN SAMPLING METHODS **/
 
