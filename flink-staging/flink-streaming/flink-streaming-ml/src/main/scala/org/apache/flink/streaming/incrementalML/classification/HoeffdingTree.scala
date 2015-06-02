@@ -26,7 +26,7 @@ import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
-import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree._
+import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
 import org.apache.flink.util.Collector
 
@@ -36,43 +36,43 @@ import scala.collection.mutable
  *
  * @param context
  */
-class VeryFastDecisionTree(
+class HoeffdingTree(
   context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, (Int, Metrics)]
   with Serializable {
 
   //TODO:: Check what other parameters need to be set
-  def setMinNumberOfInstances(minInstances: Int): VeryFastDecisionTree = {
+  def setMinNumberOfInstances(minInstances: Int): HoeffdingTree = {
     parameters.add(MinNumberOfInstances, minInstances)
     this
   }
 
-  def setVfdtDelta(delta: Double): VeryFastDecisionTree = {
+  def setVfdtDelta(delta: Double): HoeffdingTree = {
     parameters.add(VfdtDelta, delta)
     this
   }
 
-  def setVfdtTau(tau: Double): VeryFastDecisionTree = {
+  def setVfdtTau(tau: Double): HoeffdingTree = {
     parameters.add(VfdtTau, tau)
     this
   }
 
-  def setNominalAttributes(noNominalAttrs: Map[Int, Int]): VeryFastDecisionTree = {
+  def setNominalAttributes(noNominalAttrs: Map[Int, Int]): HoeffdingTree = {
     parameters.add(NominalAttributes, noNominalAttrs)
     this
   }
 
-  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): VeryFastDecisionTree = {
+  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): HoeffdingTree = {
     parameters.add(OnlyNominalAttributes, onlyNominalAttrs)
     this
   }
 
-  def setNumberOfClasses(noClasses: Int): VeryFastDecisionTree = {
+  def setNumberOfClasses(noClasses: Int): HoeffdingTree = {
     parameters.add(NumberOfClasses, noClasses)
     this
   }
 
-  def setParallelism(parallelism: Int): VeryFastDecisionTree = {
+  def setParallelism(parallelism: Int): HoeffdingTree = {
     parameters.add(Parallelism, parallelism)
     this
   }
@@ -142,10 +142,10 @@ class VeryFastDecisionTree(
   }
 }
 
-object VeryFastDecisionTree {
+object HoeffdingTree {
 
-  def apply(context: StreamExecutionEnvironment): VeryFastDecisionTree = {
-    new VeryFastDecisionTree(context)
+  def apply(context: StreamExecutionEnvironment): HoeffdingTree = {
+    new HoeffdingTree(context)
   }
 
   /** Minimum number of instances seen, before deciding the new splitting feature.
