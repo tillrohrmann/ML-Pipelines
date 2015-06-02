@@ -32,7 +32,7 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-07.
  */
 
-public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunction<T,Sample<T>> {
+public class ChainSampler<T> implements SampleFunction<Tuple2<T, Long>>, FlatMapFunction<T,Buffer<T>> {
 
 	Chain<Tuple2<T, Long>> chainSample;
 
@@ -53,7 +53,7 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 
 
 	@Override
-	public void flatMap(T value, Collector<Sample<T>> out) throws Exception {
+	public void flatMap(T value, Collector<Buffer<T>> out) throws Exception {
 		counter ++;
 
 		//wrap values
@@ -96,6 +96,15 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 		}
 	}
 
+	@Override
+	public Tuple2<T, Long> getRandomEvent() {
+		return null;
+	}
+
+	@Override
+	public void reset() {
+
+	}
 
 
 	/** CHAIN SAMPLING METHODS **/

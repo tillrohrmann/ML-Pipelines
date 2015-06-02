@@ -31,7 +31,7 @@ import java.util.ArrayList;
  * reservoir uniformly at random.
  * @param <IN> the type of incoming elements
  */
-public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, Sampler<IN> {
+public class BiasedReservoirSampler<IN> implements MapFunction<IN, Buffer<IN>>, SampleFunction<IN> {
 
 	Reservoir<IN> reservoir;
 	int counter = 0;
@@ -41,7 +41,7 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 	}
 
 	@Override
-	public Sample<IN> map(IN value) throws Exception {
+	public Buffer<IN> map(IN value) throws Exception {
 		counter ++;
 		sample(value);
 		return reservoir;
@@ -60,5 +60,15 @@ public class BiasedReservoirSampler<IN> implements MapFunction<IN, Sample<IN>>, 
 		} else {
 			reservoir.addSample(element);
 		}
+	}
+
+	@Override
+	public IN getRandomEvent() {
+		return null;
+	}
+
+	@Override
+	public void reset() {
+
 	}
 }

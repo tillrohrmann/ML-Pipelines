@@ -25,7 +25,7 @@ import java.util.Random;
 /**
  * Created by marthavk on 2015-03-05.
  */
-public class Reservoir<T> extends Sample<T> implements Serializable, Iterable {
+public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 
 	public Reservoir(int size) {
 		super(size);

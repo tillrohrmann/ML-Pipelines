@@ -18,65 +18,58 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.util.Collector;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
- * Created by marthavk on 2015-03-31.
+ * Created by marthavk on 2015-06-02.
  */
-public class FiFoSampler<IN> implements FlatMapFunction<IN, IN>, SampleFunction<IN> {
+public class UniformSampler<IN> implements SampleFunction<IN> {
 
-	FiFo fifoSample;
-	Fraction outputRate;
-	long internalCounter=0;
+	Buffer<IN> reservoir;
+	long counter = 0;
 
-
-	public FiFoSampler(int maxSize) {
-		fifoSample = new FiFo(maxSize);
-		outputRate = new Fraction(1);
+	public UniformSampler(int lMaxSize) {
+		reservoir = new Buffer<IN>(lMaxSize);
 	}
-
-	public FiFoSampler(int maxSize, double outR) {
-		fifoSample = new FiFo(maxSize);
-		outputRate = new Fraction(outR);
-	}
-
 
 	@Override
-	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		internalCounter++;
-		sample(value);
-		if (internalCounter==outputRate.getDenominator()) {
-			internalCounter=0;
-			for (int i=0; i<outputRate.getNumerator(); i++) {
-				out.collect((IN) fifoSample.generate());
+	public ArrayList<IN> getElements() {
+		return reservoir.getSample();
+	}
+
+	@Override
+	public void sample(IN element) {
+		counter++;
+		if (SamplingUtils.flip((double) reservoir.getMaxSize() / counter)) {
+			if (!reservoir.isFull()) {
+				reservoir.addSample(element);
+			}
+			else {
+				replace(element);
 			}
 		}
 	}
 
 	@Override
-	public ArrayList<IN> getElements() {
-		return fifoSample.getSample();
-	}
-
-	@Override
-	public void sample(IN element) {
-		fifoSample.addSample(element);
-	}
-
-	@Override
 	public IN getRandomEvent() {
-		return null;
+		return reservoir.getSample().get(SamplingUtils.nextRandInt(reservoir.getMaxSize()));
 	}
 
 	@Override
 	public void reset() {
+		reservoir.getSample().clear();
+		counter=0;
 
 	}
 
+	public void replace(IN item) {
+		// choose position in sample uniformly at random
+		int pos = new Random().nextInt(reservoir.getSize());
+		// replace element at pos with item
+		reservoir.replaceSample(pos, item);
+	}
 
 }

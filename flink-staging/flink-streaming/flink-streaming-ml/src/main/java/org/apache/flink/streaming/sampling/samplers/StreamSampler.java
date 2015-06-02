@@ -22,6 +22,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 
+import java.io.Serializable;
+
 /**
  * Created by marthavk on 2015-06-01.
  */
@@ -31,7 +33,6 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 	public StreamSampler(SampleFunction<IN> userFunction) {
 		super(userFunction);
-
 	}
 
 	@Override
@@ -40,7 +41,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		FunctionUtils.setFunctionRuntimeContext(userFunction, runtimeContext);
 		FunctionUtils.openFunction(userFunction, parameters);
 		//logic for the thread
-		Thread thread = new Thread(new Runnable() {
+/*		Thread thread = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while(true){
@@ -51,10 +52,8 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 					}
 					output.collect(userFunction.getRandomEvent());
 				}
-
-
 			}
-		});
+		});*/
 		output.collect(userFunction.getRandomEvent());
 	}
 

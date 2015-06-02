@@ -40,16 +40,16 @@ public interface SampleFunction<T> extends Function, Serializable{
 	 */
 	public void sample(T element);
 
+	/**
+	 * Produces a random output from the buffer
+	 * @return
+	 */
 	public T getRandomEvent();
 
-/*	*//**
-	 * @return The current size of the sample
-	 *//*
-	public int size();
+	/**
+	 * Resets the buffer
+	 */
+	public void reset();
 
-	*//**
-	 * @return The max size of the sample
-	 *//*
-	public int maxSize();*/
 
 }

@@ -36,9 +36,9 @@ import java.util.Properties;
  * from the reservoir are evicted and new ones are sampled using the biased reservoir sampling
  * algorithm.
  */
-public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
+public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, SampleFunction<IN> {
 
-	Sample sample;
+	Buffer sample;
 	Fraction outputRate;
 	long internalCounter;
 
@@ -53,7 +53,7 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 	long counter = 0;
 
 	public GreedySampler(int size) {
-		sample = new Sample(size);
+		sample = new Buffer(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
@@ -63,7 +63,7 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 	}
 
 	public GreedySampler(int size, double outR) {
-		sample = new Sample(size);
+		sample = new Buffer(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
@@ -106,6 +106,16 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 		}
 
 		uniformSample(element);
+
+	}
+
+	@Override
+	public IN getRandomEvent() {
+		return null;
+	}
+
+	@Override
+	public void reset() {
 
 	}
 

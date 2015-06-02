@@ -25,7 +25,7 @@ import java.util.LinkedList;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class Chain<T> extends Sample implements Serializable, Iterable {
+public class Chain<T> extends Buffer implements Serializable, Iterable {
 
 
 	public Chain(int size) {

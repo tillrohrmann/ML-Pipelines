@@ -32,7 +32,7 @@ import java.util.LinkedList;
 /**
  * Created by marthavk on 2015-04-21.
  */
-public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,FlatMapFunction<T,T> {
+public class PrioritySampler<T> implements SampleFunction<Tuple2<T,StreamTimestamp>>,FlatMapFunction<T,T> {
 
 	Chain<Tuple2<T, StreamTimestamp>> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
@@ -106,6 +106,16 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 
 		//place new sample
 		placeInList(element, priorities);
+
+	}
+
+	@Override
+	public Tuple2<T, StreamTimestamp> getRandomEvent() {
+		return null;
+	}
+
+	@Override
+	public void reset() {
 
 	}
 
