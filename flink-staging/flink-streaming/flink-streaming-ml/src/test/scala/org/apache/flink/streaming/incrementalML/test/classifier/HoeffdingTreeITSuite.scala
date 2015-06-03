@@ -21,7 +21,6 @@ import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
-import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
@@ -44,10 +43,11 @@ class HoeffdingTreeITSuite
     parameters.add(HoeffdingTree.NumberOfClasses, 8)
     parameters.add(HoeffdingTree.Parallelism, 8)
 
-//    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
+    //    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
 
-    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA/Waveform-10M.arff").map {
+    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform" +
+      "-MOA/Waveform-10M.arff").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -60,7 +60,8 @@ class HoeffdingTreeITSuite
       }
     }
 
-//        val dataPoints = StreamingMLUtils.readLibSVM(env,"/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype/covtype.libsvm.binary", 54)
+    //        val dataPoints = StreamingMLUtils.readLibSVM(env,
+    // "/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype/covtype.libsvm.binary", 54)
 
     //    val transformer = Imputer()
     val vfdtLearner = HoeffdingTree(env)
@@ -71,7 +72,8 @@ class HoeffdingTreeITSuite
 
     val streamToEvaluate = vfdtLearner.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA/Waveform-parall_1_8-result.txt").setParallelism(1)
+    evaluator.evaluate(streamToEvaluate).writeAsText ("/Users/fobeligi/workspace/master-thesis/" +
+      "dataSets/Waveform-MOA/Waveform-parall_1_8-result.txt").setParallelism(1)
 
     env.execute()
   }

@@ -19,11 +19,9 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -73,12 +71,12 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		counter ++;
-		internalCounter ++;
+		counter++;
+		internalCounter++;
 		sample(value);
-		if (internalCounter==outputRate.getDenominator()) {
-			internalCounter=0;
-			for (int i=0; i<outputRate.getNumerator(); i++) {
+		if (internalCounter == outputRate.getDenominator()) {
+			internalCounter = 0;
+			for (int i = 0; i < outputRate.getNumerator(); i++) {
 				out.collect((IN) sample.generate());
 			}
 		}
@@ -111,11 +109,10 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 
 	public void uniformSample(IN element) {
-		if (SamplingUtils.flip((double) sample.getMaxSize() / counter )) {
+		if (SamplingUtils.flip((double) sample.getMaxSize() / counter)) {
 			if (!sample.isFull()) {
 				sample.addSample(element);
-			}
-			else {
+			} else {
 				sample.replaceAtRandom(element);
 			}
 		}
@@ -129,7 +126,6 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 			sample.addSample(element);
 		}
 	}
-
 
 
 }

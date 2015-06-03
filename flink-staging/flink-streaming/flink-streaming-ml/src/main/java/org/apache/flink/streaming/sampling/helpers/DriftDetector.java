@@ -19,7 +19,6 @@ package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
@@ -52,7 +51,7 @@ public class DriftDetector implements MapFunction<Tuple2<GaussianDistribution, D
 		if (drift) {
 			detector.reset();
 		}
-		counter ++;
+		counter++;
 		return new Tuple4<GaussianDistribution, Double, Long, Boolean>(value.f0, value.f1, counter, drift);
 	}
 }

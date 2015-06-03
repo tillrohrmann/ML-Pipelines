@@ -89,33 +89,28 @@ public class DriftDetectionExample<T> {
 			}
 		});
 
-		generator
-				.map(new DriftDetector())
-				.addSink(new RichSinkFunction<Tuple4<GaussianDistribution, Double, Long, Boolean>>() {
-						@Override
-						public void invoke(Tuple4<GaussianDistribution, Double, Long, Boolean> value) throws Exception {
-							StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
-							if (context.getIndexOfThisSubtask() == 0 && value.f3) {
+		generator.map(new DriftDetector()).addSink(new RichSinkFunction<Tuple4<GaussianDistribution, Double, Long, Boolean>>() {
+			@Override
+			public void invoke(Tuple4<GaussianDistribution, Double, Long, Boolean> value) throws Exception {
+				StreamingRuntimeContext context = (StreamingRuntimeContext) getRuntimeContext();
+				if (context.getIndexOfThisSubtask() == 0 && value.f3) {
 
-								System.out.println("****** Change detection: " + value.toString());
-							} else {
-								//System.out.println(value.toString());
-							}
-						}
-					}
-
-			);
+					System.out.println("****** Change detection: " + value.toString());
+				} else {
+					//System.out.println(value.toString());
+				}
+			}
+		});
 				/*.writeAsText(SamplingUtils.path + "drift");*/
-		}
+	}
 
-
-		/**
-		 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.
-		 *
-		 * @param env the StreamExecutionEnvironment.
-		 * @return the DataStreamSource
-		 */
-		public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
-			return env.addSource(new NormalStreamSource());
+	/**
+	 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.
+	 *
+	 * @param env the StreamExecutionEnvironment.
+	 * @return the DataStreamSource
+	 */
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
+		return env.addSource(new NormalStreamSource());
 	}
 }

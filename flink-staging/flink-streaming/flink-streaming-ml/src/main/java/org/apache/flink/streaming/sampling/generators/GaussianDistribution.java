@@ -18,7 +18,6 @@
 package org.apache.flink.streaming.sampling.generators;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.flink.streaming.sampling.generators.NumberGenerator;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;

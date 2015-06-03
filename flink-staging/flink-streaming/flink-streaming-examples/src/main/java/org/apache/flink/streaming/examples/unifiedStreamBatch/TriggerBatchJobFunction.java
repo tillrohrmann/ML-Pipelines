@@ -21,13 +21,13 @@ import org.apache.flink.api.common.functions.Function;
 import java.io.Serializable;
 
 public class TriggerBatchJobFunction implements Function, Serializable {
-	private final BatchJob jobToTrigger ;
+	private final BatchJob jobToTrigger;
 
 	TriggerBatchJobFunction(BatchJob batchJob) {
 		this.jobToTrigger = batchJob;
 	}
 
-	public void triggerBatchJob(){
+	public void triggerBatchJob() {
 		new Thread(jobToTrigger).start();
 	}
 }

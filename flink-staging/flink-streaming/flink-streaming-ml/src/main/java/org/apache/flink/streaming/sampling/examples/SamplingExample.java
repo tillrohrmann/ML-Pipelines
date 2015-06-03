@@ -21,7 +21,6 @@ package org.apache.flink.streaming.sampling.examples;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
@@ -36,7 +35,7 @@ import java.util.Properties;
  */
 public class SamplingExample {
 
-	public static long MAX_COUNT,TIME_WINDOW_SIZE;
+	public static long MAX_COUNT, TIME_WINDOW_SIZE;
 	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
 	public static double OUT_RATE;
 

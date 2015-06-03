@@ -32,7 +32,7 @@ import java.util.LinkedList;
 /**
  * Created by marthavk on 2015-04-21.
  */
-public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,FlatMapFunction<T,T> {
+public class PrioritySampler<T> implements Sampler<Tuple2<T, StreamTimestamp>>, FlatMapFunction<T, T> {
 
 	Chain<Tuple2<T, StreamTimestamp>> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
@@ -42,7 +42,8 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 
 	/**
 	 * Creates a new Priority Sampler with output rate 1/1
-	 * @param lSize the size of the sample
+	 *
+	 * @param lSize       the size of the sample
 	 * @param lWindowSize the size of the time window
 	 */
 	public PrioritySampler(int lSize, long lWindowSize) {
@@ -55,9 +56,10 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 
 	/**
 	 * Creates a new Priority Sampler
-	 * @param lSize the size of the sample
+	 *
+	 * @param lSize       the size of the sample
 	 * @param lWindowSize the size of the time window
-	 * @param outR the output rate
+	 * @param outR        the output rate
 	 */
 	public PrioritySampler(int lSize, long lWindowSize, long outR) {
 		this.chainSample = new Chain<Tuple2<T, StreamTimestamp>>(lSize);
@@ -75,12 +77,12 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 	public void flatMap(T value, Collector<T> out) throws Exception {
 		internalCounter++;
 		final StreamTimestamp t = new StreamTimestamp();
-		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(value,t);
+		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(value, t);
 		sample(wrappedValue);
 		if (internalCounter == outputRate.getDenominator()) {
-			for (int i=0; i<outputRate.getNumerator(); i++) {
-				internalCounter=0;
-				Tuple2<T,StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
+			for (int i = 0; i < outputRate.getNumerator(); i++) {
+				internalCounter = 0;
+				Tuple2<T, StreamTimestamp> sample = (Tuple2<T, StreamTimestamp>) chainSample.generate();
 				out.collect(sample.f0);
 			}
 		}
@@ -221,7 +223,6 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 
 	/**
 	 * DEBUG MESSAGES
-	 *
 	 */
 
 	String prioritiesToString() {
@@ -251,7 +252,6 @@ public class PrioritySampler<T> implements Sampler<Tuple2<T,StreamTimestamp>>,Fl
 		pStr += "]";
 		return pStr;
 	}
-
 
 
 }

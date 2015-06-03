@@ -25,14 +25,14 @@ import java.util.List;
 
 public class MyDataGenerator implements IDataPatternFunction {
 
-	private static List<Double>  x_dataPoints;
-	private static List<Double>  data;
+	private static List<Double> x_dataPoints;
+	private static List<Double> data;
 	private double withError;
 	private NormalDistribution myErrorDistribution;
 
-	public MyDataGenerator(double error){
+	public MyDataGenerator(double error) {
 		this.withError = error;
-		if (withError!=0.0){
+		if (withError != 0.0) {
 			myErrorDistribution = new NormalDistribution(0.0, withError);
 		}
 	}
@@ -40,25 +40,26 @@ public class MyDataGenerator implements IDataPatternFunction {
 	@Override
 	public List patternFunction() {
 
-		List<Integer>  y = new ArrayList<Integer>();
+		List<Integer> y = new ArrayList<Integer>();
 
 		int w1 = 1;
 		int w2 = 2;
 		double point;
 
 		//pattern function: y = w1*sin(x) + w2*x + error
-		if (withError!=0.0){
-			for (int i=0;i<x_dataPoints.size();i++) {
+		if (withError != 0.0) {
+			for (int i = 0; i < x_dataPoints.size(); i++) {
 				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i) + myErrorDistribution.sample();
 				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
+				y.add(classifyPoint(point, x_dataPoints.get(i), w2));
 			}
-		}else
-			for (int i=0;i<x_dataPoints.size();i++) {
+		} else {
+			for (int i = 0; i < x_dataPoints.size(); i++) {
 				point = w1 * Math.sin(x_dataPoints.get(i)) + w2 * x_dataPoints.get(i);
 				//if no classification is needed just add the y value of the dataPoint in the list
-				y.add(classifyPoint(point,x_dataPoints.get(i),w2));
+				y.add(classifyPoint(point, x_dataPoints.get(i), w2));
 			}
+		}
 		return y;
 	}
 
@@ -70,7 +71,7 @@ public class MyDataGenerator implements IDataPatternFunction {
 		}
 	}
 
-	public static void main(String[] args){
+	public static void main(String[] args) {
 
 		MyDataGenerator mdpg = new MyDataGenerator(0.1);
 		SyntheticDataGenerator sdg = new SyntheticDataGenerator(mdpg);

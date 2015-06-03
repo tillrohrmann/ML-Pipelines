@@ -16,32 +16,38 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.airlines;
-import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.java.tuple.*;
+
+import org.apache.flink.api.common.functions.FlatMapFunction;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.java.tuple.Tuple6;
+import org.apache.flink.api.java.tuple.Tuple8;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.TreeMap;
+import java.util.List;
+import java.util.Properties;
 
 
 /**
  * Created by marthavk on 2015-05-21.
- *
+ * <p>
  * Tuple2 has the fields: f0->Integer[] and f1->String[]
- *
+ * <p>
  * Integer[] is an array of 11 values containing in the following order:
  * [year, month, day of month, day of week, CRS depart time, CRS arrival time
  * flight number, actual elapsed time, distance, diverted, delay]
- *
+ * <p>
  * String[] is an array of 3 values containing in the following order:
  * [unique carrier, origin, destination]
- *
  */
 
 public class AirlinesExample implements Serializable {
@@ -65,7 +71,7 @@ public class AirlinesExample implements Serializable {
 		env.setParallelism(4);
 
 		/*set source*/
-		DataStreamSource<String> source = env.readTextFile(source_file)	;
+		DataStreamSource<String> source = env.readTextFile(source_file);
 
 		/*
 		 * Tuple8 fields:
@@ -78,7 +84,7 @@ public class AirlinesExample implements Serializable {
 		 * f6 delay (Integer)
 		 * f7 1
 		 */
-		SingleOutputStreamOperator<Tuple8<Integer,Integer,Integer,String,String,String,Integer,Integer>,?> dataStream =
+		SingleOutputStreamOperator<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, ?> dataStream =
 
 				source.map(new RichMapFunction<String, Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>>() {
 
@@ -123,22 +129,23 @@ public class AirlinesExample implements Serializable {
 
 
 		//AGGREGATES
-		dataStream.groupBy(3).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer,Integer,Integer,String,String,String,Integer,Integer>, HashMap<String,Integer>>() {
-			int counter=0;
+		dataStream.groupBy(3).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
+			int counter = 0;
 			HashMap<String, Integer> carriers = new HashMap<String, Integer>();
+
 			@Override
 			public void flatMap(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value, Collector<HashMap<String, Integer>> out) throws Exception {
 				counter++;
 				carriers.put(value.f3, value.f7);
-				if (counter==size_of_stream) {
+				if (counter == size_of_stream) {
 					out.collect(carriers);
 				}
 			}
-		}).setParallelism(1).map(new MapFunction<HashMap<String,Integer>, HashMap<String,Integer>>() {
+		}).setParallelism(1).map(new MapFunction<HashMap<String, Integer>, HashMap<String, Integer>>() {
 			@Override
 			public HashMap<String, Integer> map(HashMap<String, Integer> initMap) throws Exception {
 				HashMap<String, Integer> subMap = new HashMap<String, Integer>();
-				String[] aggregates = new String[] {"UA", "FL", "DL", "AS", "US", "AA", "MQ", "EV", "HA", "WN"};
+				String[] aggregates = new String[]{"UA", "FL", "DL", "AS", "US", "AA", "MQ", "EV", "HA", "WN"};
 				List aggregatesList = Arrays.asList(aggregates);
 				for (String key : initMap.keySet()) {
 					if (aggregatesList.contains(key)) {
@@ -158,29 +165,30 @@ public class AirlinesExample implements Serializable {
 				});
 		
 		//HEAVY HITTERS
-		dataStream.groupBy(5).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer,Integer,Integer,String,String,String,Integer,Integer>, HashMap<String, Integer>>() {
+		dataStream.groupBy(5).sum(7).flatMap(new FlatMapFunction<Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>, HashMap<String, Integer>>() {
 			int counter = 0;
 			HashMap<String, Integer> destinations = new HashMap<String, Integer>();
+
 			@Override
 			public void flatMap(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value, Collector<HashMap<String, Integer>> out) throws Exception {
 				counter++;
 				destinations.put(value.f5, value.f7);
-				if (counter==size_of_stream) {
+				if (counter == size_of_stream) {
 					out.collect(destinations);
 				}
 
 			}
-		}).setParallelism(1).map(new MapFunction<HashMap<String, Integer>, TreeMap<String,Integer>>() {
+		}).setParallelism(1).map(new MapFunction<HashMap<String, Integer>, TreeMap<String, Integer>>() {
 			@Override
-			public TreeMap<String,Integer> map(HashMap<String, Integer> destinations) throws Exception {
-				SimpleComparator acomp =  new SimpleComparator(destinations);
-				TreeMap<String,Integer> sorted = new TreeMap<String,Integer>(acomp);
+			public TreeMap<String, Integer> map(HashMap<String, Integer> destinations) throws Exception {
+				SimpleComparator acomp = new SimpleComparator(destinations);
+				TreeMap<String, Integer> sorted = new TreeMap<String, Integer>(acomp);
 				sorted.putAll(destinations);
 				return sorted;
 			}
-		}).addSink(new RichSinkFunction<TreeMap<String,Integer>>() {
+		}).addSink(new RichSinkFunction<TreeMap<String, Integer>>() {
 			@Override
-			public void invoke(TreeMap<String,Integer> value) throws Exception {
+			public void invoke(TreeMap<String, Integer> value) throws Exception {
 				System.err.println("2) Heavy Hitters: ");
 				System.err.println(value.toString());
 
@@ -209,8 +217,8 @@ public class AirlinesExample implements Serializable {
 
 			@Override
 			public void flatMap(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value, Collector<Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>> out) throws Exception {
-				if (value.f0<8) {
-					q1 ++;
+				if (value.f0 < 8) {
+					q1++;
 					if (value.f3.equals("HA")) {
 						q2++;
 					}
@@ -228,7 +236,7 @@ public class AirlinesExample implements Serializable {
 					}
 				}
 
-				counter ++;
+				counter++;
 
 				if (counter == size_of_stream) {
 					out.collect(new Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>(q1, q2, q3, q4, q5, q6));
@@ -253,8 +261,8 @@ public class AirlinesExample implements Serializable {
 
 			@Override
 			public void flatMap(Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer> value, Collector<Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>> out) throws Exception {
-				if (value.f0>24) {
-					q1 ++;
+				if (value.f0 > 24) {
+					q1++;
 					if (value.f3.equals("HA")) {
 						q2++;
 					}
@@ -272,7 +280,7 @@ public class AirlinesExample implements Serializable {
 					}
 				}
 
-				counter ++;
+				counter++;
 
 				if (counter == size_of_stream) {
 					out.collect(new Tuple6<Integer, Integer, Integer, Integer, Integer, Integer>(q1, q2, q3, q4, q5, q6));
@@ -334,13 +342,6 @@ public class AirlinesExample implements Serializable {
 		env.execute();
 
 	}
-
-
-
-
-
-
-
 
 
 }

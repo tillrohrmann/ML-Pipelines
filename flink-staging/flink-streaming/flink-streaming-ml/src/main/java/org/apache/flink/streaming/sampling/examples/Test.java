@@ -16,9 +16,6 @@ package org.apache.flink.streaming.sampling.examples;/*
  * limitations under the License.
  */
 
-import org.apache.commons.math3.distribution.NormalDistribution;
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.functions.WindowMapFunction;
@@ -27,15 +24,12 @@ import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.samplers.Reservoir;
 import org.apache.flink.util.Collector;
 
-import java.util.HashMap;
-
 /**
  * Created by marthavk on 2015-05-08.
  */
 public class Test {
 
 	public static void main(String[] args) {
-
 
 
 	}

@@ -18,7 +18,6 @@ package org.apache.flink.streaming.sampling.sources;/*
 
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
 
 import java.util.Properties;
 

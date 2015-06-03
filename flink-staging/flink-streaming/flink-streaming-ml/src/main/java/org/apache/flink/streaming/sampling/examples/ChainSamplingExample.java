@@ -18,15 +18,9 @@
 package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.*;
-import org.apache.flink.streaming.sampling.samplers.ChainSampler;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;

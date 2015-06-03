@@ -93,7 +93,8 @@ class NumericalAttributeObserver(
             }
           }
           case None => {
-            if (meanStdPerClass(i)._1 != 0.0) { //number of instances != 0
+            if (meanStdPerClass(i)._1 != 0.0) {
+              //number of instances != 0
               if (splitPoint < meanStdPerClass(i)._2) {
                 rightHandSide.+=((i, meanStdPerClass(i)._1))
                 rightHandSideInstances += meanStdPerClass(i)._1
@@ -141,8 +142,10 @@ class NumericalAttributeObserver(
       totalInstances) * rightHSEntropy
 
     //    if (attrId==16 || attrId==10 || attrId==13 || attrId == 5) {
-    //      println(s"------entropy: $entropy,  rhs: $rhs, lfs: $lhs,----meanStdPerClass$meanStdPerClass, rightEntropy:$rightHSEntropy, " +
-    //        s"leftEntropy: $leftHSEntropy, class:$attrId, #left: $leftHSInstances, #right: $rightHSInstances, #total: $totalInstances\n")
+    //      println(s"------entropy: $entropy,  rhs: $rhs, lfs: $lhs,
+    // ----meanStdPerClass$meanStdPerClass, rightEntropy:$rightHSEntropy, " +
+    //        s"leftEntropy: $leftHSEntropy, class:$attrId, #left: $leftHSInstances, #right:
+    // $rightHSInstances, #total: $totalInstances\n")
     //    }
 
     entropy

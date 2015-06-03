@@ -20,7 +20,6 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.util.Collector;
 
@@ -35,6 +34,7 @@ import java.util.Random;
  * That means if the reservoir size hasn't reached maxSize, each element will be definitely picked.
  * If an item is picked and the reservoir is full then it replaces an existing element uniformly at
  * random.
+ *
  * @param <IN>
  */
 public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
@@ -58,12 +58,12 @@ public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN
 	@Override
 	public void flatMap(IN value, Collector<IN> out) throws Exception {
 		counter++;
-		internalCounter ++;
+		internalCounter++;
 		sample(value);
 
 		if (internalCounter == outputRate.getDenominator()) {
-			internalCounter=0;
-			for (int i=0; i<outputRate.getNumerator(); i++) {
+			internalCounter = 0;
+			for (int i = 0; i < outputRate.getNumerator(); i++) {
 				out.collect(reservoir.generate());
 			}
 		}
@@ -77,11 +77,10 @@ public class ReservoirSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN
 
 	@Override
 	public void sample(IN element) {
-		if (SamplingUtils.flip((double) reservoir.getMaxSize()/counter)) {
+		if (SamplingUtils.flip((double) reservoir.getMaxSize() / counter)) {
 			if (!reservoir.isFull()) {
 				reservoir.addSample(element);
-			}
-			else {
+			} else {
 				replace(element);
 			}
 		}

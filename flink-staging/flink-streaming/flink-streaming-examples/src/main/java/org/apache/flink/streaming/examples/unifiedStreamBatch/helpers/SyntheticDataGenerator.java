@@ -22,7 +22,6 @@ import org.apache.commons.math3.util.Precision;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,13 +86,13 @@ public class SyntheticDataGenerator {
 //	}
 
 	private void loadProperties() {
-		properties= new Properties();
-		try{
+		properties = new Properties();
+		try {
 
 			InputStream propertiesFile = getClass().getClassLoader().getResourceAsStream("config.properties");
 			properties.load(propertiesFile);
 			withDrift = Boolean.getBoolean(properties.getProperty("with.drift"));
-			if (withDrift){
+			if (withDrift) {
 				intervals_Of_Drift = Integer.parseInt(properties.getProperty("drift.intervals"));
 			}
 			numberOfDataPoints = Integer.parseInt(properties.getProperty("data.points"));
@@ -101,7 +100,7 @@ public class SyntheticDataGenerator {
 
 			gaussianMean = Double.parseDouble(properties.getProperty("initial.mean"));
 			gaussianVariance = Double.parseDouble(properties.getProperty("initial.variance"));
-			if (gaussianVariance==0.0){
+			if (gaussianVariance == 0.0) {
 				gaussianVariance = 1.0;
 			}
 			withNoise = Boolean.getBoolean(properties.getProperty("with.noise"));
@@ -150,7 +149,7 @@ public class SyntheticDataGenerator {
 		1. p(x) evolves by varying it's distribution center "gaussianMean"
 		2. p(y/x) evolves, by changes w2 = w2 + 1 (with a probability)*/
 		for (int k = 0; k < intervals_Of_Drift; k++) {
-			for (int i = 0; i < numberOfDataPoints/intervals_Of_Drift; i++) {
+			for (int i = 0; i < numberOfDataPoints / intervals_Of_Drift; i++) {
 //				x_temp = Precision.round(myDataDistribution.sample(), 4);
 				data.add(myDataDistribution.sample());
 
@@ -161,7 +160,8 @@ public class SyntheticDataGenerator {
 		}
 		return data;
 	}
-	private List generateDataWithoutDrift () {
+
+	private List generateDataWithoutDrift() {
 
 		EnumeratedIntegerDistribution noiseDistribution = null;
 		List data = new ArrayList();
@@ -175,16 +175,16 @@ public class SyntheticDataGenerator {
 	public List labelData() {
 
 		List<Integer> dataPoints = this.myPatternFunction.patternFunction();
-		if (!withNoise){
+		if (!withNoise) {
 			return dataPoints;
-		}else{
+		} else {
 			int[] numbers = {1, -1};
 			double[] probabilities = {0.8, 0.2};
 			//adding noise by allowing the class value to change or not with a given probability
 			EnumeratedIntegerDistribution noiseDistribution = new EnumeratedIntegerDistribution(numbers, probabilities);
 			List data = new ArrayList();
-			for(int j=0;j<dataPoints.size();j++){
-				data.add(dataPoints.get(j)* noiseDistribution.sample());
+			for (int j = 0; j < dataPoints.size(); j++) {
+				data.add(dataPoints.get(j) * noiseDistribution.sample());
 			}
 			return data;
 		}

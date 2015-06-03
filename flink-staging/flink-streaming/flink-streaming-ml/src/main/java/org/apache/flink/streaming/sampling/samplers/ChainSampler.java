@@ -17,13 +17,11 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 import org.apache.flink.util.Collector;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,7 +30,7 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-07.
  */
 
-public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunction<T,Sample<T>> {
+public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunction<T, Sample<T>> {
 
 	Chain<Tuple2<T, Long>> chainSample;
 
@@ -54,10 +52,10 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 
 	@Override
 	public void flatMap(T value, Collector<Sample<T>> out) throws Exception {
-		counter ++;
+		counter++;
 
 		//wrap values
-		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(value, counter);
+		Tuple2<T, Long> wrappedValue = new Tuple2<T, Long>(value, counter);
 		storeChainedItems(wrappedValue);
 		updateExpiredItems(wrappedValue);
 		sample(wrappedValue);
@@ -95,7 +93,6 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 			}
 		}
 	}
-
 
 
 	/** CHAIN SAMPLING METHODS **/

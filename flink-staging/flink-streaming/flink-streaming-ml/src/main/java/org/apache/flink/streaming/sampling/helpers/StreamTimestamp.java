@@ -33,17 +33,16 @@ public class StreamTimestamp implements Serializable {
 	public StreamTimestamp(int dd) {
 		//suppose that year and month are the same and only day changes
 		String date;
-		if (dd<10) {
+		if (dd < 10) {
 			date = 0 + "" + dd;
-		}
-		else {
+		} else {
 			date = "" + dd;
 		}
 		timestamp = Long.parseLong(date);
 	}
 
 	public StreamTimestamp(long ts) {
-		timestamp=ts;
+		timestamp = ts;
 	}
 
 
@@ -56,7 +55,7 @@ public class StreamTimestamp implements Serializable {
 		return timestamp.toString();
 	}
 
-	public void update () {
+	public void update() {
 		timestamp = System.currentTimeMillis();
 	}
 }

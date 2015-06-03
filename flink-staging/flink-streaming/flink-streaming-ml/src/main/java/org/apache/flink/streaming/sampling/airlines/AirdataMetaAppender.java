@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.airlines;
+
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple8;
@@ -26,10 +27,10 @@ import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
  */
 public class AirdataMetaAppender<T extends Tuple8<Integer, Integer, Integer, String, String, String, Integer, Integer>> extends RichMapFunction<T, Tuple3<T, StreamTimestamp, Long>> {
 
-		long index = 0;
+	long index = 0;
 
-@Override
-public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
+	@Override
+	public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
 
 		/*//value
 		Double rand = value.generate();*/
@@ -41,7 +42,7 @@ public Tuple3<T, StreamTimestamp, Long> map(T value) throws Exception {
 		index++;
 
 		return new Tuple3<T, StreamTimestamp, Long>(value, t, index);
-		}
+	}
 
 
 }

@@ -29,8 +29,8 @@ public class DetectDrift
 	private final TriggerBatchJobFunction userFun;
 
 
-	public DetectDrift(BatchJob batchJob){
-		this (new TriggerBatchJobFunction(batchJob));
+	public DetectDrift(BatchJob batchJob) {
+		this(new TriggerBatchJobFunction(batchJob));
 	}
 
 	public DetectDrift(TriggerBatchJobFunction userFunction) {
@@ -41,9 +41,10 @@ public class DetectDrift
 
 	@Override
 	public void processElement(Tuple2<Double, Integer> element) throws Exception {
-		if (element.f1==0)
+		if (element.f1 == 0){
 			userFun.triggerBatchJob();
-			output.collect(element);
+		}
+		output.collect(element);
 	}
 
 	@Override
