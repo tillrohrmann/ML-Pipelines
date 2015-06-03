@@ -26,6 +26,7 @@ import scala.util.Random
 import org.apache.flink.api.common.functions.RichMapFunction
 import org.apache.flink.api.scala._
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.ml._
 import org.apache.flink.ml.common.FlinkMLTools.ModuloKeyPartitioner
 import org.apache.flink.ml.common._
 import org.apache.flink.ml.math.Vector
@@ -33,7 +34,7 @@ import org.apache.flink.ml.math.Breeze._
 
 import breeze.linalg.{Vector => BreezeVector, DenseVector => BreezeDenseVector}
 
-/** Implements a soft-maring SVM using the communication-efficient distributed dual coordinate
+/** Implements a soft-margin SVM using the communication-efficient distributed dual coordinate
   * ascent algorithm (CoCoA) with hinge-loss function.
   *
   * The algorithm solves the following minimization problem:
@@ -190,6 +191,7 @@ class SVM extends Predictor[SVM] {
   * of the algorithm.
   */
 object SVM{
+
   val WEIGHT_VECTOR ="weightVector"
 
   // ========================================== Parameters =========================================
@@ -242,7 +244,13 @@ object SVM{
 
         instance.weightsOption match {
           case Some(weights) => {
-            input.map(new PredictionMapper[T]).withBroadcastSet(weights, WEIGHT_VECTOR)
+            input.mapWithBcVariable(weights){
+              (vector, weights) => {
+                val dotProduct = weights dot vector.asBreeze
+
+                LabeledVector(dotProduct, vector)
+              }
+            }
           }
 
           case None => {
@@ -254,25 +262,37 @@ object SVM{
     }
   }
 
-  /** Mapper to calculate the value of the prediction function. This is a RichMapFunction, because
-    * we broadcast the weight vector to all mappers.
+  /** [[org.apache.flink.ml.pipeline.PredictOperation]] for [[LabeledVector ]]types. The result type
+    * is a [[(Double, Double)]] tuple, corresponding to (truth, prediction)
+    *
+    * @return A DataSet[(Double, Double)] where each tuple is a (truth, prediction) pair.
     */
-  class PredictionMapper[T <: Vector] extends RichMapFunction[T, LabeledVector] {
+  implicit def predictLabeledValues = {
+    new PredictOperation[SVM, LabeledVector, (Double, Double)]{
+      override def predict(
+                            instance: SVM,
+                            predictParameters: ParameterMap,
+                            input: DataSet[LabeledVector])
+      : DataSet[(Double, Double)] = {
 
-    var weights: BreezeDenseVector[Double] = _
+        instance.weightsOption match {
+          case Some(weights) => {
+            input.mapWithBcVariable(weights){
+              (labeledVector, weights) => {
+                val prediction = weights dot labeledVector.vector.asBreeze
+                val truth = labeledVector.label
 
-    @throws(classOf[Exception])
-    override def open(configuration: Configuration): Unit = {
-      // get current weights
-      weights = getRuntimeContext.
-        getBroadcastVariable[BreezeDenseVector[Double]](WEIGHT_VECTOR).get(0)
-    }
+                (truth, prediction)
+              }
+            }
+          }
 
-    override def map(vector: T): LabeledVector = {
-      // calculate the prediction value (scaled distance from the separating hyperplane)
-      val dotProduct = weights dot vector.asBreeze
-
-      LabeledVector(dotProduct, vector)
+          case None => {
+            throw new RuntimeException("The SVM model has not been trained. Call first fit" +
+              "before calling the predict operation.")
+          }
+        }
+      }
     }
   }
 
@@ -489,17 +509,17 @@ object SVM{
 
     // compute projected gradient
     var proj_grad = if(alpha  <= 0.0){
-      Math.min(grad, 0)
+      scala.math.min(grad, 0)
     } else if(alpha >= 1.0) {
-      Math.max(grad, 0)
+      scala.math.max(grad, 0)
     } else {
       grad
     }
 
-    if(Math.abs(grad) != 0.0){
+    if(scala.math.abs(grad) != 0.0){
       val qii = x dot x
       val newAlpha = if(qii != 0.0){
-        Math.min(Math.max((alpha - (grad / qii)), 0.0), 1.0)
+        scala.math.min(scala.math.max((alpha - (grad / qii)), 0.0), 1.0)
       } else {
         1.0
       }
