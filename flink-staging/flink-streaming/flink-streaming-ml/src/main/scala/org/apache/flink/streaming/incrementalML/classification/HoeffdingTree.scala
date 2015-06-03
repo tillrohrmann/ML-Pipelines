@@ -119,7 +119,7 @@ class HoeffdingTree(
       }
     }).setParallelism(1)
 
-    val splitDs = attributes.groupBy(0).merge(modelAndSignal.broadcast)
+    val splitDs = attributes.groupBy(0).union(modelAndSignal.broadcast)
       .flatMap(new PartialVFDTMetricsMapper(resultingParameters)).setParallelism(
         resultingParameters.apply(Parallelism)).split(new OutputSelector[Metrics] {
 
