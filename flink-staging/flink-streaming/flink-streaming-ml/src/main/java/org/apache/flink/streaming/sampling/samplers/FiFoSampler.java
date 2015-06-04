@@ -18,11 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 
@@ -31,8 +27,8 @@ import java.util.ArrayList;
  */
 public class FiFoSampler<IN> implements SampleFunction<IN> {
 
-	FiFo<IN> fifoSample;
 	final double sampleRate;
+	FiFo<IN> fifoSample;
 
 
 	public FiFoSampler(int maxSize, double lSampleRate) {

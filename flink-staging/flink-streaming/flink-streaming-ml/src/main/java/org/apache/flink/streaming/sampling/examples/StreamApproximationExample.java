@@ -18,24 +18,14 @@
 
 package org.apache.flink.streaming.sampling.examples;
 
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.java.tuple.Tuple;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
-import org.apache.flink.streaming.sampling.evaluators.DistanceEvaluator;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.*;
-import org.apache.flink.streaming.sampling.samplers.ReservoirSampler;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
 
 import java.util.Properties;
 
@@ -111,7 +101,7 @@ public class StreamApproximationExample {
 		////	.map(new ReservoirSampler<Tuple3<Double, StreamTimestamp,Long>>(sampleSize))
 
 				/*extract Double sampled values (unwrap from Tuple3)*/
-				//.map(new SampleExtractor<Double>()); //use that for Chain and Priority Samplers.
+		//.map(new SampleExtractor<Double>()); //use that for Chain and Priority Samplers.
 		////	.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
 
 		/*connect sampled stream to source*/
@@ -119,8 +109,8 @@ public class StreamApproximationExample {
 
 				/*evaluate sample: compare current distribution parameters with sampled distribution parameters*/
 		////		.flatMap(new DistanceEvaluator())
-				//.flatMap(new DistributionComparator())
-				//.setParallelism(1)
+		//.flatMap(new DistributionComparator())
+		//.setParallelism(1)
 
 				/*sink*/
 		////		.sum(0)

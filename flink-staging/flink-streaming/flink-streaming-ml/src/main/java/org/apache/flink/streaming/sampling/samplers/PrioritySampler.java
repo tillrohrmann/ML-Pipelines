@@ -18,7 +18,6 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.logging.impl.Log4JLogger;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
@@ -32,19 +31,20 @@ import java.util.LinkedList;
  */
 public class PrioritySampler<T> implements SampleFunction<T> {
 
-	Chain<T,StreamTimestamp> chainSample;
+	final int sampleRate;
+	Chain<T, StreamTimestamp> chainSample;
 	ArrayList<LinkedList<Double>> priorityList;
 	Long windowSize;
-	final int sampleRate;
 
 	/**
 	 * Creates a new Priority Sampler
-	 * @param lSize the size of the sample
+	 *
+	 * @param lSize       the size of the sample
 	 * @param lWindowSize the size of the time window
-	 * @param lRate the sampling rate (in records/sec)
+	 * @param lRate       the sampling rate (in records/sec)
 	 */
 	public PrioritySampler(int lSize, long lWindowSize, int lRate) {
-		this.chainSample = new Chain<T,StreamTimestamp>(lSize);
+		this.chainSample = new Chain<T, StreamTimestamp>(lSize);
 		this.windowSize = lWindowSize;
 		this.priorityList = new ArrayList<LinkedList<Double>>();
 		this.sampleRate = lRate;
@@ -65,7 +65,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	public synchronized void sample(T element) {
 
 		final StreamTimestamp t = new StreamTimestamp();
-		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(element,t);
+		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(element, t);
 
 		update(t);
 
@@ -214,7 +214,6 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 
 	/**
 	 * DEBUG MESSAGES
-	 *
 	 */
 
 	String prioritiesToString() {
@@ -244,7 +243,6 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 		pStr += "]";
 		return pStr;
 	}
-
 
 
 }

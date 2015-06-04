@@ -32,7 +32,7 @@ import java.util.Properties;
  */
 public class DistributionComparison {
 
-	public static long MAX_COUNT,TIME_WINDOW_SIZE;
+	public static long MAX_COUNT, TIME_WINDOW_SIZE;
 	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
 
 
@@ -62,12 +62,12 @@ public class DistributionComparison {
 
 
 		/*create samplers*/
-		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(SAMPLE_SIZE,10);
-		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(SAMPLE_SIZE,TIME_WINDOW_SIZE,1000);
-		ChainSampler<Double> chainSampler = new ChainSampler<Double>(SAMPLE_SIZE,COUNT_WINDOW_SIZE,1000);
-		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(SAMPLE_SIZE,100);
-		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(SAMPLE_SIZE,100);
-		GreedySampler<Double> greedySampler = new GreedySampler<Double>(SAMPLE_SIZE,100);
+		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(SAMPLE_SIZE, 10);
+		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(SAMPLE_SIZE, TIME_WINDOW_SIZE, 1000);
+		ChainSampler<Double> chainSampler = new ChainSampler<Double>(SAMPLE_SIZE, COUNT_WINDOW_SIZE, 1000);
+		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(SAMPLE_SIZE, 100);
+		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(SAMPLE_SIZE, 100);
+		GreedySampler<Double> greedySampler = new GreedySampler<Double>(SAMPLE_SIZE, 100);
 
 		/*sample*/
 		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler));

@@ -20,7 +20,6 @@ package org.apache.flink.streaming.sampling.sources;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
 
 import java.util.Properties;
 
@@ -37,7 +36,7 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 
 	long count;
 
-	public NormalStreamSource () {
+	public NormalStreamSource() {
 
 		//parse properties
 		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
@@ -79,24 +78,21 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 
 	@Override
 	public GaussianDistribution next() throws Exception {
-		if (count <stablePoints) {
-			count ++;
+		if (count < stablePoints) {
+			count++;
 			return new GaussianDistribution(mean, stDev, outlierRate);
-		}
-		else if (count < numberOfEvents - stablePoints) {
+		} else if (count < numberOfEvents - stablePoints) {
 			long interval = numberOfEvents - 2 * stablePoints;
 			long countc = count - stablePoints;
 			double multiplier = Math.floor(countc * steps / interval);
 			mean = meanInit + meanStep * multiplier;
 			stDev = stDevInit + stDevStep * multiplier;
-			count ++;
+			count++;
 			return new GaussianDistribution(mean, stDev, outlierRate);
-		}
-		else if (count<numberOfEvents) {
-			count ++;
+		} else if (count < numberOfEvents) {
+			count++;
 			return new GaussianDistribution(mean, stDev, outlierRate);
-		}
-		else {
+		} else {
 			return null;
 		}
 

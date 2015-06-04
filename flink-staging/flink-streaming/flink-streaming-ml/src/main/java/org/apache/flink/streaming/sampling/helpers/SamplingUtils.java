@@ -19,7 +19,7 @@ package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.samplers.*;
+import org.apache.flink.streaming.sampling.samplers.Buffer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -144,9 +144,8 @@ public final class SamplingUtils {
 	}
 
 	public static double squaredDistance(double x1, double x2) {
-		return Math.pow((x1-x2),2);
+		return Math.pow((x1 - x2), 2);
 	}
-
 
 
 }

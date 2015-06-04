@@ -18,26 +18,21 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 
+import org.apache.flink.api.java.tuple.Tuple2;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.apache.flink.api.java.tuple.Tuple2;
-
 /**
  * Created by marthavk on 2015-04-07.
  */
-public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Serializable, Iterable {
+public class Chain<T, S> extends Buffer<LinkedList<Tuple2<T, S>>> implements Serializable, Iterable {
 
 	public Chain(int size) {
-		sample = new ArrayList<LinkedList<Tuple2<T,S>>>();
+		sample = new ArrayList<LinkedList<Tuple2<T, S>>>();
 		maxSize = size;
-	}
-
-	@Override
-	public void setMaxSize(int s) {
-		this.maxSize = s;
 	}
 
 	@Override
@@ -45,8 +40,13 @@ public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Seria
 		return maxSize;
 	}
 
-	public void addSample(Tuple2<T,S> item) {
-		LinkedList<Tuple2<T,S>> newList = new LinkedList<Tuple2<T,S>>();
+	@Override
+	public void setMaxSize(int s) {
+		this.maxSize = s;
+	}
+
+	public void addSample(Tuple2<T, S> item) {
+		LinkedList<Tuple2<T, S>> newList = new LinkedList<Tuple2<T, S>>();
 		newList.add(item);
 		sample.add(newList);
 	}
@@ -62,15 +62,15 @@ public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Seria
 
 	public ArrayList<T> extractSample() {
 		ArrayList<T> output = new ArrayList<T>();
-		Iterator<LinkedList<Tuple2<T,S>>> it = sample.iterator();
+		Iterator<LinkedList<Tuple2<T, S>>> it = sample.iterator();
 		while (it.hasNext()) {
-			LinkedList<Tuple2<T,S>> nextItem = it.next();
+			LinkedList<Tuple2<T, S>> nextItem = it.next();
 			output.add(nextItem.peekFirst().f0);
 		}
 		return output;
 	}
 
-	public LinkedList<Tuple2<T,S>> get(int i) {
+	public LinkedList<Tuple2<T, S>> get(int i) {
 		return sample.get(i);
 	}
 
@@ -90,9 +90,8 @@ public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Seria
 	}
 
 
-
-	public void replaceChain(int pos, Tuple2<T,S> item) {
-		LinkedList<Tuple2<T,S>> newList = new LinkedList<Tuple2<T,S>>();
+	public void replaceChain(int pos, Tuple2<T, S> item) {
+		LinkedList<Tuple2<T, S>> newList = new LinkedList<Tuple2<T, S>>();
 		newList.add(item);
 		super.replaceSample(pos, newList);
 	}
@@ -103,7 +102,7 @@ public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Seria
 	 * @param item
 	 * @param pos
 	 */
-	public void chainItem(Tuple2<T,S> item, int pos) {
+	public void chainItem(Tuple2<T, S> item, int pos) {
 		this.get(pos).add(item);
 	}
 }

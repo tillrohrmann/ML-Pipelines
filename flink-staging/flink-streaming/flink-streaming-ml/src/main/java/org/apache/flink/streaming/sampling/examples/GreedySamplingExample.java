@@ -17,19 +17,10 @@
  */
 package org.apache.flink.streaming.sampling.examples;
 
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.DistributionComparator;
-import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.MetaAppender;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.SimpleUnwrapper;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.streaming.sampling.samplers.GreedySampler;
-import org.apache.flink.streaming.sampling.samplers.Sample;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
@@ -111,7 +102,7 @@ public class GreedySamplingExample {
 	 * @param env the StreamExecutionEnvironment.
 	 * @return the DataStreamSource
 	 */
-	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env ) {
+	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
 	}
 

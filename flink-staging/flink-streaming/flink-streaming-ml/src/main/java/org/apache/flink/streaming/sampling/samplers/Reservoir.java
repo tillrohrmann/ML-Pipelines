@@ -31,15 +31,23 @@ public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 		super(size);
 	}
 
+	/**
+	 * MERGE METHODS
+	 */
+	public static Reservoir merge(Reservoir r1, Reservoir r2) {
+		Reservoir rout = new Reservoir(r1.maxSize + r2.maxSize);
+		rout.sample.addAll(r1.sample);
+		rout.sample.addAll(r2.sample);
+		return rout;
+	}
+
 	public void addSample(T item) {
 		if (!isFull()) {
 			this.sample.add(item);
-		}
-		else {
+		} else {
 			replaceSample(item);
 		}
 	}
-
 
 	/**
 	 * Chooses an existing element uniformly at random and replaces it with e
@@ -68,19 +76,8 @@ public class Reservoir<T> extends Buffer<T> implements Serializable, Iterable {
 		return sample.toString();
 	}
 
-
 	void print() {
 		System.out.println(sample.toString());
-	}
-
-	/**
-	 * MERGE METHODS
-	 */
-	public static Reservoir merge(Reservoir r1, Reservoir r2) {
-		Reservoir rout = new Reservoir(r1.maxSize + r2.maxSize);
-		rout.sample.addAll(r1.sample);
-		rout.sample.addAll(r2.sample);
-		return rout;
 	}
 
 	public void mergeWith(Reservoir<T> r1) {

@@ -19,6 +19,7 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -31,18 +32,16 @@ import java.util.Properties;
  */
 public class GreedySampler<IN> implements SampleFunction<IN> {
 
-	Buffer<IN> sample;
 	final double sampleRate;
-
+	Buffer<IN> sample;
 	/* Properties for Page Hinkley Test */
 	PageHinkleyTest detector;
 	double lambda, delta;
 
 	/* Properties for Sampler */
 	double evictionRate = 1.0;
-
-	private boolean hasDrift = false;
 	long counter = 0;
+	private boolean hasDrift = false;
 
 	public GreedySampler(int size, int lSampleRate) {
 		sample = new Buffer<IN>(size);
@@ -61,7 +60,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public void sample(IN element) {
-		counter ++;
+		counter++;
 		//Tuple3 inValue = (Tuple3) element;
 
 		//StreamTimestamp changeTimeStamp = new StreamTimestamp();
@@ -98,16 +97,15 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.saveToPath + "greedy"+evictionRate;
+		return SamplingUtils.saveToPath + "greedy" + evictionRate;
 	}
 
 
 	public void uniformSample(IN element) {
-		if (SamplingUtils.flip((double) sample.getMaxSize() / counter )) {
+		if (SamplingUtils.flip((double) sample.getMaxSize() / counter)) {
 			if (!sample.isFull()) {
 				sample.getSample().add(element);
-			}
-			else {
+			} else {
 				sample.replaceAtRandom(element);
 			}
 		}
@@ -121,7 +119,6 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 			sample.getSample().add(element);
 		}
 	}
-
 
 
 }

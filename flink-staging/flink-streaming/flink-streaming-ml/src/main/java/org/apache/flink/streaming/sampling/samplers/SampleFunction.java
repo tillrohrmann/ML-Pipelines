@@ -17,9 +17,7 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.flink.api.common.functions.AbstractRichFunction;
 import org.apache.flink.api.common.functions.Function;
-import org.apache.flink.api.common.functions.RichFunction;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -27,7 +25,7 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-04-07.
  */
-public interface SampleFunction<T> extends Function, Serializable{
+public interface SampleFunction<T> extends Function, Serializable {
 
 	/**
 	 * @return an ArrayList holding the whole sample
@@ -44,6 +42,7 @@ public interface SampleFunction<T> extends Function, Serializable{
 
 	/**
 	 * Produces a random output from the buffer
+	 *
 	 * @return
 	 */
 	public T getRandomEvent() throws IndexOutOfBoundsException;
@@ -59,7 +58,7 @@ public interface SampleFunction<T> extends Function, Serializable{
 	public double getSampleRate();
 
 	/**
-	 *[DEBUG] filename for writing output
+	 * [DEBUG] filename for writing output
 	 */
 	public String getFilename();
 

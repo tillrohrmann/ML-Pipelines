@@ -28,13 +28,14 @@ import java.util.ArrayList;
  * Each new element will deterministically enter the reservoir. The Reservoir is either extended
  * (until it reaches max size) or the incoming element is replacing an older element in the
  * reservoir uniformly at random.
+ *
  * @param <IN> the type of incoming elements
  */
 public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
+	final double sampleRate;
 	Reservoir<IN> reservoir;
 	int counter = 0;
-	final double sampleRate;
 
 	public BiasedReservoirSampler(int maxsize, double lSampleRate) {
 		reservoir = new Reservoir<IN>(maxsize);
@@ -48,7 +49,7 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public void sample(IN element) {
-		counter ++;
+		counter++;
 		double proportion = reservoir.getSize() / reservoir.getMaxSize();
 		if (SamplingUtils.flip(proportion)) {
 			reservoir.replaceSample(element);

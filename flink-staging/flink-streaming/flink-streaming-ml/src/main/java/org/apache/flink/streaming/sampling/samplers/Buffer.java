@@ -18,7 +18,6 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import com.codahale.metrics.Sampling;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.io.Serializable;
@@ -49,12 +48,12 @@ public class Buffer<T> implements Serializable {
 		return null;
 	}
 
-	void setMaxSize(int s) {
-		this.maxSize = s;
-	}
-
 	int getMaxSize() {
 		return maxSize;
+	}
+
+	void setMaxSize(int s) {
+		this.maxSize = s;
 	}
 
 	T get(int pos) {
@@ -89,8 +88,8 @@ public class Buffer<T> implements Serializable {
 
 	public double[] getSampleAsArray() {
 		double[] array = new double[sample.size()];
-		for (int i=0; i<sample.size(); i++) {
-			array[i] = (Double)sample.get(i);
+		for (int i = 0; i < sample.size(); i++) {
+			array[i] = (Double) sample.get(i);
 		}
 		return array;
 	}

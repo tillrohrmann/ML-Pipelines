@@ -32,7 +32,9 @@ import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 
-/** not tested! **/
+/**
+ * not tested! *
+ */
 public class KSDivergence extends RichCoFlatMapFunction<Buffer<Double>, GaussianDistribution, Double> {
 	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
 	ArrayList<Buffer<Double>> empAggregator = new ArrayList<Buffer<Double>>();
@@ -72,8 +74,7 @@ public class KSDivergence extends RichCoFlatMapFunction<Buffer<Double>, Gaussian
 		double[] sample = gsampled.getSampleAsArray();
 		try {
 			return ksTest.kolmogorovSmirnovTest(real, sample);
-		}
-		catch (InsufficientDataException e) {
+		} catch (InsufficientDataException e) {
 			return Double.POSITIVE_INFINITY;
 		}
 	}

@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.samplers;
+
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -33,7 +34,7 @@ import java.util.Properties;
  */
 public class SamplingExample {
 
-	public static long MAX_COUNT,TIME_WINDOW_SIZE;
+	public static long MAX_COUNT, TIME_WINDOW_SIZE;
 	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
 	public static double OUT_RATE;
 
@@ -62,11 +63,11 @@ public class SamplingExample {
 		SingleOutputStreamOperator<GaussianDistribution, ?> aggregator = generator.map(new NormalAggregator());
 
 		/*create samplers*/
-		UniformSampler<Long> uniformSampler = new UniformSampler<Long>(10,10);
-		PrioritySampler<Long> prioritySampler = new PrioritySampler<Long>(10,100,1000);
-		ChainSampler<Long> chainSampler = new ChainSampler<Long>(10,100,1000);
-		FiFoSampler<Long> fiFoSampler = new FiFoSampler<Long>(10,100);
-		BiasedReservoirSampler<Long> biasedReservoirSampler = new BiasedReservoirSampler<Long>(10,100);
+		UniformSampler<Long> uniformSampler = new UniformSampler<Long>(10, 10);
+		PrioritySampler<Long> prioritySampler = new PrioritySampler<Long>(10, 100, 1000);
+		ChainSampler<Long> chainSampler = new ChainSampler<Long>(10, 100, 1000);
+		FiFoSampler<Long> fiFoSampler = new FiFoSampler<Long>(10, 100);
+		BiasedReservoirSampler<Long> biasedReservoirSampler = new BiasedReservoirSampler<Long>(10, 100);
 
 		/*sample*/
 		debugSource.transform("sample", debugSource.getType(), new StreamSampler<Long>(biasedReservoirSampler)).print();
@@ -112,7 +113,6 @@ public class SamplingExample {
 		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
 		OUT_RATE = Double.parseDouble(initProps.getProperty("outputRate"));
 	}
-
 
 
 }

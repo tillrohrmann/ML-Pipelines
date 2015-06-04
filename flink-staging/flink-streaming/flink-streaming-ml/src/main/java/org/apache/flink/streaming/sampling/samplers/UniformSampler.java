@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+
 import java.util.ArrayList;
 
 /**
@@ -26,9 +27,9 @@ import java.util.ArrayList;
  */
 public class UniformSampler<IN> implements SampleFunction<IN> {
 
+	final int sampleRate;
 	Reservoir<IN> reservoir;
 	long counter = 0;
-	final int sampleRate;
 
 	public UniformSampler(int lMaxSize, int lRate) {
 		reservoir = new Reservoir<IN>(lMaxSize);
@@ -46,8 +47,7 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 		if (SamplingUtils.flip((double) reservoir.getMaxSize() / counter)) {
 			if (!reservoir.isFull()) {
 				reservoir.addSample(element);
-			}
-			else {
+			} else {
 				replace(element);
 			}
 		}
@@ -55,11 +55,10 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public synchronized IN getRandomEvent() throws IndexOutOfBoundsException {
-		if (reservoir.getSize()>0) {
+		if (reservoir.getSize() > 0) {
 			IN randomRecord = reservoir.getSample().get(SamplingUtils.nextRandInt(reservoir.getSize()));
 			return randomRecord;
-		}
-		else {
+		} else {
 			throw new IndexOutOfBoundsException();
 		}
 
@@ -68,7 +67,7 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 	@Override
 	public synchronized void reset() {
 		reservoir.getSample().clear();
-		counter=0;
+		counter = 0;
 
 	}
 

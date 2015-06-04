@@ -35,7 +35,7 @@ public class DebugSource implements SourceFunction<Long> {
 
 	@Override
 	public boolean reachedEnd() throws Exception {
-		if (count<end) {
+		if (count < end) {
 			return false;
 		}
 		return true;

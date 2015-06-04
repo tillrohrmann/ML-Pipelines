@@ -17,18 +17,18 @@
  */
 
 package org.apache.flink.streaming.sampling.samplers;
+
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
-import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.functions.util.FunctionUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
-import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
-import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import scala.Tuple2;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 /**
@@ -38,13 +38,15 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		implements OneInputStreamOperator<IN, IN> {
 
 	final SampleFunction<IN> sampler;
-	boolean running;
 	final double sampleRate;
+	boolean running;
 	long millis;
 	int nanos;
-	long counter=0;
+	long counter = 0;
 
-	/** write to file **/
+	/**
+	 * write to file *
+	 */
 	File file;
 	String filename;
 	//BufferedWriter bw;
@@ -81,20 +83,20 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 			@Override
 			public void run() {
-				while(running){
+				while (running) {
 					try {
-						Thread.sleep(millis,nanos);
+						Thread.sleep(millis, nanos);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 					try {
-						if(running) {
+						if (running) {
 							output.collect(sampler.getRandomEvent());
 						}
+					} catch (IndexOutOfBoundsException ignored) {
+					} catch (IllegalArgumentException ignored) {
+					} catch (NullPointerException ignored) {
 					}
-					catch (IndexOutOfBoundsException ignored){}
-					catch (IllegalArgumentException ignored){}
-					catch (NullPointerException ignored){}
 				}
 			}
 		});
@@ -112,8 +114,8 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 	@Override
 	public void processElement(IN element) throws Exception {
-		counter ++;
-		if (counter%25000 == 0 ) {
+		counter++;
+		if (counter % 25000 == 0) {
 			System.out.println(userFunction.getClass() + " " + counter);
 		}
 		sampler.sample(element);
@@ -121,8 +123,8 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 	}
 
 	private void setTimeIntervals() {
-		double number = 1000.0/sampleRate;
-		millis = (long)number;
+		double number = 1000.0 / sampleRate;
+		millis = (long) number;
 		nanos = (int) Math.round((number - millis) * 1000000);
 	}
 

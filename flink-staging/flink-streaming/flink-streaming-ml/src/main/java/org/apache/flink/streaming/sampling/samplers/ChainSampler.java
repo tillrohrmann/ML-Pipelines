@@ -19,6 +19,7 @@ package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,15 +30,14 @@ import java.util.LinkedList;
 
 public class ChainSampler<T> implements SampleFunction<T> {
 
-	Chain<T,Long> chainSample;
-
+	final double sampleRate;
+	Chain<T, Long> chainSample;
 	int windowSize;
 	long counter;
-	final double sampleRate;
 
 	public ChainSampler(int lSize, int lWindowSize, double lSampleRate) {
 		counter = 0;
-		chainSample = new Chain<T,Long>(lSize);
+		chainSample = new Chain<T, Long>(lSize);
 		windowSize = lWindowSize;
 		sampleRate = lSampleRate;
 	}
@@ -51,7 +51,7 @@ public class ChainSampler<T> implements SampleFunction<T> {
 	@Override
 	public void sample(T item) {
 		counter++;
-		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(item, counter);
+		Tuple2<T, Long> wrappedValue = new Tuple2<T, Long>(item, counter);
 		storeChainedItems(wrappedValue);
 		updateExpiredItems(wrappedValue);
 
@@ -160,7 +160,7 @@ public class ChainSampler<T> implements SampleFunction<T> {
 
 	}
 
-	public String chainSampletoString(Chain<T,Long> chain) {
+	public String chainSampletoString(Chain<T, Long> chain) {
 		String chainSampleStr;
 		chainSampleStr = "[";
 		Iterator<LinkedList> iter = chain.iterator();
