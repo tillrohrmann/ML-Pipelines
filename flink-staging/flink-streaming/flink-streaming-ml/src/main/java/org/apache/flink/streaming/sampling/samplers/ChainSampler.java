@@ -17,13 +17,8 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
-import org.apache.flink.util.Collector;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,62 +27,52 @@ import java.util.LinkedList;
  * Created by marthavk on 2015-04-07.
  */
 
-public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunction<T,Sample<T>> {
+public class ChainSampler<T> implements SampleFunction<T> {
 
-	Chain<Tuple2<T, Long>> chainSample;
+	Chain<T,Long> chainSample;
 
 	int windowSize;
 	long counter;
+	final double sampleRate;
 
-	public ChainSampler(int lSize, int lWindowSize) {
+	public ChainSampler(int lSize, int lWindowSize, double lSampleRate) {
 		counter = 0;
-		chainSample = new Chain<Tuple2<T, Long>>(lSize);
+		chainSample = new Chain<T,Long>(lSize);
 		windowSize = lWindowSize;
-	}
-
-	public ChainSampler(int lSize, int lWindowSize, double outR) {
-		counter = 0;
-		chainSample = new Chain<Tuple2<T, Long>>(lSize);
-		windowSize = lWindowSize;
+		sampleRate = lSampleRate;
 	}
 
 
 	@Override
-	public void flatMap(T value, Collector<Sample<T>> out) throws Exception {
-		counter ++;
-
-		//wrap values
-		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(value, counter);
-		storeChainedItems(wrappedValue);
-		updateExpiredItems(wrappedValue);
-		sample(wrappedValue);
-		//TODO
-	}
-
-	@Override
-	public ArrayList<Tuple2<T, Long>> getElements() {
+	public ArrayList<T> getElements() {
 		return chainSample.extractSample();
 	}
 
 	@Override
-	public void sample(Tuple2<T, Long> item) {
+	public void sample(T item) {
+		counter++;
+		Tuple2<T,Long> wrappedValue = new Tuple2<T, Long>(item, counter);
+		storeChainedItems(wrappedValue);
+		updateExpiredItems(wrappedValue);
+
+		//sample item
 		if (!chainSample.isFull()) {
 			int pos = chainSample.getSize();
-			chainSample.addSample(item);
+			chainSample.addSample(wrappedValue);
 
-			long futureReplacement = selectReplacement(item);
+			long futureReplacement = selectReplacement(wrappedValue);
 			Tuple2<T, Long> futureItem
 					= new Tuple2<T, Long>(null, futureReplacement);
 			chainSample.chainItem(futureItem, pos);
 
 		} else {
-			double prob = (double) chainSample.getMaxSize() / SamplingUtils.max(chainSample.getMaxSize(), item.f1);
+			double prob = (double) chainSample.getMaxSize() / SamplingUtils.max(chainSample.getMaxSize(), wrappedValue.f1);
 			if (SamplingUtils.flip(prob)) {
 
 				int pos = SamplingUtils.randomBoundedInteger(0, chainSample.getSize() - 1);
-				chainSample.replaceChain(pos, item);
+				chainSample.replaceChain(pos, wrappedValue);
 
-				long futureReplacement = selectReplacement(item);
+				long futureReplacement = selectReplacement(wrappedValue);
 				Tuple2<T, Long> futureItem
 						= new Tuple2<T, Long>(null, futureReplacement);
 
@@ -96,6 +81,26 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 		}
 	}
 
+	@Override
+	public T getRandomEvent() {
+		int randomIndex = SamplingUtils.nextRandInt(chainSample.getSize());
+		return chainSample.get(randomIndex).getFirst().f0;
+	}
+
+	@Override
+	public void reset() {
+		this.chainSample.reset();
+	}
+
+	@Override
+	public double getSampleRate() {
+		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "chain" + windowSize;
+	}
 
 
 	/** CHAIN SAMPLING METHODS **/
@@ -155,7 +160,7 @@ public class ChainSampler<T> implements Sampler<Tuple2<T, Long>>, FlatMapFunctio
 
 	}
 
-	public String chainSampletoString(Chain<Tuple2<T, Long>> chain) {
+	public String chainSampletoString(Chain<T,Long> chain) {
 		String chainSampleStr;
 		chainSampleStr = "[";
 		Iterator<LinkedList> iter = chain.iterator();

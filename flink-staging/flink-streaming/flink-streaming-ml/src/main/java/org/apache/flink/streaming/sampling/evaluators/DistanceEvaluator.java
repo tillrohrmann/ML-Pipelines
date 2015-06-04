@@ -22,7 +22,7 @@ import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Buffer;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -30,12 +30,12 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-03-18.
  */
-public class DistanceEvaluator extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
+public class DistanceEvaluator extends RichCoFlatMapFunction<Buffer<Double>, GaussianDistribution, Double> {
 	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
 	ArrayList<GaussianDistribution> empAggregator = new ArrayList<GaussianDistribution>();
 
 	@Override
-	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
+	public void flatMap1(Buffer<Double> value, Collector<Double> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
 		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
 		empAggregator.add(sampledDist);

@@ -27,16 +27,16 @@ import java.util.ArrayList;
 /**
  * Created by marthavk on 2015-03-26.
  */
-public class Sample<T> implements Serializable {
+public class Buffer<T> implements Serializable {
 
 	int maxSize;
 	ArrayList<T> sample;
 
-	public Sample() {
+	public Buffer() {
 		sample = new ArrayList<T>();
 	}
 
-	public Sample(int lMaxSize) {
+	public Buffer(int lMaxSize) {
 		sample = new ArrayList<T>();
 		maxSize = lMaxSize;
 	}
@@ -57,9 +57,12 @@ public class Sample<T> implements Serializable {
 		return maxSize;
 	}
 
-	public void addSample(T item) {
-		sample.add(item);
+	T get(int pos) {
+		return sample.get(pos);
 	}
+	/*public void addSample(T item) {
+		sample.add(item);
+	}*/
 
 	void replaceSample(int pos, T item) {
 		sample.set(pos, item);

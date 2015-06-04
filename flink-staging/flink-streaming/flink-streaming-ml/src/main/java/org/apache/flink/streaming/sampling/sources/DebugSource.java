@@ -15,36 +15,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.samplers;
 
-import java.util.ArrayList;
+package org.apache.flink.streaming.sampling.sources;
+
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 /**
- * Created by marthavk on 2015-04-07.
+ * Created by marthavk on 2015-06-02.
  */
-public interface Sampler<T> {
+public class DebugSource implements SourceFunction<Long> {
 
-	/**
-	 * @return an ArrayList holding the whole sample
-	 */
-	public ArrayList<T> getElements();
+	long end;
+	long count;
 
-	/**
-	 * In a streaming fashion a sampler receives individual elements and puts them in its sample.
-	 * The sample method should include the core sample creation logic of a stream sampler.
-	 *
-	 * @param element
-	 */
-	public void sample(T element);
+	public DebugSource(long lEnd) {
+		count = 0;
+		this.end = lEnd;
+	}
 
-/*	*//**
-	 * @return The current size of the sample
-	 *//*
-	public int size();
+	@Override
+	public boolean reachedEnd() throws Exception {
+		if (count<end) {
+			return false;
+		}
+		return true;
+	}
 
-	*//**
-	 * @return The max size of the sample
-	 *//*
-	public int maxSize();*/
-
+	@Override
+	public Long next() throws Exception {
+		count++;
+		return count;
+	}
 }

@@ -19,53 +19,57 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-
 import java.util.ArrayList;
 
-
 /**
- * Biased Reservoir Sampler (uses a Reservoir but is biased towards new events).
- * Each new element will deterministically enter the reservoir. The Reservoir is either extended
- * (until it reaches max size) or the incoming element is replacing an older element in the
- * reservoir uniformly at random.
- * @param <IN> the type of incoming elements
+ * Created by marthavk on 2015-06-02.
  */
-public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
+public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	Reservoir<IN> reservoir;
-	int counter = 0;
-	final double sampleRate;
+	long counter = 0;
+	final int sampleRate;
 
-	public BiasedReservoirSampler(int maxsize, double lSampleRate) {
-		reservoir = new Reservoir<IN>(maxsize);
-		sampleRate = lSampleRate;
+	public UniformSampler(int lMaxSize, int lRate) {
+		reservoir = new Reservoir<IN>(lMaxSize);
+		sampleRate = lRate;
 	}
 
 	@Override
-	public ArrayList<IN> getElements() {
+	public synchronized ArrayList<IN> getElements() {
 		return reservoir.getSample();
 	}
 
 	@Override
-	public void sample(IN element) {
-		counter ++;
-		double proportion = reservoir.getSize() / reservoir.getMaxSize();
-		if (SamplingUtils.flip(proportion)) {
-			reservoir.replaceSample(element);
-		} else {
-			reservoir.addSample(element);
+	public synchronized void sample(IN element) {
+		counter++;
+		if (SamplingUtils.flip((double) reservoir.getMaxSize() / counter)) {
+			if (!reservoir.isFull()) {
+				reservoir.addSample(element);
+			}
+			else {
+				replace(element);
+			}
 		}
 	}
 
 	@Override
-	public IN getRandomEvent() {
-		int randomIndex = SamplingUtils.nextRandInt(reservoir.getSize());
-		return reservoir.get(randomIndex);
+	public synchronized IN getRandomEvent() throws IndexOutOfBoundsException {
+		if (reservoir.getSize()>0) {
+			IN randomRecord = reservoir.getSample().get(SamplingUtils.nextRandInt(reservoir.getSize()));
+			return randomRecord;
+		}
+		else {
+			throw new IndexOutOfBoundsException();
+		}
+
 	}
 
 	@Override
-	public void reset() {
-		reservoir.reset();
+	public synchronized void reset() {
+		reservoir.getSample().clear();
+		counter=0;
+
 	}
 
 	@Override
@@ -75,6 +79,15 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "biased";
+		return SamplingUtils.path + "reservoir";
 	}
+
+	public synchronized void replace(IN item) {
+		// choose position in sample uniformly at random
+		int pos = SamplingUtils.nextRandInt(reservoir.getSize());
+		// replace element at pos with item
+		reservoir.replaceSample(pos, item);
+	}
+
+
 }

@@ -21,13 +21,13 @@ package org.apache.flink.streaming.incrementalML.test.sampling
 import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils
+import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{Matchers, FlatSpec}
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VeryFastDecisionTree
-import org.apache.flink.streaming.sampling.samplers.ReservoirSampler
 
 
 /**
@@ -59,10 +59,9 @@ class SamplingTest
 
     //read datapoints for covertype_libSVM dataset and sample
 
-    val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
-    //val dataPoints = sample.flatMap(new ReservoirSampler[LabeledVector](sample_size, 0.1)).print()
+    //val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
 
-    //read datapoints for randomRBF dataset
+    // read datapoints for randomRBF dataset
     val dataPoints = env.readTextFile(SamplingUtils.randomRBFPath).map {
       line => {
         var featureList = Vector[Double]()
@@ -73,17 +72,16 @@ class SamplingTest
 
         LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
       }
-    }
+    }.flatMap(new BiasedReservoirSampler[LabeledVector](sample_size, 0.1))
 
     val vfdTree = VeryFastDecisionTree(env)
     val evaluator = PrequentialEvaluator()
 
     val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText(SamplingUtils.externalPath + "classificationTestReservoir").setParallelism(1)
+    evaluator.evaluate(streamToEvaluate).writeAsText(SamplingUtils.externalPath + "rbfResSampling").setParallelism(1)
 
     env.execute()
-
 
   }
 
