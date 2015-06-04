@@ -16,26 +16,25 @@
  * limitations under the License.
  */
 package org.apache.flink.streaming.sampling.samplers;
+
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.sources.DebugSource;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 import java.util.Properties;
 
 /**
- * Created by marthavk on 2015-05-08.
+ * Created by marthavk on 2015-06-03.
  */
-public class SamplingExample {
+public class DistributionComparison {
 
 	public static long MAX_COUNT,TIME_WINDOW_SIZE;
 	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
-	public static double OUT_RATE;
+
 
 	public static Properties initProps = new Properties();
 
@@ -46,36 +45,43 @@ public class SamplingExample {
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setParallelism(1);
 
 		/*create debug source*/
-		DataStreamSource<Long> debugSource = env.addSource(new DebugSource(1000000));
+		//DataStreamSource<Long> debugSource = env.addSource(new DebugSource(500000));
 
 		/** OR **/
 
 		/*create stream of distributions as source (also number generators) and shuffle*/
 		DataStreamSource<GaussianDistribution> source = createSource(env);
-		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
+		//SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
 
 		/*generate random number from distribution*/
-		SingleOutputStreamOperator<Double, ?> generator =
-				shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
-		SingleOutputStreamOperator<GaussianDistribution, ?> aggregator = generator.map(new NormalAggregator());
+		SingleOutputStreamOperator<Double, ?> doubleStream =
+				source.map(new DoubleDataGenerator<GaussianDistribution>());
+
 
 		/*create samplers*/
-		UniformSampler<Long> uniformSampler = new UniformSampler<Long>(10,10);
-		PrioritySampler<Long> prioritySampler = new PrioritySampler<Long>(10,100,1000);
-		ChainSampler<Long> chainSampler = new ChainSampler<Long>(10,100,1000);
-		FiFoSampler<Long> fiFoSampler = new FiFoSampler<Long>(10,100);
-		BiasedReservoirSampler<Long> biasedReservoirSampler = new BiasedReservoirSampler<Long>(10,100);
+		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(SAMPLE_SIZE,10);
+		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(SAMPLE_SIZE,TIME_WINDOW_SIZE,1000);
+		ChainSampler<Double> chainSampler = new ChainSampler<Double>(SAMPLE_SIZE,COUNT_WINDOW_SIZE,1000);
+		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(SAMPLE_SIZE,100);
+		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(SAMPLE_SIZE,100);
+		GreedySampler<Double> greedySampler = new GreedySampler<Double>(SAMPLE_SIZE,100);
 
 		/*sample*/
-		debugSource.transform("sample", debugSource.getType(), new StreamSampler<Long>(biasedReservoirSampler)).print();
-
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fiFoSampler));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
 		env.execute();
+
 
 	}
 
@@ -89,30 +95,13 @@ public class SamplingExample {
 		return env.addSource(new NormalStreamSource());
 	}
 
-
-	public static void foo() {
-/*		int sampleRate = 3500;
-		double l = 1000.0/sampleRate;
-
-		double number = 0.0000019;
-
-		long decimal = (long)number;
-		//int fractional = Integer.parseInt(doubleAsText.split("\\.")[1]);
-		int fractional = (int) Math.round((number - decimal) * 1000000);
-		System.out.println(number);
-		System.out.println(decimal);
-		System.out.println(fractional);*/
-	}
-
 	public static void readProperties() {
 		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
 		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
 		TIME_WINDOW_SIZE = Long.parseLong(initProps.getProperty("timeWindowSize"));
 		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
-		OUT_RATE = Double.parseDouble(initProps.getProperty("outputRate"));
 	}
-
 
 
 }

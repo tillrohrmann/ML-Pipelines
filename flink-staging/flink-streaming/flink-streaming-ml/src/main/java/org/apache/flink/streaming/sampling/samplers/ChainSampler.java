@@ -33,9 +33,9 @@ public class ChainSampler<T> implements SampleFunction<T> {
 
 	int windowSize;
 	long counter;
-	final int sampleRate;
+	final double sampleRate;
 
-	public ChainSampler(int lSize, int lWindowSize, int lSampleRate) {
+	public ChainSampler(int lSize, int lWindowSize, double lSampleRate) {
 		counter = 0;
 		chainSample = new Chain<T,Long>(lSize);
 		windowSize = lWindowSize;
@@ -93,8 +93,13 @@ public class ChainSampler<T> implements SampleFunction<T> {
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "chain" + windowSize;
 	}
 
 

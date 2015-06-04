@@ -73,8 +73,13 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "reservoir";
 	}
 
 	public synchronized void replace(IN item) {
@@ -83,5 +88,6 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 		// replace element at pos with item
 		reservoir.replaceSample(pos, item);
 	}
+
 
 }

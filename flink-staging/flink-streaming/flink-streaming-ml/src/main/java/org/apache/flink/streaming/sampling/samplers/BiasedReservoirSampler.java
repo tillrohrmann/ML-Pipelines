@@ -34,9 +34,9 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	Reservoir<IN> reservoir;
 	int counter = 0;
-	final int sampleRate;
+	final double sampleRate;
 
-	public BiasedReservoirSampler(int maxsize, int lSampleRate) {
+	public BiasedReservoirSampler(int maxsize, double lSampleRate) {
 		reservoir = new Reservoir<IN>(maxsize);
 		sampleRate = lSampleRate;
 	}
@@ -69,7 +69,12 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "biased";
 	}
 }

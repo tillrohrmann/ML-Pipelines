@@ -32,10 +32,10 @@ import java.util.ArrayList;
 public class FiFoSampler<IN> implements SampleFunction<IN> {
 
 	FiFo<IN> fifoSample;
-	final int sampleRate;
+	final double sampleRate;
 
 
-	public FiFoSampler(int maxSize, int lSampleRate) {
+	public FiFoSampler(int maxSize, double lSampleRate) {
 		fifoSample = new FiFo<IN>(maxSize);
 		sampleRate = lSampleRate;
 	}
@@ -62,8 +62,13 @@ public class FiFoSampler<IN> implements SampleFunction<IN> {
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "fifo";
 	}
 
 

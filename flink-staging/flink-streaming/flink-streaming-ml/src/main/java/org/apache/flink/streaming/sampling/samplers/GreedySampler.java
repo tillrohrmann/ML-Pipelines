@@ -32,14 +32,14 @@ import java.util.Properties;
 public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	Buffer<IN> sample;
-	final int sampleRate;
+	final double sampleRate;
 
 	/* Properties for Page Hinkley Test */
 	PageHinkleyTest detector;
 	double lambda, delta;
 
 	/* Properties for Sampler */
-	double evictionRate = 0.9;
+	double evictionRate = 1.0;
 
 	private boolean hasDrift = false;
 	long counter = 0;
@@ -92,8 +92,13 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "greedy"+evictionRate;
 	}
 
 

@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.commons.logging.impl.Log4JLogger;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
@@ -52,9 +53,8 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 
 
 	@Override
-	public ArrayList<T> getElements() {
-		chainSample.extractSample();
-		return null;
+	public synchronized ArrayList<T> getElements() {
+		return chainSample.extractSample();
 	}
 
 
@@ -62,7 +62,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	 * METHODS IMPLEMENTING Sampler INTERFACE *
 	 */
 	@Override
-	public void sample(T element) {
+	public synchronized void sample(T element) {
 
 		final StreamTimestamp t = new StreamTimestamp();
 		Tuple2<T, StreamTimestamp> wrappedValue = new Tuple2<T, StreamTimestamp>(element,t);
@@ -78,28 +78,35 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	}
 
 	@Override
-	public T getRandomEvent() {
+	public synchronized T getRandomEvent() {
+
 		int randomIndex = SamplingUtils.nextRandInt(chainSample.getSize());
-		return chainSample.get(randomIndex).getFirst().f0;
+		T randomEvent = chainSample.get(randomIndex).getFirst().f0;
+		return randomEvent;
 	}
 
 	@Override
-	public void reset() {
+	public synchronized void reset() {
 		this.chainSample.reset();
 		this.priorityList.clear();
 		initializeLists();
 	}
 
 	@Override
-	public int getSampleRate() {
+	public double getSampleRate() {
 		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return SamplingUtils.path + "priority" + windowSize;
 	}
 
 
 	/**
 	 * PRIORITY SAMPLER METHODS *
 	 */
-	public ArrayList<Double> assignPriorities() {
+	public synchronized ArrayList<Double> assignPriorities() {
 		ArrayList<Double> priorities = new ArrayList<Double>();
 		for (int i = 0; i < chainSample.getMaxSize(); i++) {
 			priorities.add(SamplingUtils.randomPriority());
@@ -110,7 +117,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	/**
 	 * initialize priorityList and chainSample with null elements
 	 */
-	public void initializeLists() {
+	public synchronized void initializeLists() {
 
 		//initialize priority list
 		for (int i = 0; i < chainSample.getMaxSize(); i++) {
@@ -132,7 +139,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	 * @param item
 	 * @param priorities
 	 */
-	public void placeInList(Tuple2<T, StreamTimestamp> item, ArrayList<Double> priorities) {
+	public synchronized void placeInList(Tuple2<T, StreamTimestamp> item, ArrayList<Double> priorities) {
 
 		//printIndexedString("\t***placeInList",0);
 		for (int pos = 0; pos < chainSample.getMaxSize(); pos++) {
@@ -172,7 +179,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 	 * checks if the timestamp of all sampled elements is between the
 	 * declared window. If not, pops them out of the list
 	 */
-	public void update(StreamTimestamp timestamp) {
+	public synchronized void update(StreamTimestamp timestamp) {
 
 
 		for (int i = 0; i < chainSample.getMaxSize(); i++) {

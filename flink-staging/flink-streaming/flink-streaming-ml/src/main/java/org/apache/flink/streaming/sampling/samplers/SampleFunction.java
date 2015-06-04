@@ -17,7 +17,9 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.AbstractRichFunction;
 import org.apache.flink.api.common.functions.Function;
+import org.apache.flink.api.common.functions.RichFunction;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -54,7 +56,12 @@ public interface SampleFunction<T> extends Function, Serializable{
 	/**
 	 * retrieves tha sample rate of the sampler (records per second)
 	 */
-	public int getSampleRate();
+	public double getSampleRate();
+
+	/**
+	 *[DEBUG] filename for writing output
+	 */
+	public String getFilename();
 
 
 }

@@ -29,9 +29,9 @@ public class SimpleUnwrapper<T> extends RichMapFunction<Buffer<Tuple3<T, StreamT
 	public Buffer<T> map(Buffer<Tuple3<T, StreamTimestamp, Long>> value) throws Exception {
 		//ArrayList<Long> utilList = new ArrayList<Long>();
 		Buffer<T> sample = new Buffer<T>();
-		for (int i = 0; i < value.getSample().size(); i++) {
+		/*for (int i = 0; i < value.getSample().size(); i++) {
 			sample.addSample(value.getSample().get(i).f0);
-		}
+		}*/
 		return sample;
 	}
 }

@@ -64,7 +64,8 @@ public class Chain<T,S> extends Buffer<LinkedList<Tuple2<T,S>>> implements Seria
 		ArrayList<T> output = new ArrayList<T>();
 		Iterator<LinkedList<Tuple2<T,S>>> it = sample.iterator();
 		while (it.hasNext()) {
-			output.add(it.next().peekFirst().f0);
+			LinkedList<Tuple2<T,S>> nextItem = it.next();
+			output.add(nextItem.peekFirst().f0);
 		}
 		return output;
 	}
