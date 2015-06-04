@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.streaming.sampling.examples.FiFoSamplingExample;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ public class FiFoSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.saveToPath + "fifo";
+		return FiFoSamplingExample.outputPath + "fifo" + fifoSample.getMaxSize();
 	}
 
 

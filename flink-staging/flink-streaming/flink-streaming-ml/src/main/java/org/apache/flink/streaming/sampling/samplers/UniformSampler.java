@@ -18,6 +18,7 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.streaming.sampling.examples.ReservoirSamplingExample;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -78,7 +79,7 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.saveToPath + "reservoir";
+		return ReservoirSamplingExample.outputPath + "reservoir" + reservoir.getMaxSize();
 	}
 
 	public synchronized void replace(IN item) {

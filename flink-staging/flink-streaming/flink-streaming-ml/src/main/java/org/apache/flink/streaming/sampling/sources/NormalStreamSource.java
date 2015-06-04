@@ -19,9 +19,7 @@ package org.apache.flink.streaming.sampling.sources;
 
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-
-import java.util.Properties;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 
 /**
  * Created by marthavk on 2015-04-07.
@@ -29,7 +27,6 @@ import java.util.Properties;
 public class NormalStreamSource implements SourceFunction<GaussianDistribution> {
 
 	GaussianDistribution gaussD;
-	Properties props;
 	long steps, numberOfEvents;
 	long stablePoints;
 	double mean, stDev, meanStep, stDevStep, meanInit, stDevInit, meanTarget, stDevTarget, outlierRate;
@@ -39,13 +36,12 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 	public NormalStreamSource() {
 
 		//parse properties
-		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		numberOfEvents = Long.parseLong(props.getProperty("maxCount"));
-		meanInit = Double.parseDouble(props.getProperty("meanInit"));
-		stDevInit = Double.parseDouble(props.getProperty("stDevInit"));
-		meanTarget = Double.parseDouble(props.getProperty("meanTarget"));
-		stDevTarget = Double.parseDouble(props.getProperty("stDevTarget"));
-		outlierRate = Double.parseDouble(props.getProperty("outlierRate"));
+		numberOfEvents = Configuration.maxCount;
+		meanInit = Configuration.meanInit;
+		stDevInit = Configuration.stDevInit;
+		meanTarget = Configuration.meanTarget;
+		stDevTarget = Configuration.stDevTarget;
+		outlierRate = Configuration.outlierRate;
 
 		//create initial normal distribution
 		mean = meanInit;
@@ -53,16 +49,16 @@ public class NormalStreamSource implements SourceFunction<GaussianDistribution> 
 		gaussD = new GaussianDistribution(mean, stDev, outlierRate);
 		count = 0;
 
-		boolean isSmooth = Boolean.parseBoolean(props.getProperty("isSmooth")) && steps <= (numberOfEvents / 2);
+		boolean isSmooth = Configuration.isSmooth && steps <= (numberOfEvents / 2);
 
 		if (!isSmooth) {
-			steps = Long.parseLong(props.getProperty("numberOfSteps"));
+			steps = Configuration.numberOfSteps;
 			stablePoints = 0;
 			meanStep = (meanTarget - mean) / (steps - 1);
 			stDevStep = (stDevTarget - stDev) / (steps - 1);
 		} else {
 			steps = numberOfEvents - 2 * stablePoints;
-			stablePoints = Long.parseLong(props.getProperty("stablePoints"));
+			stablePoints = Configuration.stablePoints;
 			meanStep = (meanTarget - mean) / (steps);
 			stDevStep = (stDevTarget - stDev) / (steps);
 		}

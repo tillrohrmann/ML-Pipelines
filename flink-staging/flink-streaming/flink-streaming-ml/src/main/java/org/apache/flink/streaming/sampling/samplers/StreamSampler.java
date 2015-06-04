@@ -132,7 +132,6 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 		SummaryStatistics stats = SamplingUtils.getStats((ArrayList<Double>) sampler.getElements());
 		Tuple2<Double, Double> outTuple = new Tuple2<Double, Double>(stats.getMean(), stats.getStandardDeviation());
 		return outTuple.toString();
-
 	}
 
 }

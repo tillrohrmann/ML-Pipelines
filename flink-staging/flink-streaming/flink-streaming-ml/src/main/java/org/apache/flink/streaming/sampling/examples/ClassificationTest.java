@@ -29,7 +29,5 @@ public class ClassificationTest {
 	public static void main(String[] args) {
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		DataStream<String> rawData = env.readTextFile(SamplingUtils.path + "small_dataset");
-
-
 	}
 }

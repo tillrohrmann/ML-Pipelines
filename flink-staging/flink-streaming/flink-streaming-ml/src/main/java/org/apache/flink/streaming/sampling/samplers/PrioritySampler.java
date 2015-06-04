@@ -19,6 +19,7 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.streaming.sampling.examples.PrioritySamplingExample;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.helpers.StreamTimestamp;
 
@@ -99,7 +100,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.saveToPath + "priority" + windowSize;
+		return PrioritySamplingExample.outputPath + "priority" + windowSize + "w" + chainSample.getMaxSize() + "bs";
 	}
 
 

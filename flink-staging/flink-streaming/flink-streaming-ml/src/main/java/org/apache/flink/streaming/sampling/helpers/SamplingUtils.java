@@ -39,7 +39,6 @@ public final class SamplingUtils {
 
 	public static String path = "/home/marthavk/workspace/flink/flink-staging/flink-streaming" +
 			"/flink-streaming-ml/src/main/resources/";
-	public static String saveToPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/distributionComparison/";
 	public static String covertypePath = "/home/marthavk/Desktop/THESIS/resources/dataSets/forestCovertype/covtype.libsvm.binary";
 	public static String randomRBFPath = "/home/marthavk/Desktop/THESIS/resources/dataSets/randomRBF/randomRBF-10M.arff";
 	public static String externalPath = "/home/marthavk/Desktop/THESIS/resources/";

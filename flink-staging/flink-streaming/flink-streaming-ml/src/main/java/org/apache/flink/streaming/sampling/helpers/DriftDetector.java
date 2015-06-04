@@ -23,8 +23,6 @@ import org.apache.flink.api.java.tuple.Tuple4;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 
-import java.util.Properties;
-
 /**
  * Created by marthavk on 2015-05-12.
  */
@@ -36,9 +34,8 @@ public class DriftDetector implements MapFunction<Tuple2<GaussianDistribution, D
 	long counter;
 
 	public DriftDetector() {
-		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		lambda = Double.parseDouble(props.getProperty("lambda"));
-		delta = Double.parseDouble(props.getProperty("delta"));
+		lambda = Configuration.lambda;
+		delta = Configuration.delta;
 		detector = new PageHinkleyTest(lambda, delta, 30);
 		counter = 0;
 	}

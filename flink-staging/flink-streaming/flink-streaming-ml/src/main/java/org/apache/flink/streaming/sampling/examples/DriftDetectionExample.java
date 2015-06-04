@@ -26,36 +26,26 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.runtime.tasks.StreamingRuntimeContext;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.helpers.DriftDetector;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-11.
  */
 public class DriftDetectionExample<T> {
 
-	public static long MAX_COUNT;  // max count of generated numbers
-	public static int SAMPLE_SIZE;
-	public static Properties initProps = new Properties();
 
 	// *************************************************************************
 	// PROGRAM
 	// *************************************************************************
 	public static void main(String[] args) throws Exception {
 
-		/*read properties file and set static variables*/
-		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
-
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
 		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		evaluateSampling(env);
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
@@ -70,11 +60,10 @@ public class DriftDetectionExample<T> {
 	 * with source.
 	 *
 	 * @param env
-	 * @param initProps
 	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
+	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
-		int sampleSize = SAMPLE_SIZE;
+		int sampleSize = Configuration.SAMPLE_SIZE_1000;
 
 		/*create stream of distributions as source (also number generators) and shuffle*/
 		DataStreamSource<GaussianDistribution> source = createSource(env);

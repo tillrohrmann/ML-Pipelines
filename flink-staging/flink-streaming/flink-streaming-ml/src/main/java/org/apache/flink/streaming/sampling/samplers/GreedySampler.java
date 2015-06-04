@@ -18,6 +18,7 @@
 package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
+import org.apache.flink.streaming.sampling.examples.GreedySamplingExample;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
@@ -97,7 +98,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.saveToPath + "greedy" + evictionRate;
+		return GreedySamplingExample.outputPath + "greedy" + sample.getMaxSize();
 	}
 
 

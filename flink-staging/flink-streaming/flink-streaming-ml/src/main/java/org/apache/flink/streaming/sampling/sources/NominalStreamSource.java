@@ -17,9 +17,6 @@ package org.apache.flink.streaming.sampling.sources;/*
  */
 
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-20.
@@ -28,10 +25,8 @@ public class NominalStreamSource implements SourceFunction<Integer> {
 
 	long numberOfEvents;
 	long count;
-	Properties props;
 
 	public NominalStreamSource() {
-		props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		//double[] distribution = Double.parseDouble(props.getProperty("bernoulli"));
 
 	}

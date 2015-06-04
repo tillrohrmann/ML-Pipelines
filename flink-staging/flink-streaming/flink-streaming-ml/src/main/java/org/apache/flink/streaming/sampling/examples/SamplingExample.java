@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.samplers;
+package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -23,27 +23,22 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.samplers.UniformSampler;
+import org.apache.flink.streaming.sampling.samplers.BiasedReservoirSampler;
+import org.apache.flink.streaming.sampling.samplers.FiFoSampler;
+import org.apache.flink.streaming.sampling.samplers.StreamSampler;
+import org.apache.flink.streaming.sampling.samplers.ChainSampler;
+import org.apache.flink.streaming.sampling.samplers.PrioritySampler;
 import org.apache.flink.streaming.sampling.sources.DebugSource;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-08.
  */
 public class SamplingExample {
 
-	public static long MAX_COUNT, TIME_WINDOW_SIZE;
-	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
-	public static double OUT_RATE;
-
-	public static Properties initProps = new Properties();
-
 	public static void main(String[] args) throws Exception {
 
-		/*set up properties*/
-		readProperties();
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -88,30 +83,6 @@ public class SamplingExample {
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
-	}
-
-
-	public static void foo() {
-/*		int sampleRate = 3500;
-		double l = 1000.0/sampleRate;
-
-		double number = 0.0000019;
-
-		long decimal = (long)number;
-		//int fractional = Integer.parseInt(doubleAsText.split("\\.")[1]);
-		int fractional = (int) Math.round((number - decimal) * 1000000);
-		System.out.println(number);
-		System.out.println(decimal);
-		System.out.println(fractional);*/
-	}
-
-	public static void readProperties() {
-		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
-		TIME_WINDOW_SIZE = Long.parseLong(initProps.getProperty("timeWindowSize"));
-		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
-		OUT_RATE = Double.parseDouble(initProps.getProperty("outputRate"));
 	}
 
 

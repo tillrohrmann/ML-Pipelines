@@ -22,27 +22,15 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-06-03.
  */
 public class DistributionComparison {
 
-	public static long MAX_COUNT, TIME_WINDOW_SIZE;
-	public static int COUNT_WINDOW_SIZE, SAMPLE_SIZE;
-
-
-	public static Properties initProps = new Properties();
-
 	public static void main(String[] args) throws Exception {
-
-		/*set up properties*/
-		readProperties();
-
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(1);
@@ -62,20 +50,20 @@ public class DistributionComparison {
 
 
 		/*create samplers*/
-		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(SAMPLE_SIZE, 10);
-		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(SAMPLE_SIZE, TIME_WINDOW_SIZE, 1000);
-		ChainSampler<Double> chainSampler = new ChainSampler<Double>(SAMPLE_SIZE, COUNT_WINDOW_SIZE, 1000);
-		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(SAMPLE_SIZE, 100);
-		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(SAMPLE_SIZE, 100);
-		GreedySampler<Double> greedySampler = new GreedySampler<Double>(SAMPLE_SIZE, 100);
+		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_1000, 10);
+		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.timeWindowSize, 1000);
+		ChainSampler<Double> chainSampler = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.countWindowSize, 1000);
+		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
+		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
+		GreedySampler<Double> greedySampler = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
 
 		/*sample*/
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fiFoSampler));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fiFoSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
 
@@ -93,14 +81,6 @@ public class DistributionComparison {
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
-	}
-
-	public static void readProperties() {
-		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
-		TIME_WINDOW_SIZE = Long.parseLong(initProps.getProperty("timeWindowSize"));
-		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
 	}
 
 

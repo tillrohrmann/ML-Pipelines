@@ -18,83 +18,75 @@
 package org.apache.flink.streaming.sampling.examples;
 
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
+import org.apache.flink.streaming.sampling.samplers.GreedySampler;
+import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-05-11.
  */
 public class GreedySamplingExample {
-	public static long MAX_COUNT;  // max count of generated numbers
-	public static int SAMPLE_SIZE;
-	public static Properties initProps = new Properties();
+
+	public static String outputPath;
 
 	// *************************************************************************
 	// PROGRAM
 	// *************************************************************************
+
+	/**
+	 * Sample the Stream Using Biased Reservoir Sampling with different buffer sizes: 1000,5000,10000,50000
+	 *
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
 
-		/*read properties file and set static variables*/
-		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
+		if (!parseParameters(args)) {
+			return;
+		}
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		env.setParallelism(1);
 
-		/*evaluate sampling method, run main algorithm*/
-		evaluateSampling(env, initProps);
+		/*create debug source*/
+		//DataStreamSource<Long> debugSource = env.addSource(new DebugSource(500000));
+
+		/** OR **/
+
+		/*create stream of distributions as source (also number generators) and shuffle*/
+		DataStreamSource<GaussianDistribution> source = createSource(env);
+		//SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
+
+		/*generate random number from distribution*/
+		SingleOutputStreamOperator<Double, ?> doubleStream =
+				source.map(new DoubleDataGenerator<GaussianDistribution>());
+
+
+		/*create samplerS*/
+		GreedySampler<Double> greedySampler1000 = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
+		GreedySampler<Double> greedySampler5000 = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_5000, 100);
+		GreedySampler<Double> greedySampler10000 = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_10000, 100);
+		GreedySampler<Double> greedySampler50000 = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_50000, 100);
+
+		/*sample*/
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler1000));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler5000));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler10000));
+		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler50000));
 
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute();
+		env.execute("Biased Reservoir Sampling Experiment");
 
 	}
-
-	/**
-	 * Evaluates the sampling method. Compares final sample distribution parameters
-	 * with source.
-	 *
-	 * @param env
-	 * @param initProps
-	 */
-	public static void evaluateSampling(StreamExecutionEnvironment env, final Properties initProps) {
-
-/*		int sampleSize = SAMPLE_SIZE;
-
-		*//*create stream of distributions as source (also number generators) and shuffle*//*
-		DataStreamSource<GaussianDistribution> source = createSource(env);
-		SingleOutputStreamOperator<GaussianDistribution, ?> shuffledSrc = source.shuffle();
-
-		*//*generate random number from distribution*//*
-		SingleOutputStreamOperator<Double, ?> generator = shuffledSrc.map(new DoubleDataGenerator<GaussianDistribution>());
-
-		SingleOutputStreamOperator<Sample<Double>, ?> sample = generator.map(new MetaAppender<Double>())
-				*//*sample the stream*//*
-				.map(new GreedySampler<Tuple3<Double, StreamTimestamp, Long>>(sampleSize))
-
-				*//*extract Double sampled values (unwrap from Tuple3)*//*
-				.map(new SimpleUnwrapper<Double>()); //use that for Reservoir, Biased Reservoir, FIFO Samplers
-
-
-		*//*connect sampled stream to source*//*
-		sample.connect(shuffledSrc)
-
-				*//*evaluate sample: compare current distribution parameters with sampled distribution parameters*//*
-				//.flatMap(new DistanceEvaluator())
-				.flatMap(new DistributionComparator())
-
-				*//*sink*//*
-						//.print();
-				.writeAsText(SamplingUtils.path + "greedy");*/
-	}
-
 
 	/**
 	 * Creates a DataStreamSource of GaussianDistribution items out of the params at input.
@@ -104,6 +96,19 @@ public class GreedySamplingExample {
 	 */
 	public static DataStreamSource<GaussianDistribution> createSource(StreamExecutionEnvironment env) {
 		return env.addSource(new NormalStreamSource());
+	}
+
+	private static boolean parseParameters(String[] args) {
+		if (args.length == 1) {
+			outputPath = args[0];
+			return true;
+		} else if (args.length == 0) {
+			outputPath = "";
+			return true;
+		} else {
+			System.err.println("Usage: GreedySamplingExample <path>");
+			return false;
+		}
 	}
 
 }
