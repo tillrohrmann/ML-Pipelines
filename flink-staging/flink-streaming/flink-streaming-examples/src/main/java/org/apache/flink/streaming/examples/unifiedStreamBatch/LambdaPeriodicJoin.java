@@ -36,7 +36,7 @@ public class LambdaPeriodicJoin {
 
 	private static final Logger log = Logger.getLogger(LambdaPeriodicJoin.class);
 
-	private static final String JARDependencies = "/home/fobeligi/workspace/incubator-flink/flink-staging/" +
+	private static final String JARDependencies = "/Users/fobeligi/workspace/flink/flink-staging/" +
 			"flink-streaming/flink-streaming-examples/target/flink-streaming-examples-0.9-SNAPSHOT-LambdaPeriodicJoin.jar";
 
 	// schedule batch job to run periodically and streamJob to run continuously
@@ -51,21 +51,21 @@ public class LambdaPeriodicJoin {
 		StreamExecutionEnvironment streamEnvironment = StreamExecutionEnvironment.createRemoteEnvironment("127.0.0.1",
 				6123, 1, JARDependencies);
 
-		CsvReader csvR = batchEnvironment.readCsvFile("/home/fobeligi/dataSet-files/exampleCSV_1.csv");
-		csvR.lineDelimiter("\n");
+		CsvReader csvR = batchEnvironment.readCsvFile("/Users/fobeligi/workspace/master-thesis/dataSets/UnifiedBatchStream.csv");
+		csvR.lineDelimiter("\n").fieldDelimiter(",");
 		DataSet<Tuple2<Double, Integer>> batchDataSet = csvR.types(Double.class, Integer.class);
 		
-		batchDataSet.write(new TypeSerializerOutputFormat<Tuple2<Double, Integer>>(), "/home/fobeligi/FlinkTmp/temp",
+		batchDataSet.write(new TypeSerializerOutputFormat<Tuple2<Double, Integer>>(), "/Users/fobeligi/workspace/master-thesis/dataSets/FlinkTmp/temp",
 				FileSystem.WriteMode.OVERWRITE);
 
-		batchDataSet.print();
 
-		DataStream<String> dataSetStream = streamEnvironment.readFileStream("file:///home/fobeligi/FlinkTmp/temp", 1000, FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
+		DataStream<String> dataSetStream = streamEnvironment.readFileStream("file:///Users/fobeligi/workspace/master-thesis/dataSets/temp",
+				1000, FileMonitoringFunction.WatchType.REPROCESS_WITH_APPENDED);
 
 		dataSetStream.print();
 
 		BatchJob periodicBatchJob = new BatchJob(batchEnvironment);
-		final ScheduledFuture batchHandler = scheduler.scheduleWithFixedDelay(periodicBatchJob, 0, 5000, TimeUnit.MILLISECONDS);
+		final ScheduledFuture batchHandler = scheduler.scheduleWithFixedDelay(periodicBatchJob, 0, 10000, TimeUnit.MILLISECONDS);
 
 		StreamingJob streamingJob = new StreamingJob(streamEnvironment);
 		final ScheduledFuture streamHandler = scheduler.schedule(streamingJob, 1000, TimeUnit.MILLISECONDS);

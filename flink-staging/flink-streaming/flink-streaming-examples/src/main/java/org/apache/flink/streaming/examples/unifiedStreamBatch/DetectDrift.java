@@ -21,10 +21,12 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.operators.AbstractUdfStreamOperator;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 
+import java.io.Serializable;
+
 
 public class DetectDrift
 		extends AbstractUdfStreamOperator<Tuple2<Double, Integer>, TriggerBatchJobFunction>
-		implements OneInputStreamOperator<Tuple2<Double, Integer>, Tuple2<Double, Integer>> {
+		implements OneInputStreamOperator<Tuple2<Double, Integer>, Tuple2<Double, Integer>>, Serializable {
 
 	private final TriggerBatchJobFunction userFun;
 
