@@ -18,8 +18,7 @@
 package org.apache.flink.streaming.incrementalML.evaluator
 
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
-Metrics}
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification, Metrics}
 
 
 class PrequentialEvaluator
@@ -56,7 +55,7 @@ class PrequentialEvaluator
 
         (instancesClassified, sumLossFunction / Bdenominator,
           sumLossFunctionWithoutLatent / instancesClassified,
-          ((instancesClassified-sumLossFunctionWithoutLatent)/instancesClassified)*100)
+          ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)
       }
     }.setParallelism(1)
   }

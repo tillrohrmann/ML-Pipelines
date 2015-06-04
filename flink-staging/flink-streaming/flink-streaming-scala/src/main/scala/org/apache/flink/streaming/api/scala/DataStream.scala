@@ -18,6 +18,10 @@
 
 package org.apache.flink.streaming.api.scala
 
+import org.apache.flink.api.common.io.OutputFormat
+import org.apache.flink.api.scala.operators.ScalaCsvOutputFormat
+import org.apache.flink.core.fs.{FileSystem, Path}
+
 import scala.collection.JavaConverters._
 import scala.reflect.ClassTag
 
@@ -46,12 +50,19 @@ class DataStream[T](javaStream: JavaStream[T]) {
   def getJavaStream: JavaStream[T] = javaStream
 
   /**
+   * Returns the ID of the {@link DataStream}.
+   *
+   * @return ID of the DataStream
+   */
+  def getId = javaStream.getId
+
+  /**
    * Returns the TypeInformation for the elements of this DataStream.
    */
   def getType(): TypeInformation[T] = javaStream.getType
 
   /**
-   * Sets the parallelism of this operation. This must be greater than 1.
+   * Sets the parallelism of this operation. This must be at least 1.
    */
   def setParallelism(parallelism: Int): DataStream[T] = {
     javaStream match {
@@ -67,13 +78,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
   /**
    * Returns the parallelism of this operation.
    */
-  def getParallelism: Int = javaStream match {
-    case op: SingleOutputStreamOperator[_, _] => op.getParallelism
-    case _ =>
-      throw new UnsupportedOperationException("Operator " + javaStream.toString + " does not have" +
-        " "  +
-        "parallelism.")
-  }
+  def getParallelism = javaStream.getParallelism
 
   /**
    * Gets the name of the current data stream. This name is
@@ -168,42 +173,55 @@ class DataStream[T](javaStream: JavaStream[T]) {
   }
 
   /**
+   * Sets the maximum time frequency (ms) for the flushing of the output
+   * buffer. By default the output buffers flush only when they are full.
+   *
+   * @param timeoutMillis
+   * The maximum time between two output flushes.
+   * @return The operator with buffer timeout set.
+   */
+  def setBufferTimeout(timeoutMillis: Long): DataStream[T] = {
+    javaStream match {
+      case ds: SingleOutputStreamOperator[_, _] => ds.setBufferTimeout(timeoutMillis);
+      case _ =>
+        throw new UnsupportedOperationException("Only supported for operators.")
+    }
+    this
+  }
+
+  /**
    * Creates a new DataStream by merging DataStream outputs of
    * the same type with each other. The DataStreams merged using this operator
    * will be transformed simultaneously.
    *
    */
-  def merge(dataStreams: DataStream[T]*): DataStream[T] =
-    javaStream.merge(dataStreams.map(_.getJavaStream): _*)
+  def union(dataStreams: DataStream[T]*): DataStream[T] =
+    javaStream.union(dataStreams.map(_.getJavaStream): _*)
 
   /**
    * Creates a new ConnectedDataStream by connecting
    * DataStream outputs of different type with each other. The
    * DataStreams connected using this operators can be used with CoFunctions.
-   *
    */
   def connect[T2](dataStream: DataStream[T2]): ConnectedDataStream[T, T2] = 
     javaStream.connect(dataStream.getJavaStream)
 
   /**
    * Groups the elements of a DataStream by the given key positions (for tuple/array types) to
-   * be used with grouped operators like grouped reduce or grouped aggregations
-   *
+   * be used with grouped operators like grouped reduce or grouped aggregations.
    */
   def groupBy(fields: Int*): DataStream[T] = javaStream.groupBy(fields: _*)
 
   /**
    * Groups the elements of a DataStream by the given field expressions to
-   * be used with grouped operators like grouped reduce or grouped aggregations
-   *
+   * be used with grouped operators like grouped reduce or grouped aggregations.
    */
   def groupBy(firstField: String, otherFields: String*): DataStream[T] = 
    javaStream.groupBy(firstField +: otherFields.toArray: _*)   
   
   /**
    * Groups the elements of a DataStream by the given K key to
-   * be used with grouped operators like grouped reduce or grouped aggregations
-   *
+   * be used with grouped operators like grouped reduce or grouped aggregations.
    */
   def groupBy[K: TypeInformation](fun: T => K): DataStream[T] = {
 
@@ -215,8 +233,34 @@ class DataStream[T](javaStream: JavaStream[T]) {
   }
 
   /**
+   * Partitions the elements of a DataStream by the given key positions (for tuple/array types) to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def partitionByHash(fields: Int*): DataStream[T] = javaStream.partitionByHash(fields: _*)
+
+  /**
+   * Groups the elements of a DataStream by the given field expressions to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def partitionByHash(firstField: String, otherFields: String*): DataStream[T] =
+    javaStream.partitionByHash(firstField +: otherFields.toArray: _*)
+
+  /**
+   * Groups the elements of a DataStream by the given K key to
+   * be used with grouped operators like grouped reduce or grouped aggregations.
+   */
+  def partitionByHash[K: TypeInformation](fun: T => K): DataStream[T] = {
+
+    val keyExtractor = new KeySelector[T, K] {
+      val cleanFun = clean(fun)
+      def getKey(in: T) = cleanFun(in)
+    }
+    javaStream.partitionByHash(keyExtractor)
+  }
+
+  /**
    * Sets the partitioning of the DataStream so that the output tuples
-   * are broadcasted to every parallel instance of the next component. This
+   * are broad casted to every parallel instance of the next component. This
    * setting only effects the how the outputs will be distributed between the
    * parallel instances of the next processing operator.
    *
@@ -256,7 +300,7 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * the next processing operator.
    *
    */
-  def distribute: DataStream[T] = javaStream.distribute()
+  def rebalance: DataStream[T] = javaStream.rebalance()
 
   /**
    * Initiates an iterative part of the program that creates a loop by feeding
@@ -660,7 +704,16 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * written.
    *
    */
-  def print(): DataStream[T] = javaStream.print()
+  def print(): DataStream[T] = javaStream.print
+
+  /**
+   * Writes a DataStream to the standard output stream (stderr).<br>
+   * For each element of the DataStream the result of
+   * {@link Object#toString()} is written.
+   *
+   * @return The closed DataStream.
+   */
+  def printToErr() = javaStream.printToErr
 
   /**
    * Writes a DataStream to the file specified by path in text format. The
@@ -679,8 +732,19 @@ class DataStream[T](javaStream: JavaStream[T]) {
    * is written.
    *
    */
-  def writeAsCsv(path: String, millis: Long = 0): DataStream[T] =
-    javaStream.writeAsCsv(path, millis)
+  def writeAsCsv(
+      path: String,
+      millis: Long = 0,
+      rowDelimiter: String = ScalaCsvOutputFormat.DEFAULT_LINE_DELIMITER,
+      fieldDelimiter: String = ScalaCsvOutputFormat.DEFAULT_FIELD_DELIMITER,
+      writeMode: FileSystem.WriteMode = null): DataStream[T] = {
+    require(javaStream.getType.isTupleType, "CSV output can only be used with Tuple DataSets.")
+    val of = new ScalaCsvOutputFormat[Product](new Path(path), rowDelimiter, fieldDelimiter)
+    if (writeMode != null) {
+      of.setWriteMode(writeMode)
+    }
+    javaStream.writeToFile(of.asInstanceOf[OutputFormat[T]], millis)
+  }
 
   /**
    * Writes the DataStream to a socket as a byte array. The format of the output is

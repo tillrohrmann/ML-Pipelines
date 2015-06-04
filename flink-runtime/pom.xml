@@ -342,7 +342,7 @@ under the License.
 					Used to show the git ref when starting the jobManager. -->
 				<groupId>pl.project13.maven</groupId>
 				<artifactId>git-commit-id-plugin</artifactId>
-				<version>2.1.5</version>
+				<version>2.1.13</version>
 				<executions>
 					<execution>
 						<goals>
@@ -352,6 +352,7 @@ under the License.
 				</executions>
 				<configuration>
 					<dotGitDirectory>${project.basedir}/../../.git</dotGitDirectory>
+					<useNativeGit>true</useNativeGit>
 					<generateGitPropertiesFile>true</generateGitPropertiesFile>
 					<skipPoms>false</skipPoms>
 					<failOnNoGitDirectory>false</failOnNoGitDirectory>
