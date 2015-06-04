@@ -99,7 +99,7 @@ public class PrioritySampler<T> implements SampleFunction<T> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "priority" + windowSize;
+		return SamplingUtils.saveToPath + "priority" + windowSize;
 	}
 
 

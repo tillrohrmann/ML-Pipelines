@@ -68,7 +68,7 @@ public class FiFoSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "fifo";
+		return SamplingUtils.saveToPath + "fifo";
 	}
 
 

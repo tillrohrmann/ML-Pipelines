@@ -98,7 +98,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "greedy"+evictionRate;
+		return SamplingUtils.saveToPath + "greedy"+evictionRate;
 	}
 
 

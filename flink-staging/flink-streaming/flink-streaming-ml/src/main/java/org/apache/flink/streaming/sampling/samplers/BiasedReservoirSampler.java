@@ -75,6 +75,6 @@ public class BiasedReservoirSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "biased";
+		return SamplingUtils.saveToPath + "biased";
 	}
 }

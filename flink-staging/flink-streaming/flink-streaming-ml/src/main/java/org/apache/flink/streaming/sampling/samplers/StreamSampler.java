@@ -64,7 +64,7 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 		/** write to file **/
 		super.open(parameters);
-		file = new File(SamplingUtils.path + filename);
+		file = new File(filename);
 		if (!file.exists()) {
 			file.createNewFile();
 		}
@@ -112,7 +112,10 @@ public class StreamSampler<IN> extends AbstractUdfStreamOperator<IN, SampleFunct
 
 	@Override
 	public void processElement(IN element) throws Exception {
-		System.out.println(++counter);
+		counter ++;
+		if (counter%25000 == 0 ) {
+			System.out.println(userFunction.getClass() + " " + counter);
+		}
 		sampler.sample(element);
 		pw.println(getDistributionOfBuffer());
 	}

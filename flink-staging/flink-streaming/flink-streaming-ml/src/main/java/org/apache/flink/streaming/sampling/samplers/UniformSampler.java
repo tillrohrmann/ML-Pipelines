@@ -79,7 +79,7 @@ public class UniformSampler<IN> implements SampleFunction<IN> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "reservoir";
+		return SamplingUtils.saveToPath + "reservoir";
 	}
 
 	public synchronized void replace(IN item) {

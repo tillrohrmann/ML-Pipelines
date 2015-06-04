@@ -80,7 +80,7 @@ public class DistributionComparison {
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute();
+		env.execute("Streaming Sampling Example");
 
 
 	}

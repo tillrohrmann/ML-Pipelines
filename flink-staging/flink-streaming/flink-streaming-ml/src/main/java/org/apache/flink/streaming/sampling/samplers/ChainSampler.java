@@ -99,7 +99,7 @@ public class ChainSampler<T> implements SampleFunction<T> {
 
 	@Override
 	public String getFilename() {
-		return SamplingUtils.path + "chain" + windowSize;
+		return SamplingUtils.saveToPath + "chain" + windowSize;
 	}
 
 
