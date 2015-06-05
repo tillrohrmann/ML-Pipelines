@@ -103,7 +103,7 @@ public class ChainSamplingExample {
 			outputPath = args[0];
 			return true;
 		} else if (args.length == 0) {
-			outputPath = "";
+			outputPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/distributionComparison/";
 			return true;
 		} else {
 			System.err.println("Usage: ChainSamplingExample <path>");

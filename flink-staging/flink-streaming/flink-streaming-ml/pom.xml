@@ -219,6 +219,11 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -241,6 +246,11 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -263,6 +273,11 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -285,6 +300,11 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -307,6 +327,11 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
@@ -329,9 +354,16 @@ under the License.
 
                             <includes>
                                 <include>org/apache/flink/streaming/sampling/examples/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/generators/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/helpers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/samplers/*.class</include>
+                                <include>org/apache/flink/streaming/sampling/sources/*.class</include>
+                                <include>org/apache/commons/math3/distribution/NormalDistribution</include>
                             </includes>
                         </configuration>
                     </execution>
+
+                    <!-- *********************    End of addition  ************************* -->
 
                 </executions>
             </plugin>
