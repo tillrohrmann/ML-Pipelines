@@ -84,7 +84,7 @@ public class FiFoSamplingExample {
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute("Biased Reservoir Sampling Experiment");
+		env.execute("FiFo Sampling Experiment");
 
 	}
 

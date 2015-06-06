@@ -84,7 +84,7 @@ public class PrioritySamplingExample {
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute("Biased Reservoir Sampling Experiment");
+		env.execute("Priority Sampling Experiment");
 
 	}
 

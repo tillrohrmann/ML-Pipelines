@@ -84,7 +84,7 @@ public class ReservoirSamplingExample {
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute("Biased Reservoir Sampling Experiment");
+		env.execute("Reservoir Sampling Experiment");
 
 	}
 
