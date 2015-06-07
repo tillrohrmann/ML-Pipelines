@@ -24,7 +24,7 @@ import java.util.Iterator;
 /**
  * Created by marthavk on 2015-03-31.
  */
-public class FiFo<T> extends Sample<T> implements Serializable, Iterable {
+public class FiFo<T> extends Buffer<T> implements Serializable, Iterable {
 
 	public FiFo(int size) {
 		super(size);
@@ -37,7 +37,7 @@ public class FiFo<T> extends Sample<T> implements Serializable, Iterable {
 	 *
 	 * @param item the sample to be added to the queue
 	 */
-	@Override
+
 	public void addSample(T item) {
 		if (getSize() < getMaxSize()) {
 			sample.add(item);
@@ -50,5 +50,9 @@ public class FiFo<T> extends Sample<T> implements Serializable, Iterable {
 	@Override
 	public Iterator iterator() {
 		return sample.iterator();
+	}
+
+	public void reset() {
+		sample.clear();
 	}
 }

@@ -17,12 +17,15 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
+import org.apache.flink.api.common.functions.Function;
+
+import java.io.Serializable;
 import java.util.ArrayList;
 
 /**
  * Created by marthavk on 2015-04-07.
  */
-public interface Sampler<T> {
+public interface SampleFunction<T> extends Function, Serializable {
 
 	/**
 	 * @return an ArrayList holding the whole sample
@@ -37,14 +40,27 @@ public interface Sampler<T> {
 	 */
 	public void sample(T element);
 
-/*	*//**
-	 * @return The current size of the sample
-	 *//*
-	public int size();
+	/**
+	 * Produces a random output from the buffer
+	 *
+	 * @return
+	 */
+	public T getRandomEvent() throws IndexOutOfBoundsException;
 
-	*//**
-	 * @return The max size of the sample
-	 *//*
-	public int maxSize();*/
+	/**
+	 * Resets the buffer
+	 */
+	public void reset();
+
+	/**
+	 * retrieves tha sample rate of the sampler (records per second)
+	 */
+	public double getSampleRate();
+
+	/**
+	 * [DEBUG] filename for writing output
+	 */
+	public String getFilename();
+
 
 }

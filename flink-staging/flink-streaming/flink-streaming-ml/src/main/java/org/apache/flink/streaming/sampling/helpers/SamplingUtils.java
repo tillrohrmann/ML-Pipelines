@@ -19,12 +19,13 @@ package org.apache.flink.streaming.sampling.helpers;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Buffer;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.Random;
 
@@ -110,9 +111,17 @@ public final class SamplingUtils {
 		return rand.nextDouble();
 	}
 
-	public static SummaryStatistics getStats(Sample<Double> sample) {
+	public static SummaryStatistics getStats(Buffer<Double> sample) {
 		SummaryStatistics stats = new SummaryStatistics();
 		for (Double value : sample.getSample()) {
+			stats.addValue(value);
+		}
+		return stats;
+	}
+
+	public static SummaryStatistics getStats(ArrayList<Double> sample) {
+		SummaryStatistics stats = new SummaryStatistics();
+		for (Double value : sample) {
 			stats.addValue(value);
 		}
 		return stats;

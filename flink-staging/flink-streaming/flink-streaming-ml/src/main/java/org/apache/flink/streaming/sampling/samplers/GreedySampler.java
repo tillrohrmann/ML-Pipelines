@@ -17,12 +17,9 @@
  */
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest;
+import org.apache.flink.streaming.sampling.examples.GreedySamplingExample;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
 import java.util.Properties;
@@ -34,53 +31,28 @@ import java.util.Properties;
  * from the reservoir are evicted and new ones are sampled using the biased reservoir sampling
  * algorithm.
  */
-public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
+public class GreedySampler<IN> implements SampleFunction<IN> {
 
-	Sample sample;
-	Fraction outputRate;
-	long internalCounter;
-
+	final double sampleRate;
+	Buffer<IN> sample;
 	/* Properties for Page Hinkley Test */
 	PageHinkleyTest detector;
 	double lambda, delta;
 
 	/* Properties for Sampler */
-	double evictionRate = 0.9;
-
-	private boolean hasDrift = false;
+	double evictionRate = 1.0;
 	long counter = 0;
+	private boolean hasDrift = false;
 
-	public GreedySampler(int size) {
-		sample = new Sample(size);
+	public GreedySampler(int size, int lSampleRate) {
+		sample = new Buffer<IN>(size);
 		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 		lambda = Double.parseDouble(props.getProperty("lambda"));
 		delta = Double.parseDouble(props.getProperty("delta"));
-		outputRate = new Fraction(1);
 		detector = new PageHinkleyTest(lambda, delta, 30);
-
+		sampleRate = lSampleRate;
 	}
 
-	public GreedySampler(int size, double outR) {
-		sample = new Sample(size);
-		Properties props = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		lambda = Double.parseDouble(props.getProperty("lambda"));
-		delta = Double.parseDouble(props.getProperty("delta"));
-		outputRate = new Fraction(outR);
-		detector = new PageHinkleyTest(lambda, delta, 30);
-	}
-
-	@Override
-	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		counter++;
-		internalCounter++;
-		sample(value);
-		if (internalCounter == outputRate.getDenominator()) {
-			internalCounter = 0;
-			for (int i = 0; i < outputRate.getNumerator(); i++) {
-				out.collect((IN) sample.generate());
-			}
-		}
-	}
 
 	@Override
 	public ArrayList<IN> getElements() {
@@ -89,13 +61,14 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	@Override
 	public void sample(IN element) {
-		Tuple3 inValue = (Tuple3) element;
+		counter++;
+		//Tuple3 inValue = (Tuple3) element;
 
 		//StreamTimestamp changeTimeStamp = new StreamTimestamp();
 		//System.out.println(changeTimeStamp.getTimestamp());
 
 		/* define sampling policy according to drift*/
-		detector.input(((Double) inValue.f0));
+		detector.input(((Double) element));
 		hasDrift = detector.isChangedDetected();
 		if (hasDrift) {
 			hasDrift = false;
@@ -107,11 +80,32 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	}
 
+	@Override
+	public IN getRandomEvent() {
+		int randomIndex = SamplingUtils.nextRandInt(sample.getSize());
+		return sample.get(randomIndex);
+	}
+
+	@Override
+	public void reset() {
+		sample.getSample().clear();
+	}
+
+	@Override
+	public double getSampleRate() {
+		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return GreedySamplingExample.outputPath + "greedy" + sample.getMaxSize();
+	}
+
 
 	public void uniformSample(IN element) {
 		if (SamplingUtils.flip((double) sample.getMaxSize() / counter)) {
 			if (!sample.isFull()) {
-				sample.addSample(element);
+				sample.getSample().add(element);
 			} else {
 				sample.replaceAtRandom(element);
 			}
@@ -120,10 +114,10 @@ public class GreedySampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 
 	public void fifoSample(IN element) {
 		if (sample.getSize() < sample.getMaxSize()) {
-			sample.addSample(element);
+			sample.getSample().add(element);
 		} else {
 			sample.removeSample(0);
-			sample.addSample(element);
+			sample.getSample().add(element);
 		}
 	}
 

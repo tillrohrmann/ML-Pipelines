@@ -18,43 +18,23 @@
 
 package org.apache.flink.streaming.sampling.samplers;
 
-import org.apache.commons.math3.fraction.Fraction;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.util.Collector;
+import org.apache.flink.streaming.sampling.examples.FiFoSamplingExample;
+import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 
 import java.util.ArrayList;
 
 /**
  * Created by marthavk on 2015-03-31.
  */
-public class FiFoSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
+public class FiFoSampler<IN> implements SampleFunction<IN> {
 
-	FiFo fifoSample;
-	Fraction outputRate;
-	long internalCounter = 0;
-
-
-	public FiFoSampler(int maxSize) {
-		fifoSample = new FiFo(maxSize);
-		outputRate = new Fraction(1);
-	}
-
-	public FiFoSampler(int maxSize, double outR) {
-		fifoSample = new FiFo(maxSize);
-		outputRate = new Fraction(outR);
-	}
+	final double sampleRate;
+	FiFo<IN> fifoSample;
 
 
-	@Override
-	public void flatMap(IN value, Collector<IN> out) throws Exception {
-		internalCounter++;
-		sample(value);
-		if (internalCounter == outputRate.getDenominator()) {
-			internalCounter = 0;
-			for (int i = 0; i < outputRate.getNumerator(); i++) {
-				out.collect((IN) fifoSample.generate());
-			}
-		}
+	public FiFoSampler(int maxSize, double lSampleRate) {
+		fifoSample = new FiFo<IN>(maxSize);
+		sampleRate = lSampleRate;
 	}
 
 	@Override
@@ -65,6 +45,27 @@ public class FiFoSampler<IN> implements FlatMapFunction<IN, IN>, Sampler<IN> {
 	@Override
 	public void sample(IN element) {
 		fifoSample.addSample(element);
+	}
+
+	@Override
+	public IN getRandomEvent() {
+		int randomIndex = SamplingUtils.nextRandInt(fifoSample.getSize());
+		return fifoSample.get(randomIndex);
+	}
+
+	@Override
+	public void reset() {
+		fifoSample.reset();
+	}
+
+	@Override
+	public double getSampleRate() {
+		return sampleRate;
+	}
+
+	@Override
+	public String getFilename() {
+		return FiFoSamplingExample.outputPath + "fifo" + fifoSample.getMaxSize();
 	}
 
 

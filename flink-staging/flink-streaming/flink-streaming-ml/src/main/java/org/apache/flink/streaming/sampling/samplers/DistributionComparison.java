@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.sampling.examples;
+package org.apache.flink.streaming.sampling.samplers;
 
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -23,33 +23,14 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.Configuration;
-import org.apache.flink.streaming.sampling.samplers.ChainSampler;
-import org.apache.flink.streaming.sampling.samplers.StreamSampler;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
 
 /**
- * Created by marthavk on 2015-05-06.
+ * Created by marthavk on 2015-06-03.
  */
-public class ChainSamplingExample {
+public class DistributionComparison {
 
-	public static String outputPath;
-
-	// *************************************************************************
-	// PROGRAM
-	// *************************************************************************
-
-	/**
-	 * Sample the Stream Using Biased Reservoir Sampling with different buffer sizes: 1000,5000,10000,50000
-	 *
-	 * @param args
-	 * @throws Exception
-	 */
 	public static void main(String[] args) throws Exception {
-
-		if (!parseParameters(args)) {
-			return;
-		}
-
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		env.setParallelism(1);
@@ -68,23 +49,27 @@ public class ChainSamplingExample {
 				source.map(new DoubleDataGenerator<GaussianDistribution>());
 
 
-		/*create samplerS*/
-		ChainSampler<Double> chainSampler1000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler5000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_5000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler10000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_10000, Configuration.countWindowSize, 100);
-		ChainSampler<Double> chainSampler50000 = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_50000, Configuration.countWindowSize, 100);
+		/*create samplers*/
+		UniformSampler<Double> uniformSampler = new UniformSampler<Double>(Configuration.SAMPLE_SIZE_1000, 10);
+		PrioritySampler<Double> prioritySampler = new PrioritySampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.timeWindowSize, 1000);
+		ChainSampler<Double> chainSampler = new ChainSampler<Double>(Configuration.SAMPLE_SIZE_1000, Configuration.countWindowSize, 1000);
+		FiFoSampler<Double> fiFoSampler = new FiFoSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
+		BiasedReservoirSampler<Double> biasedReservoirSampler = new BiasedReservoirSampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
+		GreedySampler<Double> greedySampler = new GreedySampler<Double>(Configuration.SAMPLE_SIZE_1000, 100);
 
 		/*sample*/
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler1000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler5000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler10000));
-		doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler50000));
-
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(prioritySampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(uniformSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(chainSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(fiFoSampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(greedySampler));
+		//doubleStream.transform("sample", doubleStream.getType(), new StreamSampler<Double>(biasedReservoirSampler));
 		/*get js for execution plan*/
 		System.err.println(env.getExecutionPlan());
 
 		/*execute program*/
-		env.execute("Chain Sampling Experiment");
+		env.execute("Streaming Sampling Example");
+
 
 	}
 
@@ -98,16 +83,5 @@ public class ChainSamplingExample {
 		return env.addSource(new NormalStreamSource());
 	}
 
-	private static boolean parseParameters(String[] args) {
-		if (args.length == 1) {
-			outputPath = args[0];
-			return true;
-		} else if (args.length == 0) {
-			outputPath = "/home/marthavk/workspace/flink/flink-staging/flink-streaming/flink-streaming-ml/src/main/resources/distributionComparison/";
-			return true;
-		} else {
-			System.err.println("Usage: ChainSamplingExample <path>");
-			return false;
-		}
-	}
+
 }

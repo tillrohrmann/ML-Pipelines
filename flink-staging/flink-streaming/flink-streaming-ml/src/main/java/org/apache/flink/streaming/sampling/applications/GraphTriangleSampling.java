@@ -180,13 +180,13 @@ public class GraphTriangleSampling implements Serializable {
 		env.execute("Triangle Sampling");
 	}
 
+	public static void main(String[] args) throws Exception {
+		new GraphTriangleSampling();
+	}
+
 	private static final class Coin {
 		public static boolean flip(int sides) {
 			return (Math.random() * sides < 1);
 		}
-	}
-
-	public static void main(String[] args) throws Exception {
-		new GraphTriangleSampling();
 	}
 }

@@ -41,8 +41,16 @@ public class Estimator<EV extends Edge, T extends Triangle> extends Tuple4<EV, E
 		return this.f0;
 	}
 
+	public void setR1(EV r1) {
+		this.f0 = r1;
+	}
+
 	public EV getR2() {
 		return this.f1;
+	}
+
+	public void setR2(EV r2) {
+		this.f1 = r2;
 	}
 
 	public T getTriangle() {
@@ -51,14 +59,6 @@ public class Estimator<EV extends Edge, T extends Triangle> extends Tuple4<EV, E
 
 	public Integer getC() {
 		return this.f3;
-	}
-
-	public void setR1(EV r1) {
-		this.f0 = r1;
-	}
-
-	public void setR2(EV r2) {
-		this.f1 = r2;
 	}
 
 	public void setT(T t) {

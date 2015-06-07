@@ -22,13 +22,12 @@
 
 package org.apache.flink.streaming.sampling.evaluators;
 
-
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.exception.InsufficientDataException;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.apache.flink.streaming.api.functions.co.RichCoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Buffer;
 import org.apache.flink.util.Collector;
 
 import java.util.ArrayList;
@@ -36,12 +35,12 @@ import java.util.ArrayList;
 /**
  * not tested! *
  */
-public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, GaussianDistribution, Double> {
+public class KSDivergence extends RichCoFlatMapFunction<Buffer<Double>, GaussianDistribution, Double> {
 	ArrayList<GaussianDistribution> trueAggregator = new ArrayList<GaussianDistribution>();
-	ArrayList<Sample<Double>> empAggregator = new ArrayList<Sample<Double>>();
+	ArrayList<Buffer<Double>> empAggregator = new ArrayList<Buffer<Double>>();
 
 	@Override
-	public void flatMap1(Sample<Double> value, Collector<Double> out) throws Exception {
+	public void flatMap1(Buffer<Double> value, Collector<Double> out) throws Exception {
 		empAggregator.add(value);
 
 		if (trueAggregator.size() == empAggregator.size()) {
@@ -69,7 +68,7 @@ public class KSDivergence extends RichCoFlatMapFunction<Sample<Double>, Gaussian
 		}
 	}
 
-	public double ksDistance(GaussianDistribution greal, Sample<Double> gsampled) {
+	public double ksDistance(GaussianDistribution greal, Buffer<Double> gsampled) {
 		KolmogorovSmirnovTest ksTest = new KolmogorovSmirnovTest();
 		NormalDistribution real = new NormalDistribution(greal.getMean(), greal.getStandardDeviation());
 		double[] sample = gsampled.getSampleAsArray();

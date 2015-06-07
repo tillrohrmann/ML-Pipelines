@@ -26,26 +26,25 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.apache.flink.streaming.sampling.helpers.Configuration;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.util.Collector;
 
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.TreeMap;
 import java.util.List;
-import java.util.Properties;
-
+import java.util.TreeMap;
 
 /**
  * Created by marthavk on 2015-05-21.
- * <p>
+ * <p/>
  * Tuple2 has the fields: f0->Integer[] and f1->String[]
- * <p>
+ * <p/>
  * Integer[] is an array of 11 values containing in the following order:
  * [year, month, day of month, day of week, CRS depart time, CRS arrival time
  * flight number, actual elapsed time, distance, diverted, delay]
- * <p>
+ * <p/>
  * String[] is an array of 3 values containing in the following order:
  * [unique carrier, origin, destination]
  */
@@ -55,16 +54,15 @@ public class AirlinesExample implements Serializable {
 	public static void main(String[] args) throws Exception {
 		/*read properties*/
 		String path = SamplingUtils.path;
-		Properties initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
 
 		/*query properties*/
 		final int size_of_stream = 10000;
 		final String source_file = path + "sampling_results/reservoir_sample_10000";
 
 		/*set sample and window sizes*/
-		final int sample_size = Integer.parseInt(initProps.getProperty("sampleSize"));
-		long time_window_size = Long.parseLong(initProps.getProperty("timeWindowSize"));
-		final int count_window_size = Integer.parseInt(initProps.getProperty("countWindowSize"));
+		final int sample_size = Configuration.SAMPLE_SIZE_1000;
+		long time_window_size = Configuration.timeWindowSize;
+		final int count_window_size = Configuration.countWindowSize;
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();

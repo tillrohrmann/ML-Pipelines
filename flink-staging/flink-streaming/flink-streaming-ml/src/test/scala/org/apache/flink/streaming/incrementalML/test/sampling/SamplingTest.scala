@@ -22,9 +22,9 @@ import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
-import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils
+import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
+import org.apache.flink.streaming.sampling.samplers.{BiasedReservoirSampler, SampleFunction, StreamSampler}
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -44,8 +44,9 @@ class SamplingTest
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     // read properties
-    val initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig" +
-      ".properties")
+    val initProps = SamplingUtils.readProperties(SamplingUtils.path
+      + "distributionconfig.properties")
+
     val file = "/home/marthavk/Desktop/THESIS/resources/dataSets/randomRBF/randomRBF-10M.arff"
     //val max_count = initProps.getProperty("maxCount").toInt
     val sample_size = initProps.getProperty("sampleSize").toInt
@@ -59,10 +60,11 @@ class SamplingTest
 
     //read datapoints for covertype_libSVM dataset and sample
 
-    val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
-    //val dataPoints = sample.flatMap(new ReservoirSampler[LabeledVector](sample_size, 0.1)).print()
+    //val sample = StreamingMLUtils.readLibSVM(env, SamplingUtils.covertypePath, 54)
+    val biasedReservoirSampler1000: SampleFunction[LabeledVector] =
+      new BiasedReservoirSampler[LabeledVector](Configuration.SAMPLE_SIZE_1000, 100)
 
-    //read datapoints for randomRBF dataset
+    // read datapoints for randomRBF dataset
     val dataPoints = env.readTextFile(SamplingUtils.randomRBFPath).map {
       line => {
         var featureList = Vector[Double]()
@@ -75,16 +77,20 @@ class SamplingTest
       }
     }
 
+    val sampler: StreamSampler[LabeledVector] =
+      new StreamSampler[LabeledVector](biasedReservoirSampler1000)
+
+    dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
+
     val vfdTree = HoeffdingTree(env)
     val evaluator = PrequentialEvaluator()
 
     val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText(SamplingUtils.externalPath +
-      "classificationTestReservoir").setParallelism(1)
+    evaluator.evaluate(streamToEvaluate).writeAsText(SamplingUtils.externalPath + "rbfResSampling")
+      .setParallelism(1)
 
     env.execute()
-
 
   }
 

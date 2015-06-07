@@ -24,21 +24,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.sampling.evaluators.NormalAggregator;
 import org.apache.flink.streaming.sampling.generators.DoubleDataGenerator;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
-import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
 import org.apache.flink.streaming.sampling.sources.NormalStreamSource;
-
-import java.util.Properties;
 
 /**
  * Created by marthavk on 2015-03-13.
  */
 public class StreamApproximationExample {
-
-	public static long MAX_COUNT;  // max count of generated numbers
-	public static int COUNT_WINDOW_SIZE;
-	public static long TIME_WINDOW_SIZE; //In milliseconds
-	public static int SAMPLE_SIZE;
-	public static Properties initProps = new Properties();
 
 	// *************************************************************************
 	// PROGRAM
@@ -46,13 +37,6 @@ public class StreamApproximationExample {
 	public static void main(String[] args) throws Exception {
 
 		//ChangeDetector cd = new ChangeDetector();
-
-		/*read properties file and set static variables*/
-		initProps = SamplingUtils.readProperties(SamplingUtils.path + "distributionconfig.properties");
-		MAX_COUNT = Long.parseLong(initProps.getProperty("maxCount"));
-		COUNT_WINDOW_SIZE = Integer.parseInt(initProps.getProperty("countWindowSize"));
-		TIME_WINDOW_SIZE = Long.parseLong(initProps.getProperty("timeWindowSize"));
-		SAMPLE_SIZE = Integer.parseInt(initProps.getProperty("sampleSize"));
 
 		/*set execution environment*/
 		final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -84,7 +68,6 @@ public class StreamApproximationExample {
 	 */
 	public static void evaluateSampling(StreamExecutionEnvironment env) {
 
-		int sampleSize = SAMPLE_SIZE;
 
 		/*create stream of distributions as source (also number generators) and shuffle*/
 		DataStreamSource<GaussianDistribution> source = createSource(env);

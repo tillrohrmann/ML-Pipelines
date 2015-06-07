@@ -22,18 +22,18 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.CoFlatMapFunction;
 import org.apache.flink.streaming.sampling.generators.GaussianDistribution;
 import org.apache.flink.streaming.sampling.helpers.SamplingUtils;
-import org.apache.flink.streaming.sampling.samplers.Sample;
+import org.apache.flink.streaming.sampling.samplers.Buffer;
 import org.apache.flink.util.Collector;
 
 
 /**
  * Created by marthavk on 2015-04-27.
  */
-public class DistributionComparator implements CoFlatMapFunction<Sample<Double>, GaussianDistribution,
+public class DistributionComparator implements CoFlatMapFunction<Buffer<Double>, GaussianDistribution,
 		Tuple2<GaussianDistribution, Integer>> {
 	//GaussianDistribution currentDist = new GaussianDistribution();
 	@Override
-	public void flatMap1(Sample<Double> value, Collector<Tuple2<GaussianDistribution, Integer>> out) throws Exception {
+	public void flatMap1(Buffer<Double> value, Collector<Tuple2<GaussianDistribution, Integer>> out) throws Exception {
 		SummaryStatistics stats = SamplingUtils.getStats(value);
 		GaussianDistribution sampledDist = new GaussianDistribution(stats.getMean(), stats.getStandardDeviation());
 		out.collect(new Tuple2<GaussianDistribution, Integer>(sampledDist, SamplingUtils.EMPIRICAL_DISTRIBUTION));
