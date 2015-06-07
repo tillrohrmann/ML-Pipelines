@@ -66,21 +66,21 @@ import scala.collection.JavaConverters._
  *
  * @example
  * {{{
- *      val trainingDS: DataSet[Vector] = env.fromCollection(Clustering.trainingData)
- *      val initialCentroids: DataSet[LabledVector] = env.fromCollection(Clustering.initCentroids)
+ *       val trainingDS: DataSet[Vector] = env.fromCollection(Clustering.trainingData)
+ *       val initialCentroids: DataSet[LabledVector] = env.fromCollection(Clustering.initCentroids)
  *
- *      val kmeans = KMeans()
- *        .setInitialCentroids(initialCentroids)
- *        .setNumIterations(10)
+ *       val kmeans = KMeans()
+ *         .setInitialCentroids(initialCentroids)
+ *         .setNumIterations(10)
  *
- *      kmeans.fit(trainingDS)
+ *       kmeans.fit(trainingDS)
  *
- *      // getting the computed centroids
- *      val centroidsResult = kmeans.centroids.get.collect()
+ *       // getting the computed centroids
+ *       val centroidsResult = kmeans.centroids.get.collect()
  *
- *      // get matching clusters for new points
- *      val testDS: DataSet[Vector] = env.fromCollection(Clustering.testData)
- *      val clusters: DataSet[LabeledVector] = kmeans.predict(testDS)
+ *       // get matching clusters for new points
+ *       val testDS: DataSet[Vector] = env.fromCollection(Clustering.testData)
+ *       val clusters: DataSet[LabeledVector] = kmeans.predict(testDS)
  * }}}
  *
  * =Parameters=
@@ -129,6 +129,17 @@ class KMeans extends Predictor[KMeans] {
     this
   }
 
+  /**
+   * Sets the value of threshold lambda for the outlier detection.
+   *
+   * @param threshold
+   * @return itself
+   */
+  def setThreshold(threshold: Double): KMeans = {
+    parameters.add(Threshold, threshold)
+    this
+  }
+
 }
 
 /**
@@ -139,11 +150,15 @@ object KMeans {
   val CENTROIDS = "centroids"
 
   case object NumIterations extends Parameter[Int] {
-    val defaultValue = Some(10)
+    override val defaultValue = Some(10)
   }
 
   case object InitialCentroids extends Parameter[DataSet[LabeledVector]] {
-    val defaultValue = None
+    override val defaultValue = None
+  }
+
+  case object Threshold extends Parameter[Double] {
+    override val defaultValue: Option[Double] = Some(0.45)
   }
 
   // ========================================== Factory methods ====================================
@@ -165,9 +180,12 @@ object KMeans {
         input: DataSet[Vector])
       : DataSet[LabeledVector] = {
 
+        val resultingParameters = instance.parameters ++ predictParameters
+
         instance.centroids match {
           case Some(centroids) => {
-            input.map(new SelectNearestCenterMapper).withBroadcastSet(centroids, CENTROIDS)
+//            input.map(new SelectNearestCenterMapper).withBroadcastSet(centroids, CENTROIDS)
+            input.map(new AssignOutlierLabelMapper(resultingParameters.apply(Threshold))).withBroadcastSet(centroids, CENTROIDS)
           }
 
           case None => {
@@ -200,7 +218,8 @@ object KMeans {
             .map(new SelectNearestCenterMapper).withBroadcastSet(currentCentroids, CENTROIDS)
             .map(x => (x.label, x.vector, 1.0)).withForwardedFields("label->_1; vector->_2")
             .groupBy(x => x._1)
-            .reduce((p1, p2) => (p1._1,(p1._2.asBreeze + p2._2.asBreeze).fromBreeze, p1._3 + p2._3))
+            .reduce((p1, p2) => (p1._1, (p1._2.asBreeze + p2._2.asBreeze).fromBreeze, p1._3 + p2
+            ._3))
             .withForwardedFields("_1")
             .map(x => LabeledVector(x._1, (x._2.asBreeze :/ x._3).fromBreeze))
             .withForwardedFields("_1->label")
@@ -242,6 +261,47 @@ final class SelectNearestCenterMapper extends RichMapFunction[Vector, LabeledVec
       }
     })
     LabeledVector(closestCentroidLabel, v)
+  }
+
+}
+
+/**
+ * Converts a given vector into a labeled vector where the label denotes whether the point is an
+ * outlier or not
+ */
+@ForwardedFields(Array("*->vector"))
+final class AssignOutlierLabelMapper(threshold: Double) extends RichMapFunction[Vector, LabeledVector] {
+
+  import KMeans._
+
+  private var centroids: Traversable[LabeledVector] = null
+
+  /** Reads the centroid values from a broadcast variable into a collection. */
+  override def open(parameters: Configuration) {
+    centroids = getRuntimeContext.getBroadcastVariable[LabeledVector](CENTROIDS).asScala
+  }
+
+  def map(v: Vector): LabeledVector = {
+    var minDistance: Double = Double.MaxValue
+    var closestCentroidLabel: Double = -1
+    centroids.foreach(centroid => {
+      val distance = EuclideanDistanceMetric().distance(v, centroid.vector)
+      if (distance < minDistance) {
+        minDistance = distance
+        closestCentroidLabel = centroid.label
+      }
+    })
+
+    //just add a test here if the distance is more than lambda then 0 is assigned as a label
+    // meaning that the point is an outlier.
+    // In case that the distance is less than lambda, the centroid.label is assigned to the point
+    // as its label.
+    if (minDistance <= threshold) { //not an outlier
+      LabeledVector(1.0, v)
+    }
+    else { //an outlier
+      LabeledVector(0.0, v)
+    }
   }
 
 }
