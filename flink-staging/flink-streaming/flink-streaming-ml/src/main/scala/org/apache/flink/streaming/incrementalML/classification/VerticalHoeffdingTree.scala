@@ -25,7 +25,7 @@ import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
-import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree._
+import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree._
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
 import org.apache.flink.util.Collector
@@ -36,43 +36,43 @@ import scala.collection.mutable
  *
  * @param context
  */
-class HoeffdingTree(
+class VerticalHoeffdingTree(
   context: StreamExecutionEnvironment)
   extends Learner[LabeledVector, (Int, Metrics)]
   with Serializable {
 
   //TODO:: Check what other parameters need to be set
-  def setMinNumberOfInstances(minInstances: Int): HoeffdingTree = {
+  def setMinNumberOfInstances(minInstances: Int): VerticalHoeffdingTree = {
     parameters.add(MinNumberOfInstances, minInstances)
     this
   }
 
-  def setVfdtDelta(delta: Double): HoeffdingTree = {
+  def setVfdtDelta(delta: Double): VerticalHoeffdingTree = {
     parameters.add(VfdtDelta, delta)
     this
   }
 
-  def setVfdtTau(tau: Double): HoeffdingTree = {
+  def setVfdtTau(tau: Double): VerticalHoeffdingTree = {
     parameters.add(VfdtTau, tau)
     this
   }
 
-  def setNominalAttributes(noNominalAttrs: Map[Int, Int]): HoeffdingTree = {
+  def setNominalAttributes(noNominalAttrs: Map[Int, Int]): VerticalHoeffdingTree = {
     parameters.add(NominalAttributes, noNominalAttrs)
     this
   }
 
-  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): HoeffdingTree = {
+  def setOnlyNominalAttributes(onlyNominalAttrs: Boolean): VerticalHoeffdingTree = {
     parameters.add(OnlyNominalAttributes, onlyNominalAttrs)
     this
   }
 
-  def setNumberOfClasses(noClasses: Int): HoeffdingTree = {
+  def setNumberOfClasses(noClasses: Int): VerticalHoeffdingTree = {
     parameters.add(NumberOfClasses, noClasses)
     this
   }
 
-  def setParallelism(parallelism: Int): HoeffdingTree = {
+  def setParallelism(parallelism: Int): VerticalHoeffdingTree = {
     parameters.add(Parallelism, parallelism)
     this
   }
@@ -120,7 +120,7 @@ class HoeffdingTree(
     }).setParallelism(1)
 
     val splitDs = attributes.groupBy(0).union(modelAndSignal.broadcast)
-      .flatMap(new PartialVFDTMetricsMapper(resultingParameters)).setParallelism(
+      .flatMap(new PartialVHTMetricsMapper(resultingParameters)).setParallelism(
         resultingParameters.apply(Parallelism)).split(new OutputSelector[Metrics] {
 
       override def select(value: Metrics): Iterable[String] = {
@@ -142,10 +142,10 @@ class HoeffdingTree(
   }
 }
 
-object HoeffdingTree {
+object VerticalHoeffdingTree {
 
-  def apply(context: StreamExecutionEnvironment): HoeffdingTree = {
-    new HoeffdingTree(context)
+  def apply(context: StreamExecutionEnvironment): VerticalHoeffdingTree = {
+    new VerticalHoeffdingTree(context)
   }
 
   /** Minimum number of instances seen, before deciding the new splitting feature.
@@ -218,8 +218,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[Metrics, (Int, Metrics)] {
 
   //Create the root of the DecisionTreeModel
-  val VFDT = DecisionTreeModel
-  VFDT.createRootOfTheTree
+  val VHT = DecisionTreeModel
+  VHT.createRootOfTheTree
 
   //counterPerLeaf -> (leafId,(#0,#1,#2))
   var counterPerLeaf = mutable.HashMap[Int, List[Int]]((0,
@@ -238,8 +238,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
         //-------------------------------Prequential Evaluation-------------------------------
         //classify data point first
-        val classifiedAtLeaf = VFDT.classifyDataPointToLeaf(featuresVector)
-        val label = VFDT.getNodeLabel(classifiedAtLeaf)
+        val classifiedAtLeaf = VHT.classifyDataPointToLeaf(featuresVector)
+        val label = VHT.getNodeLabel(classifiedAtLeaf)
         out.collect((-3, InstanceClassification(label, newDataPoint.getLabel)))
         //-------------------------------end Prequential Evaluation-------------------------------
 
@@ -253,7 +253,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         val tempList = counterPerLeaf(classifiedAtLeaf).view.zipWithIndex //(value,index)
         val leafLabel = tempList maxBy (_._1)
 
-        VFDT.setNodeLabel(classifiedAtLeaf, leafLabel._2)
+        VHT.setNodeLabel(classifiedAtLeaf, leafLabel._2)
         //------------------------------------end majority vote------------------------------------
 
         //----------------------change from here--------------------------------------------------
@@ -286,7 +286,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         nominal match {
           case None => {
             //only numerical attributes
-            VFDT.getNodeExcludingAttributes(classifiedAtLeaf) match {
+            VHT.getNodeExcludingAttributes(classifiedAtLeaf) match {
               case None => {
                 for (i <- 0 until featuresVector.size) {
                   out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
@@ -296,7 +296,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
               case _ => {
                 //emit it only if the attribute is not in the excluded ones  the specific leaf
                 for (i <- 0 until featuresVector.size) {
-                  if (!VFDT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
+                  if (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
                     out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
                       -1, classifiedAtLeaf, AttributeType.Numerical)))
                   }
@@ -308,8 +308,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
           case _ => {
             //both nominal and numerical attributes
             for (i <- 0 until featuresVector.size) {
-              if (VFDT.getNodeExcludingAttributes(classifiedAtLeaf) == None ||
-                (!VFDT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i))) {
+              if (VHT.getNodeExcludingAttributes(classifiedAtLeaf) == None ||
+                (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i))) {
 
                 nominal.get.getOrElse(i, None) match {
                   case nOfValue: Int => {
@@ -350,7 +350,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
       case evaluationMetric: EvaluationMetric => {
         //Aggregate metrics and update global model.
         //if node is still a leaf and has not been split yet
-        if (VFDT.nodeIsLeaf(evaluationMetric.leafId)) {
+        if (VHT.nodeIsLeaf(evaluationMetric.leafId)) {
           // (leafId, Map(SignalId,(Counter, List((Attr,ProposedValues)))))
           val temp = metricsFromLocalProcessors.getOrElse(evaluationMetric.leafId, None)
           temp match {
@@ -437,7 +437,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
 
                         case None => {
                           //if there are no Nominal attributes
-                          VFDT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
+                          VHT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
                             AttributeType.Numerical, bestValuesToSplit(0)._2._2,
                             bestValuesToSplit(0)._2._1)
 
@@ -456,7 +456,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           nominal.get.getOrElse(bestValuesToSplit(0)._1, None) match {
 
                             case None => {
-                              VFDT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
+                              VHT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
                                 AttributeType.Numerical, bestValuesToSplit(0)._2._2,
                                 bestValuesToSplit(0)._2._1)
 
@@ -473,7 +473,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                             }
 
                             case x: Int => {
-                              VFDT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
+                              VHT.growTree(evaluationMetric.leafId, bestValuesToSplit(0)._1,
                                 AttributeType.Nominal, bestValuesToSplit(0)._2._2,
                                 bestValuesToSplit(0)._2._1)
 
@@ -491,7 +491,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           }
                         }
                       }
-                      println(s"---${VFDT.getDecisionTreeSize} ---- VFDT:$VFDT")
+                      println(s"---${VHT.getDecisionTreeSize} ---- VFDT:$VHT")
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
                       //                      println(s"---counterPerLeaf: $counterPerLeaf\n")
@@ -553,7 +553,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   * This mapper emits values of type [[EvaluationMetric]], which extends [[Metrics]].
   *
   */
-class PartialVFDTMetricsMapper(resultingParameters: ParameterMap)
+class PartialVHTMetricsMapper(resultingParameters: ParameterMap)
   extends FlatMapFunction[(Int, Metrics), Metrics] {
 
   //[LeafId,HashMap[AttributeId,AttributeObserver]]

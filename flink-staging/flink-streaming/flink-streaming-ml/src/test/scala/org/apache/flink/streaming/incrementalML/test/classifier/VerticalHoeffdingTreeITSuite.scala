@@ -20,17 +20,17 @@ package org.apache.flink.streaming.incrementalML.test.classifier
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
+import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.test.util.FlinkTestBase
 import org.scalatest.{FlatSpec, Matchers}
 
-class HoeffdingTreeITSuite
+class VerticalHoeffdingTreeITSuite
   extends FlatSpec
   with Matchers
   with FlinkTestBase {
 
-  behavior of "Flink's Very Fast Decision Tree algorithm"
+  behavior of "Flink's Vertical Hoeffding Tree algorithm"
 
   it should "Create the classification HT of the given data set" in {
 
@@ -39,9 +39,9 @@ class HoeffdingTreeITSuite
     val parameters = ParameterMap()
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
 
-    parameters.add(HoeffdingTree.MinNumberOfInstances, 200)
-    parameters.add(HoeffdingTree.NumberOfClasses, 8)
-    parameters.add(HoeffdingTree.Parallelism, 8)
+    parameters.add(VerticalHoeffdingTree.MinNumberOfInstances, 200)
+    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 8)
+    parameters.add(VerticalHoeffdingTree.Parallelism, 8)
 
     //    parameters.add(VeryFastDecisionTree.OnlyNominalAttributes,true)
     //    parameters.add(VeryFastDecisionTree.NominalAttributes, nominalAttributes)
@@ -64,16 +64,16 @@ class HoeffdingTreeITSuite
     // "/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype/covtype.libsvm.binary", 54)
 
     //    val transformer = Imputer()
-    val vfdtLearner = HoeffdingTree(env)
+    val vhtLearner = VerticalHoeffdingTree(env)
     val evaluator = PrequentialEvaluator()
 
-    //    val vfdtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int, Metrics)](
-    //      transformer, vfdtLearner)
+    //    val vhtChainedLearner = new ChainedLearner[LabeledVector, LabeledVector, (Int, Metrics)](
+    //      transformer, vhtLearner)
 
-    val streamToEvaluate = vfdtLearner.fit(dataPoints, parameters)
+    val streamToEvaluate = vhtLearner.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsText ("/Users/fobeligi/workspace/master-thesis/" +
-      "dataSets/Waveform-MOA/Waveform-parall_1_8-result.txt").setParallelism(1)
+    evaluator.evaluate(streamToEvaluate).writeAsCsv ("/Users/fobeligi/workspace/master-thesis/" +
+      "dataSets/Waveform-MOA/Waveform-parall_1_8-result.csv").setParallelism(1)
 
     env.execute()
   }

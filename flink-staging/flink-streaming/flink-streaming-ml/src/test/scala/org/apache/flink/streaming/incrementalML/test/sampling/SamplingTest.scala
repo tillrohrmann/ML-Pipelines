@@ -21,7 +21,7 @@ package org.apache.flink.streaming.incrementalML.test.sampling
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.HoeffdingTree
+import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.sampling.helpers.{Configuration, SamplingUtils}
 import org.apache.flink.streaming.sampling.samplers.{BiasedReservoirSampler, SampleFunction, StreamSampler}
@@ -54,9 +54,9 @@ class SamplingTest
     //set parameters of VFDT
     val parameters = ParameterMap()
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
-    parameters.add(HoeffdingTree.MinNumberOfInstances, 300)
-    parameters.add(HoeffdingTree.NumberOfClasses, 4)
-    parameters.add(HoeffdingTree.Parallelism, 4)
+    parameters.add(VerticalHoeffdingTree.MinNumberOfInstances, 300)
+    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 4)
+    parameters.add(VerticalHoeffdingTree.Parallelism, 4)
 
     //read datapoints for covertype_libSVM dataset and sample
 
@@ -82,7 +82,7 @@ class SamplingTest
 
     dataPoints.getJavaStream.transform("sample", dataPoints.getType, sampler)
 
-    val vfdTree = HoeffdingTree(env)
+    val vfdTree = VerticalHoeffdingTree(env)
     val evaluator = PrequentialEvaluator()
 
     val streamToEvaluate = vfdTree.fit(dataPoints, parameters)
