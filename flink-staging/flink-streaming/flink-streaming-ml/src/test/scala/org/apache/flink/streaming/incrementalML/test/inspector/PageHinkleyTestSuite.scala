@@ -30,18 +30,18 @@ class PageHinkleyTestSuite
 
     import PageHinkleyTestData._
 
-    val pht = PageHinkleyTest(lambda, delta, minNumberOfInstances)
+//    val pht = PageHinkleyTest(lambda, delta, minNumberOfInstances)
     var changesDetected: Int = 0
-
-    for (dataPoint <- data) {
-      val res = pht.input(dataPoint)
-      if (res) {
-        println(pht.toString + "\n")
-        changesDetected += 1
-        pht.reset()
-      }
-    }
-    println(pht.toString)
+//
+//    for (dataPoint <- data) {
+//      val res = pht.detectChange(dataPoint)
+//      if (res) {
+//        println(pht.toString + "\n")
+//        changesDetected += 1
+//        pht.reset()
+//      }
+//    }
+//    println(pht.toString)
     println(s"\nTotal number of detected changed in the input dataStream: $changesDetected")
 
     changesDetected should be >= 3

@@ -43,7 +43,7 @@ public class DriftDetector implements MapFunction<Tuple2<GaussianDistribution, D
 
 	@Override
 	public Tuple4<GaussianDistribution, Double, Long, Boolean> map(Tuple2<GaussianDistribution, Double> value) throws Exception {
-		detector.input(value.f1);
+		detector.detectChange(value.f1);
 		boolean drift = detector.isChangedDetected();
 		if (drift) {
 			detector.reset();

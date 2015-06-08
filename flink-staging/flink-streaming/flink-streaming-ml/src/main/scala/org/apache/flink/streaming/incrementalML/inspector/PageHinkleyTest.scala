@@ -18,13 +18,12 @@
 package org.apache.flink.streaming.incrementalML.inspector
 
 import org.apache.flink.ml.common.{ParameterMap, Parameter}
-import org.apache.flink.streaming.api.scala.DataStream
-import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest.{Delta, Lambda,
-MinInstances}
+import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest.{Delta, Lambda}
 
 /**
- * Page Hinkley Test implementation of [[ChangeDetector]]. Detects changes
- *
+ * Page Hinkley Test implementation of [[ChangeDetector]].
+ * Detects changes
  */
 class PageHinkleyTest
   extends ChangeDetector[Double, Boolean]
@@ -40,24 +39,19 @@ class PageHinkleyTest
     this
   }
 
-  def setMinInstances(minInstances: Double): PageHinkleyTest = {
-    parameters.add(MinInstances, minInstances)
-    this
-  }
-
   /** Adding another observation to the change detector.
     * Change detector's output is updated with the new data point.
     *
     * @param inputPoints the new input point to change detector
     * @return True if a change was detected
     */
-  override def input(inputPoints: DataStream[Double], inspectorParameters: ParameterMap):
+  override def detectChange(inputPoints: DataStream[Double], inspectorParameters: ParameterMap):
   DataStream[Boolean] = {
 
     val resultingParameters = this.parameters ++ inspectorParameters
 
-    val delta = resultingParameters.apply(delta)
-    val lambda = resultingParameters.apply(lambda)
+    val delta = resultingParameters.apply(Delta)
+    val lambda = resultingParameters.apply(Lambda)
 
     var mean: Double = 0.0
     var pointsSeen: Int = 0
@@ -85,24 +79,12 @@ class PageHinkleyTest
         pointsSeen = 0
         cumulativeSum = 0.0
       }
+      else {
+        changeDetected = false
+      }
       changeDetected
     }
   }
-
-//  /** Copies the ChangeDetector instance
-//    *
-//    * @return Copy of the ChangeDetector instance
-//    */
-//  override def copy(): ChangeDetector = {
-//    val newChangeDetector = PageHinkleyTest(lambda, delta, minInstances)
-//    newChangeDetector.mean = this.mean
-//    newChangeDetector.pointsSeen = this.pointsSeen
-//    newChangeDetector.cumulativeSum = this.cumulativeSum
-//    newChangeDetector.minValue = this.minValue
-//    newChangeDetector.isChangedDetected = this.isChangedDetected
-//    newChangeDetector
-//  }
-//
 }
 
 object PageHinkleyTest {
@@ -115,10 +97,6 @@ object PageHinkleyTest {
 
   case object Delta extends Parameter[Double] {
     override val defaultValue: Option[Double] = Some(0.0)
-  }
-
-  case object MinInstances extends Parameter[Int] {
-    override val defaultValue: Option[Int] = Some(30)
   }
 
   // ========================= Factory methods =====================================

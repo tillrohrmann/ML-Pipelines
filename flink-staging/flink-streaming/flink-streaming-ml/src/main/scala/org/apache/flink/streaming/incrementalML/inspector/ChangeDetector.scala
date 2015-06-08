@@ -24,7 +24,7 @@ import org.apache.flink.streaming.api.scala.DataStream
   *
   * A [[ChangeDetector]] is used to detect concept changes on the input data to some output data.
   */
-trait ChangeDetector[Double,Boolean]
+trait ChangeDetector[Double, Boolean]
   extends WithParameters {
 
 
@@ -32,20 +32,11 @@ trait ChangeDetector[Double,Boolean]
   /** Adding another observation to the change detector.
     * Change detector's output is updated with the new data point.
     *
-    * @param inputPoint the new input point to change detector
-    * @return True if a change was detected
+    * @param inputPoint the new input points to change detector
+    * @return Whether a change was detected (returns true) or not (returns false).
     */
-  def input(inputPoint: DataStream[Double], parameters: ParameterMap = ParameterMap.Empty):
+  def detectChange(inputPoint: DataStream[Double], parameters: ParameterMap = ParameterMap.Empty):
   DataStream[Boolean]
 
-//  /** Resets the change detector.
-//    */
-//  def reset(): Unit
-//
-//  /** Copies the ChangeDetector instance
-//    *
-//    * @return Copy of the ChangeDetector instance
-//    */
-//  def copy(): ChangeDetector
 
 }

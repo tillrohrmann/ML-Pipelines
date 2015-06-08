@@ -68,7 +68,7 @@ public class GreedySampler<IN> implements SampleFunction<IN> {
 		//System.out.println(changeTimeStamp.getTimestamp());
 
 		/* define sampling policy according to drift*/
-		detector.input(((Double) element));
+		detector.detectChange(((Double) element));
 		hasDrift = detector.isChangedDetected();
 		if (hasDrift) {
 			hasDrift = false;

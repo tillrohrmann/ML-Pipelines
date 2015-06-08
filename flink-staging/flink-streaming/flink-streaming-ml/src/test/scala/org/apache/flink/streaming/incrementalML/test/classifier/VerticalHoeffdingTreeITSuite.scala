@@ -17,12 +17,18 @@
  */
 package org.apache.flink.streaming.incrementalML.test.classifier
 
+import org.apache.flink.api.common.functions.FlatMapFunction
+import org.apache.flink.api.java.io.TypeSerializerOutputFormat
+import org.apache.flink.api.scala.{DataSet, ExecutionEnvironment}
+import org.apache.flink.core.fs.FileSystem
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
+import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest
 import org.apache.flink.test.util.FlinkTestBase
+import org.apache.flink.util.Collector
 import org.scalatest.{FlatSpec, Matchers}
 
 class VerticalHoeffdingTreeITSuite
@@ -72,9 +78,42 @@ class VerticalHoeffdingTreeITSuite
 
     val streamToEvaluate = vhtLearner.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/workspace/master-thesis/" +
-      "dataSets/Waveform-MOA/Waveform-parall_1_8-result-Test.csv").setParallelism(1)
+    val evaluationStream = evaluator.evaluate(streamToEvaluate)
+
+    evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA" +
+      "/Waveform-parall_1_8-result-Test.csv").setParallelism(1)
+
+    val changeDetector = PageHinkleyTest()
+
+    changeDetector.detectChange(evaluationStream.map(x => x._2)).flatMap(new
+        UnifiedStreamBatchMapper())
 
     env.execute()
+  }
+}
+
+class UnifiedStreamBatchMapper
+  extends FlatMapFunction[Boolean, Boolean] {
+
+  def createSubmitBatchJob(): Unit = {
+    val batchEnvironment = ExecutionEnvironment.getExecutionEnvironment
+
+    val csvR: DataSet[(Double, Int)] = batchEnvironment.readCsvFile("/Users/fobeligi/workspace/" +
+      "master-thesis/dataSets/UnifiedBatchStream.csv")
+
+    csvR.write(new TypeSerializerOutputFormat[(Double, Int)], "/Users/fobeligi/workspace/" +
+      "master-thesis/dataSets/FlinkTmp/temp", FileSystem.WriteMode.OVERWRITE)
+
+    batchEnvironment.execute()
+  }
+
+  override def flatMap(value: Boolean, out: Collector[Boolean]): Unit = {
+    if (value) {
+      System.err.println(value)
+      createSubmitBatchJob();
+    }
+    else {
+      out.collect(value)
+    }
   }
 }
