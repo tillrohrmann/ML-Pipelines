@@ -17,40 +17,35 @@
  */
 package org.apache.flink.streaming.incrementalML.inspector
 
+import org.apache.flink.ml.common.{ParameterMap, WithParameters}
+import org.apache.flink.streaming.api.scala.DataStream
+
 /** Base trait for an algorithm which detects concept drift on the input data.
   *
   * A [[ChangeDetector]] is used to detect concept changes on the input data to some output data.
-  * Transformations might
-  * be feature extractors, feature mappings, whitening or centralization just to name a few.
-  *
   */
-trait ChangeDetector {
+trait ChangeDetector[Double,Boolean]
+  extends WithParameters {
 
-  /** True in case there was a change detected
-    *
-    */
-  var isChangedDetected: Boolean = false
 
   //TODO:: Decide whether this function should return a boolean value or Unit
-  /** Adding another observation to the change detector
-    *
-    * Change detector's output is updated with the new data point
+  /** Adding another observation to the change detector.
+    * Change detector's output is updated with the new data point.
     *
     * @param inputPoint the new input point to change detector
-    *
     * @return True if a change was detected
     */
-  def input(inputPoint: Double): Boolean
+  def input(inputPoint: DataStream[Double], parameters: ParameterMap = ParameterMap.Empty):
+  DataStream[Boolean]
 
-  /** Resets the change detector.
-    *
-    */
-  def reset(): Unit
-
-  /** Copies the ChangeDetector instance
-    *
-    * @return Copy of the ChangeDetector instance
-    */
-  def copy(): ChangeDetector
+//  /** Resets the change detector.
+//    */
+//  def reset(): Unit
+//
+//  /** Copies the ChangeDetector instance
+//    *
+//    * @return Copy of the ChangeDetector instance
+//    */
+//  def copy(): ChangeDetector
 
 }

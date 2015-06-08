@@ -62,7 +62,7 @@ class Imputer
   override def transform(input: DataStream[LabeledVector], transformParameters: ParameterMap):
   DataStream[LabeledVector] = {
 
-    val resultingParameters = this.parameters ++ parameters
+    val resultingParameters = this.parameters ++ transformParameters
 
     resultingParameters(Strategy) match {
       case ImputationStrategy.Deletion =>

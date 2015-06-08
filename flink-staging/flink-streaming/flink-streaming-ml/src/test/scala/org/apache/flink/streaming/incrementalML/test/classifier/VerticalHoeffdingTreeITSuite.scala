@@ -17,8 +17,6 @@
  */
 package org.apache.flink.streaming.incrementalML.test.classifier
 
-import org.apache.flink.core.fs.FileSystem
-import org.apache.flink.core.fs.FileSystem.WriteMode
 import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
@@ -42,7 +40,7 @@ class VerticalHoeffdingTreeITSuite
     //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
 
     parameters.add(VerticalHoeffdingTree.MinNumberOfInstances, 200)
-    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 8)
+    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 3)
     parameters.add(VerticalHoeffdingTree.Parallelism, 8)
 
     //    parameters.add(VerticalHoeffdingTree.OnlyNominalAttributes,true)
@@ -74,7 +72,7 @@ class VerticalHoeffdingTreeITSuite
 
     val streamToEvaluate = vhtLearner.fit(dataPoints, parameters)
 
-    evaluator.evaluate(streamToEvaluate).writeAsCsv ("/Users/fobeligi/workspace/master-thesis/" +
+    evaluator.evaluate(streamToEvaluate).writeAsCsv("/Users/fobeligi/workspace/master-thesis/" +
       "dataSets/Waveform-MOA/Waveform-parall_1_8-result-Test.csv").setParallelism(1)
 
     env.execute()
