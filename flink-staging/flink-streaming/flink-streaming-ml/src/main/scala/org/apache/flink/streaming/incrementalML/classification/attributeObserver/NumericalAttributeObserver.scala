@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.flink.streaming.incrementalML.attributeObserver
+package org.apache.flink.streaming.incrementalML.classification.attributeObserver
 
 import breeze.stats.distributions.Gaussian
 import org.apache.flink.streaming.incrementalML.classification.Metrics.{Metrics, VFDTAttributes}
