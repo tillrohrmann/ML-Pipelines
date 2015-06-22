@@ -24,9 +24,9 @@ import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
-import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree._
 import org.apache.flink.streaming.incrementalML.classification.Metrics._
+import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree._
+import org.apache.flink.streaming.incrementalML.classification.attributeObserver.{AttributeObserver, NominalAttributeObserver, NumericalAttributeObserver}
 import org.apache.flink.streaming.incrementalML.common.{Learner, Utils}
 import org.apache.flink.util.Collector
 
@@ -259,75 +259,73 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
         //----------------------change from here--------------------------------------------------
         //TODO:: change this piece of code
         //only nominal attributes
-        //        if (resultingParameters.apply(OnlyNominalAttributes)) {
-        //          for (i <- 0 until featuresVector.size) {
-        //
-        //            //emit Nominal attribute
-        //            VFDT.getNodeExcludingAttributes(leafId) match {
-        //              case None => {
-        //                out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint
-        // .getLabel,
-        //                  -1, leafId, AttributeType.Nominal)))
-        //              }
-        //              case _ => {
-        //                //emit it only if the attribute is not in the excluded ones  the
-        // specific leaf
-        //                if (!VFDT.getNodeExcludingAttributes(leafId).get.contains(i)) {
-        //                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint
-        // .getLabel,
-        //                    -1, leafId, AttributeType.Nominal)))
-        //                }
-        //              }
-        //            }
-        //          }
-        //        }
-        //        else {
-        val nominal = resultingParameters.get(NominalAttributes)
-        nominal match {
-          case None => {
-            //only numerical attributes
+        if (resultingParameters.apply(OnlyNominalAttributes)) {
+          for (i <- 0 until featuresVector.size) {
+
+            //emit Nominal attribute
             VHT.getNodeExcludingAttributes(classifiedAtLeaf) match {
               case None => {
-                for (i <- 0 until featuresVector.size) {
-                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
-                    -1, classifiedAtLeaf, AttributeType.Numerical)))
-                }
+                out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                  -1, classifiedAtLeaf, AttributeType.Nominal)))
               }
               case _ => {
-                //emit it only if the attribute is not in the excluded ones  the specific leaf
-                for (i <- 0 until featuresVector.size) {
-                  if (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
+                //emit it only if the attribute is not in the excluded ones the specific leaf
+                if (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
+                  out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                    -1, classifiedAtLeaf, AttributeType.Nominal)))
+                }
+              }
+            }
+          }
+        }
+        else {
+          val nominal = resultingParameters.get(NominalAttributes)
+          nominal match {
+            case None => {
+              //only numerical attributes
+              VHT.getNodeExcludingAttributes(classifiedAtLeaf) match {
+                case None => {
+                  for (i <- 0 until featuresVector.size) {
                     out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
                       -1, classifiedAtLeaf, AttributeType.Numerical)))
                   }
                 }
-              }
-            }
-
-          } //TODO:: correct this piece of code -> check if attribute is excluded
-          case _ => {
-            //both nominal and numerical attributes
-            for (i <- 0 until featuresVector.size) {
-              if (VHT.getNodeExcludingAttributes(classifiedAtLeaf) == None ||
-                (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i))) {
-
-                nominal.get.getOrElse(i, None) match {
-                  case nOfValue: Int => {
-                    //emit Nominal attribute
-                    out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
-                      nOfValue, classifiedAtLeaf, AttributeType.Nominal)))
+                case _ => {
+                  //emit it only if the attribute is not in the excluded ones  the specific leaf
+                  for (i <- 0 until featuresVector.size) {
+                    if (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i)) {
+                      out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                        -1, classifiedAtLeaf, AttributeType.Numerical)))
+                    }
                   }
-                  case None => {
-                    //emit numerical attribute
-                    out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel, -1,
-                      classifiedAtLeaf, AttributeType.Numerical)))
+                }
+              }
+
+            } //TODO:: correct this piece of code -> check if attribute is excluded
+            case _ => {
+              //both nominal and numerical attributes
+              for (i <- 0 until featuresVector.size) {
+                if (VHT.getNodeExcludingAttributes(classifiedAtLeaf) == None ||
+                  (!VHT.getNodeExcludingAttributes(classifiedAtLeaf).get.contains(i))) {
+
+                  nominal.get.getOrElse(i, None) match {
+                    case nOfValue: Int => {
+                      //emit Nominal attribute
+                      out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                        nOfValue, classifiedAtLeaf, AttributeType.Nominal)))
+                    }
+                    case None => {
+                      //emit numerical attribute
+                      out.collect((i, VFDTAttributes(i, featuresVector(i), newDataPoint.getLabel,
+                        -1,
+                        classifiedAtLeaf, AttributeType.Numerical)))
+                    }
                   }
                 }
               }
             }
           }
         }
-        //        }
 
         //todo:: merge this piece of code with the above  -> to be changed
         //---------------------- end change here--------------------------------------------------
