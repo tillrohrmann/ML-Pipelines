@@ -185,7 +185,8 @@ object KMeans {
         instance.centroids match {
           case Some(centroids) => {
 //            input.map(new SelectNearestCenterMapper).withBroadcastSet(centroids, CENTROIDS)
-            input.map(new AssignOutlierLabelMapper(resultingParameters.apply(Threshold))).withBroadcastSet(centroids, CENTROIDS)
+            input.map(new AssignOutlierLabelMapper(resultingParameters.apply(Threshold)))
+              .withBroadcastSet(centroids, CENTROIDS)
           }
 
           case None => {
@@ -270,7 +271,8 @@ final class SelectNearestCenterMapper extends RichMapFunction[Vector, LabeledVec
  * outlier or not
  */
 @ForwardedFields(Array("*->vector"))
-final class AssignOutlierLabelMapper(threshold: Double) extends RichMapFunction[Vector, LabeledVector] {
+final class AssignOutlierLabelMapper(threshold: Double) extends RichMapFunction[Vector,
+  LabeledVector] {
 
   import KMeans._
 

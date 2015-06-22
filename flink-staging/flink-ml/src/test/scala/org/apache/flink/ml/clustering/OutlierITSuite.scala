@@ -1,10 +1,3 @@
-package org.apache.flink.ml.clustering
-
-import org.apache.flink.api.scala._
-import org.apache.flink.ml.math.DenseVector
-import org.apache.flink.test.util.FlinkTestBase
-import org.scalatest.{Matchers, FlatSpec}
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,6 +15,13 @@ import org.scalatest.{Matchers, FlatSpec}
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.flink.ml.clustering
+
+import org.apache.flink.api.scala._
+import org.apache.flink.ml.math.DenseVector
+import org.apache.flink.test.util.FlinkTestBase
+import org.scalatest.{FlatSpec, Matchers}
+
 class OutlierITSuite
   extends FlatSpec
   with Matchers
@@ -53,6 +53,5 @@ class OutlierITSuite
     val predictedVectors = f.kmeans.predict(f.trainingDS)
 
     predictedVectors.print()
-
   }
 }

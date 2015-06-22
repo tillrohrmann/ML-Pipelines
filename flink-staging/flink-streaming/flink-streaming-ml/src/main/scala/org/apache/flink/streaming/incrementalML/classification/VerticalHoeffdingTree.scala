@@ -491,7 +491,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           }
                         }
                       }
-                      println(s"---${VHT.getDecisionTreeSize} ---- VFDT:$VHT")
+                      println(s"---${VHT.getDecisionTreeSize}") //---- VFDT:$VHT")
                       //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
                       //        System.err.println(jsonVFDT)
                       //                      println(s"---counterPerLeaf: $counterPerLeaf\n")

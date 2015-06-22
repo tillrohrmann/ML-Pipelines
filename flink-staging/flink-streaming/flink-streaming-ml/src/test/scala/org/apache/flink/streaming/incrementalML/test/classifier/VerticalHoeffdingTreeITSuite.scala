@@ -25,6 +25,7 @@ import org.apache.flink.ml.common.{LabeledVector, ParameterMap}
 import org.apache.flink.ml.math.DenseVector
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.incrementalML.classification.VerticalHoeffdingTree
+import org.apache.flink.streaming.incrementalML.common.StreamingMLUtils
 import org.apache.flink.streaming.incrementalML.evaluator.PrequentialEvaluator
 import org.apache.flink.streaming.incrementalML.inspector.PageHinkleyTest
 import org.apache.flink.test.util.FlinkTestBase
@@ -38,36 +39,37 @@ class VerticalHoeffdingTreeITSuite
 
   behavior of "Flink's Vertical Hoeffding Tree algorithm"
 
-  it should "Create the classification HT of the given data set" in {
+  it should "Create the classification VHT of the given data set" in {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
 
     val parameters = ParameterMap()
-    //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4 8 ->4)
+//    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4, 8 ->4)
 
     parameters.add(VerticalHoeffdingTree.MinNumberOfInstances, 200)
-    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 3)
+    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 4)
     parameters.add(VerticalHoeffdingTree.Parallelism, 8)
+//    parameters.add(VerticalHoeffdingTree.NominalAttributes, nominalAttributes)
 
     //    parameters.add(VerticalHoeffdingTree.OnlyNominalAttributes,true)
-    //    parameters.add(VerticalHoeffdingTree.NominalAttributes, nominalAttributes)
 
-    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform" +
-      "-MOA/Waveform-10M.arff").map {
+
+    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/" +
+      "randomRBF/randomRBF-10M.arff").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
-        for (i <- 0 until features.size - 1) {
+        for (i <- 0 until features.size -1 ) {
           featureList = featureList :+ features(i).trim.toDouble
         }
 
-        LabeledVector(features(features.size - 1).trim.toDouble, DenseVector(featureList.toArray))
+        LabeledVector(features(features.size -1).trim.toDouble, DenseVector(featureList.toArray))
 
       }
     }
 
-    //        val dataPoints = StreamingMLUtils.readLibSVM(env,
-    // "/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype/covtype.libsvm.binary", 54)
+//    val dataPoints = StreamingMLUtils.readLibSVM(env,
+//     "/Users/fobeligi/workspace/master-thesis/dataSets/pokerHands/poker.t", 10)
 
     //    val transformer = Imputer()
     val vhtLearner = VerticalHoeffdingTree(env)
@@ -80,13 +82,13 @@ class VerticalHoeffdingTreeITSuite
 
     val evaluationStream = evaluator.evaluate(streamToEvaluate)
 
-    evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA" +
-      "/Waveform-parall_1_8-result-Test.csv").setParallelism(1)
+    evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/" +
+      "randomRBF/results/randomRBF_1_8-att3.csv").setParallelism(1)
 
-    val changeDetector = PageHinkleyTest()
+//    val changeDetector = PageHinkleyTest()
 
-    changeDetector.detectChange(evaluationStream.map(x => x._2)).flatMap(new
-        UnifiedStreamBatchMapper())
+//    changeDetector.detectChange(evaluationStream.map(x => x._2)).flatMap(new
+//        UnifiedStreamBatchMapper())
 
     env.execute()
   }
