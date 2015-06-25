@@ -85,7 +85,7 @@ class VerticalHoeffdingTree(
 
     var prequentialEvaluation: DataStream[(Int, Metrics)] = null
 
-    val out = dataPointsStream.iterate[Metrics](10000)(dataPointsStream => {
+    val out = dataPointsStream.iterate[Metrics](100000)(dataPointsStream => {
       val (feedback, output, preqEvalStream) = iterationFunction(dataPointsStream,
         resultingParameters)
       prequentialEvaluation = preqEvalStream
@@ -115,7 +115,7 @@ class VerticalHoeffdingTree(
 
     val prequentialEvaluationStream = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
-        return (value._1 == -3) //InstanceClassification
+        return (value._1 == -3 || value._1 == -4 ) //InstanceClassification
       }
     }).setParallelism(1)
 
@@ -490,9 +490,7 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                         }
                       }
                       println(s"---${VHT.getDecisionTreeSize}") //---- VFDT:$VHT")
-                      //        val jsonVFDT = Utils.createJSON_VFDT(VFDT.decisionTree)
-                      //        System.err.println(jsonVFDT)
-                      //                      println(s"---counterPerLeaf: $counterPerLeaf\n")
+                      out.collect((-4,DelayedInstances(evaluationMetric.signalLeafMetrics.sum)))
                     }
                     //garbage collection
                     metricsFromLocalProcessors.getOrElse((evaluationMetric.leafId), None) match {

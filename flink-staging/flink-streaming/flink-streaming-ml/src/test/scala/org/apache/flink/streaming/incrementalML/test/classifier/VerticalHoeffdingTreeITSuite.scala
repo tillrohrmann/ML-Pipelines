@@ -47,7 +47,7 @@ class VerticalHoeffdingTreeITSuite
 //    val nominalAttributes = Map(0 ->4, 2 ->4, 4 ->4, 6 ->4, 8 ->4)
 
     parameters.add(VerticalHoeffdingTree.MinNumberOfInstances, 200)
-    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 10)
+    parameters.add(VerticalHoeffdingTree.NumberOfClasses, 3)
     parameters.add(VerticalHoeffdingTree.Parallelism, 8)
 //    parameters.add(VerticalHoeffdingTree.NominalAttributes, nominalAttributes)
 
@@ -55,7 +55,7 @@ class VerticalHoeffdingTreeITSuite
 
 
     val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/" +
-      "UCI-Led/led-1000K.csv").map {
+      "Waveform-MOA/Waveform-10M.csv").map {
       line => {
         var featureList = Vector[Double]()
         val features = line.split(',')
@@ -83,7 +83,7 @@ class VerticalHoeffdingTreeITSuite
     val evaluationStream = evaluator.evaluate(streamToEvaluate)
 
     evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/" +
-      "UCI-Led/results/led_1_8.csv").setParallelism(1)
+      "Waveform-MOA/results/waveform1_8-test.csv").setParallelism(1)
 
 //    val changeDetector = PageHinkleyTest()
 
