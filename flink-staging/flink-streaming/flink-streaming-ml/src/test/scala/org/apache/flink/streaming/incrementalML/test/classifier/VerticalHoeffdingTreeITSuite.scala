@@ -83,7 +83,7 @@ class VerticalHoeffdingTreeITSuite
     val evaluationStream = evaluator.evaluate(streamToEvaluate)
 
     evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/" +
-      "Waveform-MOA/results/waveform1_8-test.csv").setParallelism(1)
+      "Waveform-MOA/results/waveform1_8/waveform-1_8-att5.csv").setParallelism(1)
 
 //    val changeDetector = PageHinkleyTest()
 

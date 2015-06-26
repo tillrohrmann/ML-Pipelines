@@ -17,10 +17,12 @@
  */
 package org.apache.flink.streaming.incrementalML.classification
 
+import java.io._
 import java.lang.Iterable
 import java.util
 
-import org.apache.flink.api.common.functions.{FilterFunction, FlatMapFunction}
+import org.apache.flink.api.common.functions.{RichFlatMapFunction, FilterFunction, FlatMapFunction}
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.ml.common.{LabeledVector, Parameter, ParameterMap}
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.streaming.api.scala._
@@ -85,7 +87,7 @@ class VerticalHoeffdingTree(
 
     var prequentialEvaluation: DataStream[(Int, Metrics)] = null
 
-    val out = dataPointsStream.iterate[Metrics](100000)(dataPointsStream => {
+    val out = dataPointsStream.iterate[Metrics](20000)(dataPointsStream => {
       val (feedback, output, preqEvalStream) = iterationFunction(dataPointsStream,
         resultingParameters)
       prequentialEvaluation = preqEvalStream
@@ -115,7 +117,7 @@ class VerticalHoeffdingTree(
 
     val prequentialEvaluationStream = mSAds.filter(new FilterFunction[(Int, Metrics)] {
       override def filter(value: (Int, Metrics)): Boolean = {
-        return (value._1 == -3 || value._1 == -4 ) //InstanceClassification
+        return (value._1 == -3) //InstanceClassification
       }
     }).setParallelism(1)
 
@@ -215,11 +217,13 @@ object VerticalHoeffdingTree {
   *
   */
 class GlobalModelMapper(resultingParameters: ParameterMap)
-  extends FlatMapFunction[Metrics, (Int, Metrics)] {
+  extends RichFlatMapFunction[Metrics, (Int, Metrics)] {
 
   //Create the root of the DecisionTreeModel
   val VHT = DecisionTreeModel
   VHT.createRootOfTheTree
+  var initialTime = System.currentTimeMillis()
+  var nextSplitTime = 0L;
 
   //counterPerLeaf -> (leafId,(#0,#1,#2))
   var counterPerLeaf = mutable.HashMap[Int, List[Int]]((0,
@@ -228,6 +232,17 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
     (Double, List[Double]))])]]()
 
   val classesNumber = resultingParameters.apply(NumberOfClasses)
+
+
+  var writer:PrintWriter = null
+  override def open(config: Configuration) = {
+
+    val fileName = s"/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA" +
+      s"/results/delayTime/splittingTimeDelays_parall-1_8-att5.txt"
+
+    writer = new PrintWriter(new File(fileName ))
+  }
+
 
   override def flatMap(value: Metrics, out: Collector[(Int, Metrics)]): Unit = {
 
@@ -489,8 +504,11 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
                           }
                         }
                       }
+                      nextSplitTime = System.currentTimeMillis()
+                      writer.write(s"${nextSplitTime-initialTime}\n")
+                      writer.flush()
+                      initialTime = nextSplitTime
                       println(s"---${VHT.getDecisionTreeSize}") //---- VFDT:$VHT")
-                      out.collect((-4,DelayedInstances(evaluationMetric.signalLeafMetrics.sum)))
                     }
                     //garbage collection
                     metricsFromLocalProcessors.getOrElse((evaluationMetric.leafId), None) match {

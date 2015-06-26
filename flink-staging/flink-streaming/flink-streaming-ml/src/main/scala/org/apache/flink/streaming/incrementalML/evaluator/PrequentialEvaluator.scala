@@ -17,11 +17,9 @@
  */
 package org.apache.flink.streaming.incrementalML.evaluator
 
-import org.apache.flink.api.common.functions.FlatMapFunction
 import org.apache.flink.streaming.api.scala._
-import org.apache.flink.streaming.incrementalML.classification.Metrics.{DelayedInstances,
-InstanceClassification, Metrics}
-import org.apache.flink.util.Collector
+import org.apache.flink.streaming.incrementalML.classification.Metrics.{InstanceClassification,
+Metrics}
 
 
 class PrequentialEvaluator
@@ -34,46 +32,35 @@ class PrequentialEvaluator
   var sumLossFunctionWithoutLatent = 0.0
   //  var Bdenominator = 0.0
 
-  var meanDelayedInstances = 0L
-  var numberOfSplits = 0.0D
-
   /** Evaluating model's accuracy with the input observations
     *
     * @param inputDataStream The points to be used for the evaluation.
     *
-    * @return (prequential_error,accuracy)
+    * @return (prequential,accuracy)
     */
-  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]): DataStream[(Double,
-    Double)] = {
-
-    inputDataStream.flatMap(new FlatMapFunction[(Int, Metrics), (Double, Double)] {
-      override def flatMap(input: (Int, Metrics), out: Collector[(Double, Double)]): Unit = {
-
-
-        input._2 match {
-          case temp: InstanceClassification => {
-            instancesClassified += 1.0
-            if (temp.label != temp.clazz) {
-              sumLossFunctionWithoutLatent += 1.0
-              //          sumLossFunction = 1.0 + alpha * sumLossFunction
-            }
-            //        else {
-            //          sumLossFunction = alpha * sumLossFunction
-            //        }
-
-            //        Bdenominator = 1.0 + alpha * Bdenominator
-
-            out.collect(sumLossFunctionWithoutLatent / instancesClassified,
-              ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)
-          }
-          case inputMetric: DelayedInstances => {
-            numberOfSplits += 1.0
-            meanDelayedInstances += inputMetric.numberOfInstances
-            System.err.println(meanDelayedInstances / numberOfSplits)
-          }
+  override def evaluate(inputDataStream: DataStream[(Int, Metrics)]):
+  DataStream[(Double, Double)] = {
+    inputDataStream.map {
+      input => {
+        val temp = input._2.asInstanceOf[InstanceClassification]
+        instancesClassified += 1.0
+        if (temp.label != temp.clazz) {
+          sumLossFunctionWithoutLatent += 1.0
+          //          sumLossFunction = 1.0 + alpha * sumLossFunction
         }
+        //        else {
+        //          sumLossFunction = alpha * sumLossFunction
+        //        }
+
+        //        Bdenominator = 1.0 + alpha * Bdenominator
+
+        //        (instancesClassified, sumLossFunction / Bdenominator,
+        //          sumLossFunctionWithoutLatent / instancesClassified,
+        //       ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)
+        (sumLossFunctionWithoutLatent / instancesClassified,
+          ((instancesClassified - sumLossFunctionWithoutLatent) / instancesClassified) * 100)
       }
-    }).setParallelism(1)
+    }.setParallelism(1)
   }
 }
 
