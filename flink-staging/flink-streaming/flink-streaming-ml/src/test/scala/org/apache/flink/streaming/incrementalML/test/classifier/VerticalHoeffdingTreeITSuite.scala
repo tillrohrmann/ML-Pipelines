@@ -54,22 +54,22 @@ class VerticalHoeffdingTreeITSuite
 //    parameters.add(VerticalHoeffdingTree.OnlyNominalAttributes,true)
 
 
-    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/" +
-      "Waveform-MOA/Waveform-10M.csv").map {
-      line => {
-        var featureList = Vector[Double]()
-        val features = line.split(',')
-        for (i <- 0 until features.size -1 ) {
-          featureList = featureList :+ features(i).trim.toDouble
-        }
+//    val dataPoints = env.readTextFile("/Users/fobeligi/workspace/master-thesis/dataSets/" +
+//      "UCI-Led/led-10000K.csv").map {
+//      line => {
+//        var featureList = Vector[Double]()
+//        val features = line.split(',')
+//        for (i <- 0 until features.size -1 ) {
+//          featureList = featureList :+ features(i).trim.toDouble
+//        }
+//
+//        LabeledVector(features(features.size -1).trim.toDouble, DenseVector(featureList.toArray))
+//
+//      }
+//    }
 
-        LabeledVector(features(features.size -1).trim.toDouble, DenseVector(featureList.toArray))
-
-      }
-    }
-
-//    val dataPoints = StreamingMLUtils.readLibSVM(env,
-//     "/Users/fobeligi/workspace/master-thesis/dataSets/pokerHands/poker.t", 10)
+    val dataPoints = StreamingMLUtils.readLibSVM(env,
+     "/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype/covtype.libsvm.binary", 54)
 
     //    val transformer = Imputer()
     val vhtLearner = VerticalHoeffdingTree(env)
@@ -83,7 +83,7 @@ class VerticalHoeffdingTreeITSuite
     val evaluationStream = evaluator.evaluate(streamToEvaluate)
 
     evaluationStream.writeAsCsv("/Users/fobeligi/workspace/master-thesis/dataSets/" +
-      "Waveform-MOA/results/waveform1_8/waveform-1_8-att5.csv").setParallelism(1)
+      "forestCovertype/results/forestCoverType-parall-1_8-att5.csv").setParallelism(1)
 
 //    val changeDetector = PageHinkleyTest()
 

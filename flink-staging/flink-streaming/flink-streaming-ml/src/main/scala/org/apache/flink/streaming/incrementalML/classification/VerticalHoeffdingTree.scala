@@ -237,8 +237,8 @@ class GlobalModelMapper(resultingParameters: ParameterMap)
   var writer:PrintWriter = null
   override def open(config: Configuration) = {
 
-    val fileName = s"/Users/fobeligi/workspace/master-thesis/dataSets/Waveform-MOA" +
-      s"/results/delayTime/splittingTimeDelays_parall-1_8-att5.txt"
+    val fileName = s"/Users/fobeligi/workspace/master-thesis/dataSets/forestCovertype" +
+      s"/results/delayTime/splittingTimeDelays-parall-1_8-att5.txt"
 
     writer = new PrintWriter(new File(fileName ))
   }

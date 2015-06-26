@@ -245,7 +245,7 @@ case class DTNode(
     else {
       for (i <- 0 until attrSplitValues.size) {
         val temp = DTNode(false, true, size + i + 1, Some(nodeId))
-        temp.excludingAttributes = Some(excludeAttributes)
+//        temp.excludingAttributes = Some(excludeAttributes)
         tempNodes.put(size + i + 1, temp)
         tempChildren.put(attrSplitValues(i), size + i + 1)
       }
