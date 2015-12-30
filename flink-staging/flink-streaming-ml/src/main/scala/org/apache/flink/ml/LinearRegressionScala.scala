@@ -90,14 +90,18 @@ def main (args: Array[String]){
    * Compute a single BGD type update for every parameters.
    */
 
-  class SubUpdate extends RichFlatMapFunction[(Boolean, Data, Params), (Boolean, Data, (Params, Int))]{
+  class SubUpdate extends RichFlatMapFunction[(Boolean, Data, Params),
+    (Boolean, Data, (Params, Int))]{
     private var parameter: Params = Params(0.0, 0.0)
     private val count: Int = 1
 
-    override def flatMap(in: (Boolean, Data, Params), collector: Collector[(Boolean, Data, (Params, Int))]): Unit = {
+    override def flatMap(in: (Boolean, Data, Params),
+                         collector: Collector[(Boolean, Data, (Params, Int))]): Unit = {
       if (in._1) {
-        val theta_0 = parameter.theta0 - 0.01 * ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y)
-        val theta_1 = parameter.theta1 - 0.01 * ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y) * in._2.x
+        val theta_0 = parameter.theta0 - 0.01 *
+          ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y)
+        val theta_1 = parameter.theta1 - 0.01 *
+          ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y) * in._2.x
 
         //updated params
         collector.collect((false, Data(0.0, 0.0), (Params(theta_0, theta_1), count)))
@@ -110,10 +114,12 @@ def main (args: Array[String]){
     }
   }
 
-  class UpdateAccumulator extends FlatMapFunction[(Boolean, Data, (Params, Int)), (Boolean, Data, (Params, Int))]{
+  class UpdateAccumulator extends FlatMapFunction[(Boolean, Data, (Params, Int)),
+    (Boolean, Data, (Params, Int))]{
     val value = (false, Data(0.0, 0.0), (Params(0, 0), 0))
 
-    override def flatMap(in: (Boolean, Data, (Params, Int)), collector: Collector[(Boolean, Data, (Params, Int))]) = {
+    override def flatMap(in: (Boolean, Data, (Params, Int)),
+                         collector: Collector[(Boolean, Data, (Params, Int))]) = {
       if (in._1){
         collector.collect(in);
       }
