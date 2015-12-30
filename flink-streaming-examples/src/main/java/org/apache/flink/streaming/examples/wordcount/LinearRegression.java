@@ -91,6 +91,8 @@ public class LinearRegression {
 		}
 		typedList.add(Tuple3.of(false, new Data(), new Params(0.0, 0.0)));
 
+		env.setParallelism(1);
+
 		// get input x data from elements
 		DataStream<Tuple3<Boolean, Data, Params>> data = env.fromCollection(typedList);
 
@@ -109,7 +111,8 @@ public class LinearRegression {
 
 		iteration.closeWith(step.select("iterate"));
 
-		step.select("output").writeAsText("/tmp/flink-out");
+		step.select("output").print();
+		env.execute();
 
 	}
 
