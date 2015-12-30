@@ -42,6 +42,7 @@ under the License.
 		<module>flink-hcatalog</module>
 		<module>flink-table</module>
 		<module>flink-ml</module>
+		<module>flink-streaming-ml</module>
 		<module>flink-scala-shell</module>
 	</modules>
 	

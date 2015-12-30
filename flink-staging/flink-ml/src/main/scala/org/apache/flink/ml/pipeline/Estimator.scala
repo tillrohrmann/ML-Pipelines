@@ -18,7 +18,6 @@
 
 package org.apache.flink.ml.pipeline
 
-import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 import org.apache.flink.api.scala.DataSet
