@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.ml
+package org.apache.flink.streaming.ml
 
 import java.lang.Iterable
 
@@ -44,7 +44,7 @@ def main (args: Array[String]){
   env.setParallelism(1)
 
 //   get input x data from elements
-  val data = env.fromCollection(typedList)
+  val data = env.fromCollection(dataList)
 
   val iteration = data.iterate { data =>
     val newData : SplitStream[(Boolean, Data, Params)] = data
@@ -71,8 +71,7 @@ def main (args: Array[String]){
   /**
    * A simple data sample, x means the input, and y means the target.
    */
-  case class Data(var x: Double, var y: Double){
-  }
+  case class Data(var x: Double, var y: Double)
 
   /**
    * A set of parameters -- theta0, theta1.
@@ -120,10 +119,9 @@ def main (args: Array[String]){
 
     override def flatMap(in: (Boolean, Data, (Params, Int)),
                          collector: Collector[(Boolean, Data, (Params, Int))]) = {
-      if (in._1){
-        collector.collect(in);
-      }
-      else {
+      if (in._1) {
+        collector.collect(in)
+      } else {
         val val1 = in._3
         val val2 = value._3
 
