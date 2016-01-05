@@ -21,6 +21,7 @@ package org.apache.flink.streaming.ml
 import java.lang.Iterable
 
 import org.apache.flink.api.common.functions.{FlatMapFunction, MapFunction, RichFlatMapFunction}
+import org.apache.flink.streaming.api.functions.co.CoMapFunction
 import org.apache.flink.streaming.api.scala._
 import org.apache.flink.streaming.api.collector.selector.OutputSelector
 import org.apache.flink.util.Collector
@@ -30,6 +31,7 @@ import scala.util.Random
 import scala.collection.JavaConversions._
 
 object LinearRegressionScala {
+  type MyEither[L, R] = Either[L, R] with Product with Serializable
 
 def main (args: Array[String]){
   // set up execution environment
@@ -37,8 +39,8 @@ def main (args: Array[String]){
 
   val typedList = LinearRegressionData.DATA
     .map(pair => Data(pair(0).toString.toDouble, pair(0).toString.toDouble))
-    .map(x => (true, x, Params(0.0, 0.0)))
-  val dataList = typedList :+ (false, Data(0.0, 0.0), Params(0.0, 0.0))
+    .map(Left(_))
+  val dataList = typedList :+ Right(Params(0.0, 0.0))
 
   //FIXME
   env.setParallelism(1)
@@ -46,17 +48,29 @@ def main (args: Array[String]){
 //   get input x data from elements
   val data = env.fromCollection(dataList)
 
-  val iteration = data.iterate { data =>
-    val newData : SplitStream[(Boolean, Data, Params)] = data
-      // compute a single step using every sample
-      .flatMap(new SubUpdate)
-      // sum up all the steps
-      .flatMap(new UpdateAccumulator)
-      // average the steps and update all parameters
-      .map(new Update)
-      .shuffle
+//  val iteration  = data.iterate { data =>
+//    val newData = data
+//      // compute a single step using every sample
+//      .flatMap(new SubUpdate)
+//      // sum up all the steps
+//      .flatMap(new UpdateAccumulator).setParallelism(1)
+//      // average the steps and update all parameters
+//      .map(new Update)
+//      .shuffle
+//      .split(new IterationSelector)
+//    (newData.select("iterate"), newData.select("output"))
+//  }
+
+  val iteration = data.iterate{data =>
+    val updated = data.flatMap(new SubUpdate)
+    .flatMap(new UpdateAccumulator).setParallelism(1)
+    .map(new Update)
+    .broadcast
+
+    val connected = data.connect(updated)
+      .map(x => x, x => x)
       .split(new IterationSelector)
-    (newData.select("output"), newData.select("output"))
+    (connected.select("iterate"), connected.select("output"))
   }
 
   iteration print
@@ -81,6 +95,7 @@ def main (args: Array[String]){
       Params(theta0 / a, theta1 / a)
     }
   }
+
   // *************************************************************************
   //     USER FUNCTIONS
   // *************************************************************************
@@ -89,66 +104,70 @@ def main (args: Array[String]){
    * Compute a single BGD type update for every parameters.
    */
 
-  class SubUpdate extends RichFlatMapFunction[(Boolean, Data, Params),
-    (Boolean, Data, (Params, Int))]{
+  class SubUpdate extends RichFlatMapFunction[MyEither[Data, Params],
+    MyEither[Data, (Params, Int)]]{
     private var parameter: Params = Params(0.0, 0.0)
     private val count: Int = 1
 
-    override def flatMap(in: (Boolean, Data, Params),
-                         collector: Collector[(Boolean, Data, (Params, Int))]): Unit = {
-      if (in._1) {
+    override def flatMap(in: MyEither[Data, Params],
+                         collector: Collector[MyEither[Data, (Params, Int)]]): Unit = {
+      in match {
+        case Left(data) => {
         val theta_0 = parameter.theta0 - 0.01 *
-          ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y)
+          ((parameter.theta0 + (parameter.theta1 * data.x)) - data.y)
         val theta_1 = parameter.theta1 - 0.01 *
-          ((parameter.theta0 + (parameter.theta1 * in._2.x)) - in._2.y) * in._2.x
+          ((parameter.theta0 + (parameter.theta1 * data.x)) - data.y) * data.x
 
         //updated params
-        collector.collect((false, Data(0.0, 0.0), (Params(theta_0, theta_1), count)))
+        collector.collect(Right(Params(theta_0, theta_1), count))
 
         //data forward
-        collector.collect((true, in._2, (Params(0.0, 0.0), 0)))
-      } else {
-        parameter = in._3
+        collector.collect(Left(data))
+        }
+        case Right(param) => {
+          parameter = param
+        }
       }
     }
   }
 
-  class UpdateAccumulator extends FlatMapFunction[(Boolean, Data, (Params, Int)),
-    (Boolean, Data, (Params, Int))]{
-    val value = (false, Data(0.0, 0.0), (Params(0, 0), 0))
+  class UpdateAccumulator extends FlatMapFunction[MyEither[Data, (Params, Int)],
+    MyEither[Data, (Params, Int)]]{
+    var value = (Params(0.0, 0.0), 0)
 
-    override def flatMap(in: (Boolean, Data, (Params, Int)),
-                         collector: Collector[(Boolean, Data, (Params, Int))]) = {
-      if (in._1) {
-        collector.collect(in)
-      } else {
-        val val1 = in._3
-        val val2 = value._3
+    override def flatMap(in: MyEither[Data, (Params, Int)],
+                         collector: Collector[MyEither[Data, (Params, Int)]]) = {
+      in match {
+        case Left(data) => collector.collect(in)
+        case Right(param) => {
 
-        val new_theta0: Double = val1._1.theta0 + val2._1.theta0
-        val new_theta1: Double = val1._1.theta1 + val2._1.theta1
-        val result = Params(new_theta0, new_theta1)
+          val new_theta0: Double = param._1.theta0 + value._1.theta0
+          val new_theta1: Double = param._1.theta1 + value._1.theta1
+          value = (Params(new_theta0, new_theta1), param._2 + value._2)
 
-        collector.collect((false, Data(0.0, 0.0), (result, val1._2 + val2._2)))
-
+          collector.collect(Right(value))
+        }
       }
     }
   }
 
-  class Update extends MapFunction[(Boolean, Data, (Params, Int)), (Boolean, Data, Params)] {
-    override def map(in: (Boolean, Data, (Params, Int))): (Boolean, Data, Params) = {
-      if (in._1) {
-        (true, in._2, Params(0.0, 0.0))
-      } else {
-        (false, in._2, in._3._1.div(in._3._2))
+  class Update extends MapFunction[MyEither[Data, (Params, Int)], MyEither[Data, Params]] {
+    override def map(in: MyEither[Data, (Params, Int)] ): MyEither[Data, Params] = {
+      in match {
+        case Left(data) => Left(data)
+        case Right(param) => Right(param._1.div(param._2))
       }
     }
   }
 
-  class IterationSelector extends OutputSelector[(Boolean, Data, Params)] {
-    val rnd = new Random()
+  class IterationSelector extends OutputSelector[MyEither[Data, Params]] {
+    @transient
+    var rnd : Random = null
 
-    override def select(value: (Boolean, Data, Params)): Iterable[String] = {
+    override def select(value: MyEither[Data, Params]): Iterable[String] = {
+      if (rnd == null) {
+        rnd = new Random()
+      }
       if (rnd.nextInt(10) < 6) {
         List("output")
       } else {
