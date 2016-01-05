@@ -20,6 +20,7 @@ package org.apache.flink.streaming.ml.pipeline
 
 import org.apache.flink.api.scala.DataSet
 import org.apache.flink.ml.common.{FlinkMLTools, ParameterMap, WithParameters}
+import org.apache.flink.streaming.api.scala.DataStream
 
 import scala.reflect.runtime.universe._
 
@@ -47,7 +48,7 @@ trait Estimator[Self] extends WithParameters {
     * @return
     */
   def fit[Training](
-      training: DataSet[Training],
+      training: DataStream[Training],
       fitParameters: ParameterMap = ParameterMap.Empty)(implicit
       fitOperation: FitOperation[Self, Training]): Unit = {
     FlinkMLTools.registerFlinkMLTypes(training.getExecutionEnvironment)
@@ -76,7 +77,7 @@ object Estimator{
       override def fit(
           instance: Self,
           fitParameters: ParameterMap,
-          input: DataSet[Training])
+          input: DataStream[Training])
         : Unit = {
         val self = typeOf[Self]
         val training = typeOf[Training]
@@ -87,10 +88,10 @@ object Estimator{
     }
   }
 
-  /** Fallback [[PredictDataSetOperation]] if a [[Predictor]] is called with a not supported input
-    * data type. The fallback [[PredictDataSetOperation]] lets the system fail with a
+  /** Fallback [[PredictDataStreamOperation]] if a [[Predictor]] is called with a not supported input
+    * data type. The fallback [[PredictDataStreamOperation]] lets the system fail with a
     * [[RuntimeException]] stating which input and output data types were inferred but for which no
-    * [[PredictDataSetOperation]] could be found.
+    * [[PredictDataStreamOperation]] could be found.
     *
     * @tparam Self Type of the [[Predictor]]
     * @tparam Testing Type of the testing data
@@ -99,13 +100,13 @@ object Estimator{
   implicit def fallbackPredictOperation[
       Self: TypeTag,
       Testing: TypeTag]
-    : PredictDataSetOperation[Self, Testing, Any] = {
-    new PredictDataSetOperation[Self, Testing, Any] {
-      override def predictDataSet(
+    : PredictDataStreamOperation[Self, Testing, Any] = {
+    new PredictDataStreamOperation[Self, Testing, Any] {
+      override def predictDataStream(
           instance: Self,
           predictParameters: ParameterMap,
-          input: DataSet[Testing])
-        : DataSet[Any] = {
+          input: DataStream[Testing])
+        : DataStream[Any] = {
         val self = typeOf[Self]
         val testing = typeOf[Testing]
 
@@ -115,56 +116,57 @@ object Estimator{
     }
   }
 
-  /** Fallback [[TransformDataSetOperation]] for [[Transformer]] which do not support the input or
-    * output type with which they are called. This is usualy the case if pipeline operators are
-    * chained which have incompatible input/output types. In order to detect these failures, the
-    * fallback [[TransformDataSetOperation]] throws a [[RuntimeException]] with the corresponding
-    * input/output types. Consequently, a wrong pipeline will be detected at pre-flight phase of
-    * Flink and thus prior to execution time.
-    *
-    * @tparam Self Type of the [[Transformer]] for which the [[TransformDataSetOperation]] is
-    *              defined
-    * @tparam IN Input data type of the [[TransformDataSetOperation]]
-    * @return
-    */
-  implicit def fallbackTransformOperation[
-  Self: TypeTag,
-  IN: TypeTag]
-  : TransformDataSetOperation[Self, IN, Any] = {
-    new TransformDataSetOperation[Self, IN, Any] {
-      override def transformDataSet(
-        instance: Self,
-        transformParameters: ParameterMap,
-        input: DataSet[IN])
-      : DataSet[Any] = {
-        val self = typeOf[Self]
-        val in = typeOf[IN]
-
-        throw new RuntimeException("There is no TransformOperation defined for " +
-          self +  " which takes a DataSet[" + in +
-          "] as input.")
-      }
-    }
-  }
-
-  implicit def fallbackEvaluateOperation[
-      Self: TypeTag,
-      Testing: TypeTag]
-    : EvaluateDataSetOperation[Self, Testing, Any] = {
-    new EvaluateDataSetOperation[Self, Testing, Any] {
-      override def evaluateDataSet(
-        instance: Self,
-        predictParameters: ParameterMap,
-        input: DataSet[Testing])
-      : DataSet[(Any, Any)] = {
-        val self = typeOf[Self]
-        val testing = typeOf[Testing]
-
-        throw new RuntimeException("There is no PredictOperation defined for " + self +
-          " which takes a DataSet[" + testing + "] as input.")
-      }
-    }
-  }
+//TODO
+//  /** Fallback [[TransformDataSetOperation]] for [[Transformer]] which do not support the input or
+//    * output type with which they are called. This is usualy the case if pipeline operators are
+//    * chained which have incompatible input/output types. In order to detect these failures, the
+//    * fallback [[TransformDataSetOperation]] throws a [[RuntimeException]] with the corresponding
+//    * input/output types. Consequently, a wrong pipeline will be detected at pre-flight phase of
+//    * Flink and thus prior to execution time.
+//    *
+//    * @tparam Self Type of the [[Transformer]] for which the [[TransformDataSetOperation]] is
+//    *              defined
+//    * @tparam IN Input data type of the [[TransformDataSetOperation]]
+//    * @return
+//    */
+//  implicit def fallbackTransformOperation[
+//  Self: TypeTag,
+//  IN: TypeTag]
+//  : TransformDataSetOperation[Self, IN, Any] = {
+//    new TransformDataSetOperation[Self, IN, Any] {
+//      override def transformDataStream(
+//        instance: Self,
+//        transformParameters: ParameterMap,
+//        input: DataSet[IN])
+//      : DataSet[Any] = {
+//        val self = typeOf[Self]
+//        val in = typeOf[IN]
+//
+//        throw new RuntimeException("There is no TransformOperation defined for " +
+//          self +  " which takes a DataSet[" + in +
+//          "] as input.")
+//      }
+//    }
+//  }
+//
+//  implicit def fallbackEvaluateOperation[
+//      Self: TypeTag,
+//      Testing: TypeTag]
+//    : EvaluateDataSetOperation[Self, Testing, Any] = {
+//    new EvaluateDataSetOperation[Self, Testing, Any] {
+//      override def evaluateDataSet(
+//        instance: Self,
+//        predictParameters: ParameterMap,
+//        input: DataSet[Testing])
+//      : DataSet[(Any, Any)] = {
+//        val self = typeOf[Self]
+//        val testing = typeOf[Testing]
+//
+//        throw new RuntimeException("There is no PredictOperation defined for " + self +
+//          " which takes a DataSet[" + testing + "] as input.")
+//      }
+//    }
+//  }
 }
 
 /** Type class for the fit operation of an [[Estimator]].
@@ -176,5 +178,5 @@ object Estimator{
   * @tparam Training Type of the training data
   */
 trait FitOperation[Self, Training]{
-  def fit(instance: Self, fitParameters: ParameterMap,  input: DataSet[Training]): Unit
+  def fit(instance: Self, fitParameters: ParameterMap, input: DataStream[Training]): Unit
 }

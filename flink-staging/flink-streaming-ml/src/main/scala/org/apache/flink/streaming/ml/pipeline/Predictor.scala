@@ -22,6 +22,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.scala._
 import org.apache.flink.ml._
 import org.apache.flink.ml.common.{FlinkMLTools, ParameterMap, WithParameters}
+import org.apache.flink.streaming.api.scala.DataStream
 
 /** Predictor trait for Flink's pipeline operators.
   *
@@ -81,98 +82,99 @@ trait Predictor[Self] extends Estimator[Self] with WithParameters {
 
 object Predictor {
 
-  /** Default [[PredictDataSetOperation]] which takes a [[PredictOperation]] to calculate a tuple
-    * of testing element and its prediction value.
-    *
-    * Note: We have to put the TypeInformation implicit values for Testing and PredictionValue after
-    * the PredictOperation implicit parameter. Otherwise, if it's defined as a context bound, then
-    * the Scala compiler does not find the implicit [[PredictOperation]] value.
-    *
-    * @param predictOperation
-    * @param testingTypeInformation
-    * @param predictionValueTypeInformation
-    * @tparam Instance
-    * @tparam Model
-    * @tparam Testing
-    * @tparam PredictionValue
-    * @return
-    */
-  implicit def defaultPredictDataSetOperation[
-      Instance <: Estimator[Instance],
-      Model,
-      Testing,
-      PredictionValue](
-      implicit predictOperation: PredictOperation[Instance, Model, Testing, PredictionValue],
-      testingTypeInformation: TypeInformation[Testing],
-      predictionValueTypeInformation: TypeInformation[PredictionValue])
-    : PredictDataSetOperation[Instance, Testing, (Testing, PredictionValue)] = {
-    new PredictDataSetOperation[Instance, Testing, (Testing, PredictionValue)] {
-      override def predictDataSet(
-          instance: Instance,
-          predictParameters: ParameterMap,
-          input: DataSet[Testing])
-        : DataSet[(Testing, PredictionValue)] = {
-        val resultingParameters = instance.parameters ++ predictParameters
-
-        val model = predictOperation.getModel(instance, resultingParameters)
-
-        implicit val resultTypeInformation = createTypeInformation[(Testing, PredictionValue)]
-
-        input.mapWithBcVariable(model){
-          (element, model) => {
-            (element, predictOperation.predict(element, model))
-          }
-        }
-      }
-    }
-  }
-
-  /** Default [[EvaluateDataSetOperation]] which takes a [[PredictOperation]] to calculate a tuple
-    * of true label value and predicted label value.
-    *
-    * Note: We have to put the TypeInformation implicit values for Testing and PredictionValue after
-    * the PredictOperation implicit parameter. Otherwise, if it's defined as a context bound, then
-    * the Scala compiler does not find the implicit [[PredictOperation]] value.
-    *
-    * @param predictOperation
-    * @param testingTypeInformation
-    * @param predictionValueTypeInformation
-    * @tparam Instance
-    * @tparam Model
-    * @tparam Testing
-    * @tparam PredictionValue
-    * @return
-    */
-  implicit def defaultEvaluateDataSetOperation[
-      Instance <: Estimator[Instance],
-      Model,
-      Testing,
-      PredictionValue](
-      implicit predictOperation: PredictOperation[Instance, Model, Testing, PredictionValue],
-      testingTypeInformation: TypeInformation[Testing],
-      predictionValueTypeInformation: TypeInformation[PredictionValue])
-    : EvaluateDataSetOperation[Instance, (Testing, PredictionValue), PredictionValue] = {
-    new EvaluateDataSetOperation[Instance, (Testing, PredictionValue), PredictionValue] {
-      override def evaluateDataSet(
-          instance: Instance,
-          evaluateParameters: ParameterMap,
-          testing: DataSet[(Testing, PredictionValue)])
-        : DataSet[(PredictionValue,  PredictionValue)] = {
-        val resultingParameters = instance.parameters ++ evaluateParameters
-        val model = predictOperation.getModel(instance, resultingParameters)
-
-        implicit val resultTypeInformation = createTypeInformation[(Testing, PredictionValue)]
-
-        testing.mapWithBcVariable(model){
-          (element, model) => {
-            (element._2, predictOperation.predict(element._1, model))
-          }
-        }
-      }
-    }
-  }
+//  /** Default [[PredictDataSetOperation]] which takes a [[PredictOperation]] to calculate a tuple
+//    * of testing element and its prediction value.
+//    *
+//    * Note: We have to put the TypeInformation implicit values for Testing and PredictionValue after
+//    * the PredictOperation implicit parameter. Otherwise, if it's defined as a context bound, then
+//    * the Scala compiler does not find the implicit [[PredictOperation]] value.
+//    *
+//    * @param predictOperation
+//    * @param testingTypeInformation
+//    * @param predictionValueTypeInformation
+//    * @tparam Instance
+//    * @tparam Model
+//    * @tparam Testing
+//    * @tparam PredictionValue
+//    * @return
+//    */
+//  implicit def defaultPredictDataSetOperation[
+//      Instance <: Estimator[Instance],
+//      Model,
+//      Testing,
+//      PredictionValue](
+//      implicit predictOperation: PredictOperation[Instance, Model, Testing, PredictionValue],
+//      testingTypeInformation: TypeInformation[Testing],
+//      predictionValueTypeInformation: TypeInformation[PredictionValue])
+//    : PredictDataSetOperation[Instance, Testing, (Testing, PredictionValue)] = {
+//    new PredictDataSetOperation[Instance, Testing, (Testing, PredictionValue)] {
+//      override def predictDataSet(
+//          instance: Instance,
+//          predictParameters: ParameterMap,
+//          input: DataSet[Testing])
+//        : DataSet[(Testing, PredictionValue)] = {
+//        val resultingParameters = instance.parameters ++ predictParameters
+//
+//        val model = predictOperation.getModel(instance, resultingParameters)
+//
+//        implicit val resultTypeInformation = createTypeInformation[(Testing, PredictionValue)]
+//
+//        input.mapWithBcVariable(model){
+//          (element, model) => {
+//            (element, predictOperation.predict(element, model))
+//          }
+//        }
+//      }
+//    }
+//  }
+//
+//  /** Default [[EvaluateDataSetOperation]] which takes a [[PredictOperation]] to calculate a tuple
+//    * of true label value and predicted label value.
+//    *
+//    * Note: We have to put the TypeInformation implicit values for Testing and PredictionValue after
+//    * the PredictOperation implicit parameter. Otherwise, if it's defined as a context bound, then
+//    * the Scala compiler does not find the implicit [[PredictOperation]] value.
+//    *
+//    * @param predictOperation
+//    * @param testingTypeInformation
+//    * @param predictionValueTypeInformation
+//    * @tparam Instance
+//    * @tparam Model
+//    * @tparam Testing
+//    * @tparam PredictionValue
+//    * @return
+//    */
+//  implicit def defaultEvaluateDataSetOperation[
+//      Instance <: Estimator[Instance],
+//      Model,
+//      Testing,
+//      PredictionValue](
+//      implicit predictOperation: PredictOperation[Instance, Model, Testing, PredictionValue],
+//      testingTypeInformation: TypeInformation[Testing],
+//      predictionValueTypeInformation: TypeInformation[PredictionValue])
+//    : EvaluateDataSetOperation[Instance, (Testing, PredictionValue), PredictionValue] = {
+//    new EvaluateDataSetOperation[Instance, (Testing, PredictionValue), PredictionValue] {
+//      override def evaluateDataSet(
+//          instance: Instance,
+//          evaluateParameters: ParameterMap,
+//          testing: DataSet[(Testing, PredictionValue)])
+//        : DataSet[(PredictionValue,  PredictionValue)] = {
+//        val resultingParameters = instance.parameters ++ evaluateParameters
+//        val model = predictOperation.getModel(instance, resultingParameters)
+//
+//        implicit val resultTypeInformation = createTypeInformation[(Testing, PredictionValue)]
+//
+//        testing.mapWithBcVariable(model){
+//          (element, model) => {
+//            (element._2, predictOperation.predict(element._1, model))
+//          }
+//        }
+//      }
+//    }
+//  }
 }
 
+//FIXME
 /** Type class for the predict operation of [[Predictor]]. This predict operation works on DataSets.
   *
   * [[Predictor]]s either have to implement this trait or the [[PredictOperation]] trait. The
@@ -203,6 +205,37 @@ trait PredictDataSetOperation[Self, Testing, Prediction] extends Serializable{
     : DataSet[Prediction]
 }
 
+//FIXME
+/** Type class for the predict operation of [[Predictor]]. This predict operation works on DataStreams.
+  *
+  * [[Predictor]]s either have to implement this trait or the [[PredictOperation]] trait. The
+  * implementation has to be made available as an implicit value or function in the scope of
+  * their companion objects.
+  *
+  * The first type parameter is the type of the implementing [[Predictor]] class so that the Scala
+  * compiler includes the companion object of this class in the search scope for the implicit
+  * values.
+  *
+  * @tparam Self Type of [[Predictor]] implementing class
+  * @tparam Testing Type of testing data
+  * @tparam Prediction Type of predicted data
+  */
+trait PredictDataStreamOperation[Self, Testing, Prediction] extends Serializable{
+
+  /** Calculates the predictions for all elements in the [[DataStream]] input
+    *
+    * @param instance The Predictor instance that we will use to make the predictions
+    * @param predictParameters The parameters for the prediction
+    * @param input The DataStream containing the unlabeled examples
+    * @return
+    */
+  def predictDataStream(
+                      instance: Self,
+                      predictParameters: ParameterMap,
+                      input: DataStream[Testing])
+  : DataStream[Prediction]
+}
+
 /** Type class for predict operation. It takes an element and the model and then computes the
   * prediction value for this element.
   *
@@ -224,7 +257,7 @@ trait PredictOperation[Instance, Model, Testing, Prediction] extends Serializabl
     * @param predictParameters The parameters for the prediction
     * @return A DataSet with the model representation as its only element
     */
-  def getModel(instance: Instance, predictParameters: ParameterMap): DataSet[Model]
+  def getModel(instance: Instance, predictParameters: ParameterMap): DataStream[Model]
 
   /** Calculates the prediction for a single element given the model of the [[Predictor]].
     *
