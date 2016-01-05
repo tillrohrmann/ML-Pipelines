@@ -42,24 +42,9 @@ def main (args: Array[String]){
     .map(Left(_))
   val dataList = typedList :+ Right(Params(0.0, 0.0))
 
-  //FIXME
-  env.setParallelism(1)
-
-//   get input x data from elements
   val data = env.fromCollection(dataList)
-
-//  val iteration  = data.iterate { data =>
-//    val newData = data
-//      // compute a single step using every sample
-//      .flatMap(new SubUpdate)
-//      // sum up all the steps
-//      .flatMap(new UpdateAccumulator).setParallelism(1)
-//      // average the steps and update all parameters
-//      .map(new Update)
-//      .shuffle
-//      .split(new IterationSelector)
-//    (newData.select("iterate"), newData.select("output"))
-//  }
+    .map(x => x)
+    .rebalance
 
   val iteration = data.iterate{data =>
     val updated = data.flatMap(new SubUpdate)
@@ -75,7 +60,7 @@ def main (args: Array[String]){
 
   iteration print
 
-  env execute
+  System.out.println(env.getExecutionPlan)
 }
 
   // *************************************************************************
